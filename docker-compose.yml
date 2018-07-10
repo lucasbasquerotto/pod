@@ -4,48 +4,25 @@ services:
   nginx:
     build: ./nginx
     links:
-      - server-john
-      - server-paul
-      - server-george
-      - server-ringo
+      - server
+      - websocket
     ports:
-    - "3000:80"
+      - "80:80"
+      - "7000:7000"
 
-  server-john:
+  server:
     build: ./server
+    ports:
+      - "8000:80"
+    environment:
+      - NAME=Server
+
+  websocket:
+    build: ./websocket
+    ports:
+      - "3000:3000"
     links:
       - redis
-    expose:
-      - "3000"
-    environment:
-      - NAME=John
-
-  server-paul:
-    build: ./server
-    links:
-      - redis
-    expose:
-      - "3000"
-    environment:
-      - NAME=Paul
-
-  server-george:
-    build: ./server
-    links:
-      - redis
-    expose:
-      - "3000"
-    environment:
-      - NAME=George
-
-  server-ringo:
-    build: ./server
-    links:
-      - redis
-    expose:
-      - "3000"
-    environment:
-      - NAME=Ringo
 
   redis:
     container_name: redis
@@ -54,13 +31,18 @@ services:
       - "6379"
 
   mysql:
-      image: mysql:5.7
-      restart: always
-      environment:
+    image: mysql:5.7
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
       - MYSQL_ROOT_PASSWORD=pass01
       - MYSQL_USER=viewer
       - MYSQL_PASSWORD=pass02
-      ports: 
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+    ports: 
       - 3306:3306
 
   adminer:
@@ -72,15 +54,15 @@ services:
       - mysql:db
 
   phpmyadmin:
-      image: phpmyadmin/phpmyadmin
-      restart: always
-      environment:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    environment:
       - PMA_HOST=db 
       - PMA_PORT=3306
       #- PMA_ARBITRARY=1
-      ports:
+    ports:
       - 8081:80
-      links:
+    links:
       - mysql:db
 
   mantisbt:
@@ -90,4 +72,20 @@ services:
       - 8082:80
     links:
       - mysql:db
-      
+
+  wordpress:
+    image: wordpress:latest
+    depends_on:
+      - mysql
+    links:
+      - mysql:db
+    restart: always
+    ports:
+      - "8083:80"
+    environment:
+      - WORDPRESS_DB_HOST=db:3306
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+
+volumes:
+    db_data:

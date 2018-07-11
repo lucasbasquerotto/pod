@@ -2,7 +2,7 @@
 var express = require('express');
 var app = express();
 var server = require('http').createServer(app);
-var port = process.env.PORT || 80;
+var port = process.env.PORT || 8099;
 var serverName = process.env.NAME || 'Unknown';
 
 server.listen(port, function () {

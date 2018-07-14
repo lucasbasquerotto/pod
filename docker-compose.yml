@@ -3,6 +3,7 @@ version: '3.3'
 services:
   nginx:
     build: ./nginx
+    restart: always
     links:
       - main-server
       - websocket
@@ -12,6 +13,7 @@ services:
 
   main-server:
     build: ./server
+    restart: always
     ports:
       - "8000:8099"
     environment:
@@ -19,14 +21,15 @@ services:
 
   websocket:
     build: ./websocket
+    restart: always
     ports:
       - "3111:3000"
     links:
       - redis
 
   redis:
-    container_name: redis
     image: redis:alpine
+    restart: always
     expose:
       - "6379"
 
@@ -66,7 +69,7 @@ services:
       - mysql:db
 
   mantisbt:
-    build: ./mantisbt
+    image: lucasbasquerotto/mantisbt
     restart: always
     ports:
       - 8082:80
@@ -75,11 +78,11 @@ services:
 
   wordpress:
     image: wordpress:latest
+    restart: always
     depends_on:
       - mysql
     links:
       - mysql:db
-    restart: always
     ports:
       - "8083:80"
     environment:
@@ -87,5 +90,40 @@ services:
       - WORDPRESS_DB_USER=wordpress
       - WORDPRESS_DB_PASSWORD=wordpress
 
+  mariadb:
+    image: 'bitnami/mariadb:latest'
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MARIADB_USER=bn_magento
+      - MARIADB_PASSWORD=your_password
+      - MARIADB_DATABASE=bitnami_magento
+    volumes:
+      - 'mariadb_data:/bitnami'
+
+  magento:
+    image: 'bitnami/magento:latest'
+    restart: always
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT_NUMBER=3306
+      - MAGENTO_DATABASE_USER=bn_magento
+      - MAGENTO_DATABASE_PASSWORD=your_password
+      - MAGENTO_DATABASE_NAME=bitnami_magento
+    ports:
+      - '7080:80'
+      - '7443:443'
+    volumes:
+      - 'magento_data:/bitnami'
+    depends_on:
+      - mariadb
+
 volumes:
-    db_data:
+  db_data:
+
+  portainer_data:
+
+  mariadb_data:
+    driver: local
+  magento_data:
+    driver: local

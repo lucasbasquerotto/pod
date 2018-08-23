@@ -3,7 +3,7 @@ version: '3.3'
 services:
   nginx:
     build: ./nginx
-    restart: always
+    restart: on-failure
     links:
       - main-server
       - websocket
@@ -13,7 +13,7 @@ services:
 
   main-server:
     build: ./server
-    restart: always
+    restart: on-failure
     ports:
       - "8000:8099"
     environment:
@@ -21,7 +21,7 @@ services:
 
   websocket:
     build: ./websocket
-    restart: always
+    restart: on-failure
     ports:
       - "3111:3000"
     links:
@@ -29,13 +29,13 @@ services:
 
   redis:
     image: redis:alpine
-    restart: always
+    restart: on-failure
     expose:
       - "6379"
 
   mysql:
     image: mysql:5.7
-    restart: always
+    restart: on-failure
     volumes:
       - db_data:/var/lib/mysql
     environment:
@@ -50,7 +50,7 @@ services:
 
   adminer:
     image: adminer
-    restart: always
+    restart: on-failure
     ports:
       - 8080:8080
     links:
@@ -58,7 +58,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    restart: always
+    restart: on-failure
     environment:
       - PMA_HOST=db 
       - PMA_PORT=3306
@@ -70,7 +70,7 @@ services:
 
   mantisbt:
     image: lucasbasquerotto/mantisbt
-    restart: always
+    restart: on-failure
     ports:
       - 8082:80
     links:
@@ -78,7 +78,7 @@ services:
 
   wordpress:
     image: wordpress:latest
-    restart: always
+    restart: on-failure
     depends_on:
       - mysql
     links:

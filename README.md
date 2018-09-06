@@ -13,30 +13,39 @@ curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts
 chmod +x ~/bin/docker-compose
 ```
 
-## 3. Install git (actually, download the script to run from a docker container)
+## 3. Download the script to run git (use git from a docker container)
 
 ```bash
-curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/git.sh -o ~/bin/git
-chmod +x ~/bin/git
+curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/main.sh -o ~/bin/main
+chmod +x ~/bin/main
 ```
 
 _(You may need to logout and login to make the changes apply. Make sure that `~/bin/` is in your `PATH`)_
 
-## 4. Use git to clone this repository
+## 4. Clone this repository inside `/docker/main/`
 
 ```bash
-git clone https://github.com/lucasbasquerotto/docker-main.git
-cd docker-main
+main init main https://github.com/lucasbasquerotto/docker-main.git
 ```
 
 ## 5. Start the containers with docker-compose
 
 ```bash
+cd /docker/main
 docker-compose up
 ```
 
 ## 6. Stop the containers with docker-compose
 
 ```bash
+cd /docker/main
 docker-compose down
+```
+
+# Notes
+
+## 1. To update the git repository version (to a tag version, e.g. `0.0.2`)
+
+```bash
+main update main 0.0.2
 ```

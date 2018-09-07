@@ -52,7 +52,7 @@ docker-compose up
 
 ```bash
 cd /docker/main
-docker-compose down
+docker-compose stop
 ```
 
 # Notes

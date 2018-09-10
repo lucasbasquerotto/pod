@@ -3,14 +3,16 @@ version: '3.3'
 services:
   stats:
     build: ./stats
+    restart: on-failure
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - /var/run/docker.sock:/var/run/docker.sock
-    restart: on-failure
 
   nginx:
-    image: nginx
+    build: ./nginx
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     links:
       - main-server
       - websocket
@@ -21,6 +23,8 @@ services:
   main-server:
     build: ./server
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
       - "8000:8099"
     environment:
@@ -29,6 +33,8 @@ services:
   websocket:
     build: ./websocket
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
       - "3111:3000"
     links:
@@ -37,6 +43,8 @@ services:
   redis:
     image: redis:alpine
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     expose:
       - "6379"
 
@@ -44,6 +52,7 @@ services:
     image: mysql:5.7
     restart: on-failure
     volumes:
+     - /etc/localtime:/etc/localtime:ro
       - db_data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=pass01
@@ -58,6 +67,8 @@ services:
   adminer:
     image: adminer
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
       - 8080:8080
     links:
@@ -66,6 +77,8 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     environment:
       - PMA_HOST=db 
       - PMA_PORT=3306
@@ -78,6 +91,8 @@ services:
   mantisbt:
     image: lucasbasquerotto/mantisbt
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
       - 8082:80
     links:
@@ -86,6 +101,8 @@ services:
   wordpress:
     image: wordpress:latest
     restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     depends_on:
       - mysql
     links:

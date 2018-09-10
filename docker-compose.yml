@@ -17,11 +17,11 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     links:
-      - main-server
-      - websocket
+     - main-server
+     - websocket
     ports:
-      - "80:9000"
-      - "3999:7000"
+     - "80:9000"
+     - "3999:7000"
     logging: *logging
 
   main-server:
@@ -30,9 +30,9 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-      - "8000:8099"
+     - "8000:8099"
     environment:
-      - NAME=Server
+     - NAME=Server
     logging: *logging
 
   websocket:
@@ -41,9 +41,9 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-      - "3111:3000"
+     - "3111:3000"
     links:
-      - redis
+     - redis
     logging: *logging
 
   redis:
@@ -52,7 +52,7 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     expose:
-      - "6379"
+     - "6379"
     logging: *logging
 
   mysql:
@@ -60,16 +60,16 @@ services:
     restart: on-failure
     volumes:
      - /etc/localtime:/etc/localtime:ro
-      - db_data:/var/lib/mysql
+     - db_data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=pass01
-      - MYSQL_USER=viewer
-      - MYSQL_PASSWORD=pass02
-      - MYSQL_DATABASE=wordpress
-      - MYSQL_USER=wordpress
-      - MYSQL_PASSWORD=wordpress
+     - MYSQL_ROOT_PASSWORD=pass01
+     - MYSQL_USER=viewer
+     - MYSQL_PASSWORD=pass02
+     - MYSQL_DATABASE=wordpress
+     - MYSQL_USER=wordpress
+     - MYSQL_PASSWORD=wordpress
     ports: 
-      - 3306:3306
+     - 3306:3306
     logging: *logging
 
   adminer:
@@ -78,9 +78,9 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-      - 8080:8080
+     - 8080:8080
     links:
-      - mysql:db
+     - mysql:db
     logging: *logging
 
   phpmyadmin:
@@ -89,13 +89,12 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     environment:
-      - PMA_HOST=db 
-      - PMA_PORT=3306
-      #- PMA_ARBITRARY=1
+     - PMA_HOST=db 
+     - PMA_PORT=3306
     ports:
-      - 8081:80
+     - 8081:80
     links:
-      - mysql:db
+     - mysql:db
     logging: *logging
 
   mantisbt:
@@ -104,9 +103,9 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-      - 8082:80
+     - 8082:80
     links:
-      - mysql:db
+     - mysql:db
     logging: *logging
 
   wordpress:
@@ -115,15 +114,15 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     depends_on:
-      - mysql
+     - mysql
     links:
-      - mysql:db
+     - mysql:db
     ports:
-      - "8083:80"
+     - "8083:80"
     environment:
-      - WORDPRESS_DB_HOST=db:3306
-      - WORDPRESS_DB_USER=wordpress
-      - WORDPRESS_DB_PASSWORD=wordpress
+     - WORDPRESS_DB_HOST=db:3306
+     - WORDPRESS_DB_USER=wordpress
+     - WORDPRESS_DB_PASSWORD=wordpress
     logging: *logging
 
 volumes:

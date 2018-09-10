@@ -7,6 +7,9 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - /var/run/docker.sock:/var/run/docker.sock
+    logging: &logging
+      options:
+        max-size: 50m
 
   nginx:
     build: ./nginx
@@ -19,6 +22,7 @@ services:
     ports:
       - "80:9000"
       - "3999:7000"
+    logging: *logging
 
   main-server:
     build: ./server
@@ -29,6 +33,7 @@ services:
       - "8000:8099"
     environment:
       - NAME=Server
+    logging: *logging
 
   websocket:
     build: ./websocket
@@ -39,6 +44,7 @@ services:
       - "3111:3000"
     links:
       - redis
+    logging: *logging
 
   redis:
     image: redis:alpine
@@ -47,6 +53,7 @@ services:
      - /etc/localtime:/etc/localtime:ro
     expose:
       - "6379"
+    logging: *logging
 
   mysql:
     image: mysql:5.7
@@ -63,6 +70,7 @@ services:
       - MYSQL_PASSWORD=wordpress
     ports: 
       - 3306:3306
+    logging: *logging
 
   adminer:
     image: adminer
@@ -73,6 +81,7 @@ services:
       - 8080:8080
     links:
       - mysql:db
+    logging: *logging
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -87,6 +96,7 @@ services:
       - 8081:80
     links:
       - mysql:db
+    logging: *logging
 
   mantisbt:
     image: lucasbasquerotto/mantisbt
@@ -97,6 +107,7 @@ services:
       - 8082:80
     links:
       - mysql:db
+    logging: *logging
 
   wordpress:
     image: wordpress:latest
@@ -113,6 +124,7 @@ services:
       - WORDPRESS_DB_HOST=db:3306
       - WORDPRESS_DB_USER=wordpress
       - WORDPRESS_DB_PASSWORD=wordpress
+    logging: *logging
 
 volumes:
   db_data:

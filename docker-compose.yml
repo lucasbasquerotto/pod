@@ -125,5 +125,59 @@ services:
      - WORDPRESS_DB_PASSWORD=wordpress
     logging: *logging
 
+  #filebeat:
+  #  build: ./filebeat
+  #  restart: on-failure
+  #  volumes:
+  #   - /etc/localtime:/etc/localtime:ro
+  #  logging: *logging
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+    logging: *logging
+
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk 
+    logging: *logging     
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+    logging: *logging
+      
+networks:
+  elk:
+    driver: bridge
+    
 volumes:
   db_data:

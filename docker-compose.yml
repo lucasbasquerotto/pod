@@ -7,9 +7,11 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - /var/run/docker.sock:/var/run/docker.sock
-    logging: &logging
+    logging: &gelf
+      driver: gelf
       options:
-        max-size: 50m
+        gelf-address: udp://localhost:12201
+        tag: "staging"
 
   nginx:
     build: ./nginx
@@ -22,7 +24,10 @@ services:
     ports:
      - "80:9000"
      - "3999:7000"
-    logging: *logging
+    networks:
+      - internet
+      - no-internet
+    logging: *gelf
 
   main-server:
     build: ./server
@@ -33,7 +38,9 @@ services:
      - "8000:8099"
     environment:
      - NAME=Server
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   websocket:
     build: ./websocket
@@ -44,7 +51,9 @@ services:
      - "3111:3000"
     links:
      - redis
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   redis:
     image: redis:alpine
@@ -53,7 +62,9 @@ services:
      - /etc/localtime:/etc/localtime:ro
     expose:
      - "6379"
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   mysql:
     image: mysql:5.7
@@ -70,7 +81,9 @@ services:
      - MYSQL_PASSWORD=wordpress
     ports: 
      - 3306:3306
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   adminer:
     image: adminer
@@ -81,7 +94,9 @@ services:
      - 8080:8080
     links:
      - mysql:db
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -89,13 +104,18 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     environment:
-     - PMA_HOST=db 
+#     - PMA_HOST=db
+     - PMA_HOST=host.docker.internal
      - PMA_PORT=3306
     ports:
      - 8081:80
     links:
      - mysql:db
-    logging: *logging
+    extra_hosts:
+     - "host.docker.internal:$DOCKER_HOST_IP"
+    networks:
+      - no-internet
+    logging: *gelf
 
   mantisbt:
     image: lucasbasquerotto/mantisbt
@@ -106,7 +126,9 @@ services:
      - 8082:80
     links:
      - mysql:db
-    logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   wordpress:
     image: wordpress:latest
@@ -123,30 +145,29 @@ services:
      - WORDPRESS_DB_HOST=db:3306
      - WORDPRESS_DB_USER=wordpress
      - WORDPRESS_DB_PASSWORD=wordpress
-    logging: *logging
-
-  #filebeat:
-  #  build: ./filebeat
-  #  restart: on-failure
-  #  volumes:
-  #   - /etc/localtime:/etc/localtime:ro
-  #  logging: *logging
+    networks:
+      - no-internet
+    logging: *gelf
 
   logstash:
     build:
       context: logstash/
       args:
         ELK_VERSION: $ELK_VERSION
-    ports:
-      - "5000:5000"
-      - "9600:9600"
+    links:
+      - elasticsearch
     environment:
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+    ports:
+      - "12201:12201/udp"
+      - "5044:5044"
     networks:
       - elk
     depends_on:
       - elasticsearch
-    logging: *logging
+    logging: &logging
+      options:
+        max-size: 50m
 
   elasticsearch:
     build:
@@ -157,7 +178,7 @@ services:
       - "9200:9200"
       - "9300:9300"
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      - "ES_JAVA_OPTS=-Xmx256m -Xms256m"
     networks:
       - elk 
     logging: *logging     
@@ -167,15 +188,20 @@ services:
       context: kibana/
       args:
         ELK_VERSION: $ELK_VERSION
+    links:
+      - elasticsearch
     ports:
       - "5601:5601"
     networks:
       - elk
-    depends_on:
-      - elasticsearch
     logging: *logging
       
 networks:
+  internet:
+    driver: bridge
+  no-internet:
+    driver: bridge
+    internal: true
   elk:
     driver: bridge
     

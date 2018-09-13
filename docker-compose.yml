@@ -26,7 +26,6 @@ services:
      - "3999:7000"
     networks:
       - internet
-      - no-internet
     logging: *gelf
 
   main-server:
@@ -39,7 +38,7 @@ services:
     environment:
      - NAME=Server
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   websocket:
@@ -52,7 +51,7 @@ services:
     links:
      - redis
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   redis:
@@ -63,7 +62,7 @@ services:
     expose:
      - "6379"
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   mysql:
@@ -82,7 +81,7 @@ services:
     ports: 
      - 3306:3306
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   adminer:
@@ -95,7 +94,7 @@ services:
     links:
      - mysql:db
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   phpmyadmin:
@@ -104,17 +103,17 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     environment:
-#     - PMA_HOST=db
-     - PMA_HOST=host.docker.internal
+     - PMA_HOST=db
+#     - PMA_HOST=host.docker.internal
      - PMA_PORT=3306
     ports:
      - 8081:80
     links:
      - mysql:db
-    extra_hosts:
-     - "host.docker.internal:$DOCKER_HOST_IP"
+#    extra_hosts:
+#     - "host.docker.internal:$DOCKER_HOST_IP"
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   mantisbt:
@@ -127,7 +126,7 @@ services:
     links:
      - mysql:db
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   wordpress:
@@ -146,7 +145,7 @@ services:
      - WORDPRESS_DB_USER=wordpress
      - WORDPRESS_DB_PASSWORD=wordpress
     networks:
-      - no-internet
+      - internet
     logging: *gelf
 
   logstash:

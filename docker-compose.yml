@@ -21,9 +21,11 @@ services:
     links:
      - main-server
      - websocket
+     - wildfly
     ports:
      - "80:9000"
      - "3999:7000"
+     - "9991:9991"
     networks:
       - internet
     logging: *gelf
@@ -90,7 +92,7 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-     - 8080:8080
+     - 9080:8080
     links:
      - mysql:db
     networks:
@@ -194,6 +196,15 @@ services:
     networks:
       - elk
     logging: *logging
+
+  wildfly:
+    image: jboss/wildfly:13.0.0.Final
+    ports:
+      - "8080:8080"
+      - "9990:9990"
+    networks:
+      - internet
+    command: /opt/jboss/wildfly/bin/standalone.sh -bmanagement 0.0.0.0
       
 networks:
   internet:

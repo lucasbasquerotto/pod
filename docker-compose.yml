@@ -198,13 +198,16 @@ services:
     logging: *logging
 
   wildfly:
-    image: jboss/wildfly:13.0.0.Final
+    build:
+      context: wildfly/
+      args:
+        WILDFLY_VERSION: $WILDFLY_VERSION
     ports:
       - "8080:8080"
       - "9990:9990"
     networks:
       - internet
-    command: /opt/jboss/wildfly/bin/standalone.sh -bmanagement 0.0.0.0
+    logging: *logging
       
 networks:
   internet:

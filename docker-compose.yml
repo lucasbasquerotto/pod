@@ -212,7 +212,7 @@ services:
     logging: *logging
 
   gradle:
-    image: lucasbasquerotto/graddle-demo-webapp
+    image: lucasbasquerotto/gradle-demo-webapp
     ports:
       - "8888:8080"
     networks:

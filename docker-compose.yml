@@ -22,8 +22,10 @@ services:
      - main-server
      - websocket
      - wildfly
+     - gradle
     ports:
-     - "80:9000"
+     - "80:80"
+     - "9088:9000"
      - "3999:7000"
      - "9991:9991"
     networks:
@@ -205,6 +207,14 @@ services:
     ports:
       - "8080:8080"
       - "9990:9990"
+    networks:
+      - internet
+    logging: *logging
+
+  gradle:
+    image: lucasbasquerotto/graddle-demo-webapp
+    ports:
+      - "8888:8080"
     networks:
       - internet
     logging: *logging

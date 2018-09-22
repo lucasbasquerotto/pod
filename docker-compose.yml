@@ -1,129 +1,222 @@
 version: '3.3'
 
 services:
+  stats:
+    build: ./stats
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+     - /var/run/docker.sock:/var/run/docker.sock
+    logging: &gelf
+      driver: gelf
+      options:
+        gelf-address: udp://localhost:12201
+        tag: "staging"
+
   nginx:
     build: ./nginx
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     links:
-      - main-server
-      - websocket
+     - main-server
+     - websocket
+     - wildfly
     ports:
-      - "80:9000"
-      - "3999:7000"
+     - "80:9000"
+     - "3999:7000"
+     - "9991:9991"
+    networks:
+      - internet
+    logging: *gelf
 
   main-server:
     build: ./server
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
-      - "8000:8099"
+     - "8000:8099"
     environment:
-      - NAME=Server
+     - NAME=Server
+    networks:
+      - internet
+    logging: *gelf
 
   websocket:
     build: ./websocket
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
-      - "3111:3000"
+     - "3111:3000"
     links:
-      - redis
+     - redis
+    networks:
+      - internet
+    logging: *gelf
 
   redis:
     image: redis:alpine
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     expose:
-      - "6379"
+     - "6379"
+    networks:
+      - internet
+    logging: *gelf
 
   mysql:
     image: mysql:5.7
-    restart: always
+    restart: on-failure
     volumes:
-      - db_data:/var/lib/mysql
+     - /etc/localtime:/etc/localtime:ro
+     - db_data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=pass01
-      - MYSQL_USER=viewer
-      - MYSQL_PASSWORD=pass02
-      - MYSQL_DATABASE=wordpress
-      - MYSQL_USER=wordpress
-      - MYSQL_PASSWORD=wordpress
+     - MYSQL_ROOT_PASSWORD=pass01
+     - MYSQL_USER=viewer
+     - MYSQL_PASSWORD=pass02
+     - MYSQL_DATABASE=wordpress
+     - MYSQL_USER=wordpress
+     - MYSQL_PASSWORD=wordpress
     ports: 
-      - 3306:3306
+     - 3306:3306
+    networks:
+      - internet
+    logging: *gelf
 
   adminer:
     image: adminer
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
-      - 8080:8080
+     - 9080:8080
     links:
-      - mysql:db
+     - mysql:db
+    networks:
+      - internet
+    logging: *gelf
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     environment:
-      - PMA_HOST=db 
-      - PMA_PORT=3306
-      #- PMA_ARBITRARY=1
+     - PMA_HOST=db
+#     - PMA_HOST=host.docker.internal
+     - PMA_PORT=3306
     ports:
-      - 8081:80
+     - 8081:80
     links:
-      - mysql:db
+     - mysql:db
+#    extra_hosts:
+#     - "host.docker.internal:$DOCKER_HOST_IP"
+    networks:
+      - internet
+    logging: *gelf
 
   mantisbt:
     image: lucasbasquerotto/mantisbt
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     ports:
-      - 8082:80
+     - 8082:80
     links:
-      - mysql:db
+     - mysql:db
+    networks:
+      - internet
+    logging: *gelf
 
   wordpress:
     image: wordpress:latest
-    restart: always
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
     depends_on:
-      - mysql
+     - mysql
     links:
-      - mysql:db
+     - mysql:db
     ports:
-      - "8083:80"
+     - "8083:80"
     environment:
-      - WORDPRESS_DB_HOST=db:3306
-      - WORDPRESS_DB_USER=wordpress
-      - WORDPRESS_DB_PASSWORD=wordpress
+     - WORDPRESS_DB_HOST=db:3306
+     - WORDPRESS_DB_USER=wordpress
+     - WORDPRESS_DB_PASSWORD=wordpress
+    networks:
+      - internet
+    logging: *gelf
 
-  mariadb:
-    image: 'bitnami/mariadb:latest'
-    restart: always
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    links:
+      - elasticsearch
     environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - MARIADB_USER=bn_magento
-      - MARIADB_PASSWORD=your_password
-      - MARIADB_DATABASE=bitnami_magento
-    volumes:
-      - 'mariadb_data:/bitnami'
-
-  magento:
-    image: 'bitnami/magento:latest'
-    restart: always
-    environment:
-      - MARIADB_HOST=mariadb
-      - MARIADB_PORT_NUMBER=3306
-      - MAGENTO_DATABASE_USER=bn_magento
-      - MAGENTO_DATABASE_PASSWORD=your_password
-      - MAGENTO_DATABASE_NAME=bitnami_magento
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
     ports:
-      - '7080:80'
-      - '7443:443'
-    volumes:
-      - 'magento_data:/bitnami'
+      - "12201:12201/udp"
+      - "5044:5044"
+    networks:
+      - elk
     depends_on:
-      - mariadb
+      - elasticsearch
+    logging: &logging
+      options:
+        max-size: 50m
 
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - "ES_JAVA_OPTS=-Xmx256m -Xms256m"
+    networks:
+      - elk 
+    logging: *logging     
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    links:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    logging: *logging
+
+  wildfly:
+    build:
+      context: wildfly/
+      args:
+        WILDFLY_VERSION: $WILDFLY_VERSION
+    ports:
+      - "8080:8080"
+      - "9990:9990"
+    networks:
+      - internet
+    logging: *logging
+      
+networks:
+  internet:
+    driver: bridge
+  no-internet:
+    driver: bridge
+    internal: true
+  elk:
+    driver: bridge
+    
 volumes:
   db_data:
-
-  portainer_data:
-
-  mariadb_data:
-    driver: local
-  magento_data:
-    driver: local

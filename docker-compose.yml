@@ -220,13 +220,13 @@ services:
     logging: *logging
       
 networks:
-  internet:
-    driver: bridge
-  no-internet:
-    driver: bridge
-    internal: true
   elk:
     driver: bridge
+  internet:
+    driver: bridge
+  # no-internet:
+  #   driver: bridge
+  #   internal: true
     
 volumes:
   db_data:

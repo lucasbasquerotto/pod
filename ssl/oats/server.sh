@@ -1,3 +1,4 @@
+
 #/bin/sh
 set -e
 
@@ -17,11 +18,11 @@ openssl genrsa -out build/ca.key 2048
 # Generate ca.crt
 openssl req -new -x509 -key build/ca.key -out build/ca.crt -config ca-gen.conf
 
-# Generate oats.key
-openssl genrsa -out build/oats.key 2048
+# Generate server.key
+openssl genrsa -out build/server.key 2048
 
-# Generate oats.csr
-openssl req -new -key build/oats.key -out build/oats.csr -config oats.conf
+# Generate server.csr
+openssl req -new -key build/server.key -out build/server.csr -config server.conf
 
-# Generate oats.crt
-openssl ca -batch -config ca.conf -out build/oats.crt -infiles build/oats.csr
+# Generate server.crt
+openssl ca -batch -config ca.conf -out build/server.crt -infiles build/server.csr

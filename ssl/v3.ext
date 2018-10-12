@@ -1,0 +1,25 @@
+[req]
+req_extensions = v3_req
+
+[req_distinguished_name]
+commonName              = dev
+
+utf8 = yes
+
+C = BR
+ST = Sao Paulo
+L = Some City
+O  = My Org
+CN = *.dev
+
+[v3_req]
+subjectAltName = @alt_names
+
+[ usr_cert ]
+basicConstraints=CA:TRUE
+
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = dev
+DNS.2 = *.dev

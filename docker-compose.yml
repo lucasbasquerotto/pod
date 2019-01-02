@@ -1,4 +1,39 @@
-version: '3.3'
+version: '3.4'
+
+networks:
+  # elk:
+  #   driver: bridge
+  # fluentd:
+  #   driver: bridge
+  internet:
+    driver: bridge
+  # no-internet:
+  #   driver: bridge
+  #   internal: true
+    
+volumes:
+  db_data:
+
+  # fluentd:
+    
+  # mongo:
+
+x-logging: 
+  main: &mainlog
+    options:
+      max-size: 50m
+    
+  fluentd: &fluentd
+    driver: fluentd
+    options:
+      fluentd-address: "localhost:24224"
+      tag: "{{.Name}}"
+
+  gelf: &gelf
+    driver: gelf
+    options:
+      gelf-address: udp://localhost:12201
+      tag: "staging"
 
 services:
   # stats:
@@ -18,29 +53,43 @@ services:
     restart: on-failure
     volumes:
      - /etc/localtime:/etc/localtime:ro
-    links:
+    depends_on:
+     - wordpress
+     - phpmyadmin
      - main-server
      - websocket
      - wildfly
      - gradle
     ports:
      - "80:80"
-     - "9088:9000"
-     - "3999:7000"
-     - "9991:9991"
+     - "8000:8000"
+     - "9000:9000"
+     - "9001:9001"
+     - "9002:9002"
     networks:
       - internet
-    logging: &mainlog
-      options:
-        max-size: 50m
+    logging: *mainlog
+
+  wordpress:
+    image: wordpress:latest
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+    depends_on:
+     - mysql
+    environment:
+     - WORDPRESS_DB_HOST=mysql:3306
+     - WORDPRESS_DB_USER=wordpress
+     - WORDPRESS_DB_PASSWORD=123456
+    networks:
+      - internet
+    logging: *mainlog
 
   main-server:
     build: ./server
     restart: on-failure
     volumes:
      - /etc/localtime:/etc/localtime:ro
-    ports:
-     - "8000:8099"
     environment:
      - NAME=Server
     networks:
@@ -53,8 +102,8 @@ services:
     volumes:
      - /etc/localtime:/etc/localtime:ro
     ports:
-     - "3111:3000"
-    links:
+     - "2053:3000"
+    depends_on:
      - redis
     networks:
       - internet
@@ -71,25 +120,6 @@ services:
       - internet
     logging: *mainlog
 
-  # mysql:
-  #   image: mysql:5.7
-  #   restart: on-failure
-  #   volumes:
-  #    - /etc/localtime:/etc/localtime:ro
-  #    - db_data:/var/lib/mysql
-  #   environment:
-  #    - MYSQL_ROOT_PASSWORD=pass01
-  #    - MYSQL_USER=viewer
-  #    - MYSQL_PASSWORD=pass02
-  #    - MYSQL_DATABASE=wordpress
-  #    - MYSQL_USER=wordpress
-  #    - MYSQL_PASSWORD=wordpress
-  #   ports: 
-  #    - 3306:3306
-  #   networks:
-  #     - internet
-  #   logging: *mainlog
-
 #   adminer:
 #     image: adminer
 #     restart: on-failure
@@ -97,27 +127,8 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 #     ports:
 #      - 9080:8080
-#     links:
+#     depends_on:
 #      - mysql:db
-#     networks:
-#       - internet
-#     logging: *mainlog
-
-#   phpmyadmin:
-#     image: phpmyadmin/phpmyadmin
-#     restart: on-failure
-#     volumes:
-#      - /etc/localtime:/etc/localtime:ro
-#     environment:
-#      - PMA_HOST=db
-# #     - PMA_HOST=host.docker.internal
-#      - PMA_PORT=3306
-#     ports:
-#      - 8081:80
-#     links:
-#      - mysql:db
-# #    extra_hosts:
-# #     - "host.docker.internal:$DOCKER_HOST_IP"
 #     networks:
 #       - internet
 #     logging: *mainlog
@@ -129,27 +140,8 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 #     ports:
 #      - 8082:80
-#     links:
-#      - mysql:db
-#     networks:
-#       - internet
-#     logging: *gelf
-
-#   wordpress:
-#     image: wordpress:latest
-#     restart: on-failure
-#     volumes:
-#      - /etc/localtime:/etc/localtime:ro
 #     depends_on:
-#      - mysql
-#     links:
 #      - mysql:db
-#     ports:
-#      - "8083:80"
-#     environment:
-#      - WORDPRESS_DB_HOST=db:3306
-#      - WORDPRESS_DB_USER=wordpress
-#      - WORDPRESS_DB_PASSWORD=wordpress
 #     networks:
 #       - internet
 #     logging: *gelf
@@ -157,19 +149,11 @@ services:
   gradle:
     image: lucasbasquerotto/gradle-demo-webapp
     restart: on-failure
-    depends_on: 
-      - fluentd
     volumes:
      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "8888:8080"
     networks:
       - internet
-    logging: &fluentd
-      driver: fluentd
-      options:
-        fluentd-address: "localhost:24224"
-        tag: "{{.Name}}"
+    logging: *mainlog
 
   wildfly:
     build:
@@ -177,16 +161,13 @@ services:
       args:
         WILDFLY_VERSION: $WILDFLY_VERSION
     restart: on-failure
-    depends_on: 
-      - fluentd
     volumes:
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "8080:8080"
       - "9990:9990"
     networks:
       - internet
-    logging: *fluentd
+    logging: *mainlog
 
 #   logstash:
 #     build:
@@ -196,8 +177,6 @@ services:
 #     restart: on-failure
 #     volumes:
 #      - /etc/localtime:/etc/localtime:ro
-#     links:
-#       - elasticsearch
 #     environment:
 #       - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
 #     ports:
@@ -234,7 +213,7 @@ services:
 #     restart: on-failure
 #     volumes:
 #      - /etc/localtime:/etc/localtime:ro
-#     links:
+#     depends_on:
 #       - elasticsearch
 #     ports:
 #       - "5601:5601"
@@ -242,54 +221,54 @@ services:
 #       - elk
 #     logging: *fluentd
 
-  fluentd:
-    build:
-      context: fluentd/
-    restart: on-failure
-    volumes:
-     - /etc/localtime:/etc/localtime:ro
-     - fluentd:/fluentd/log 
-    ports:
-      - "24224:24224"
-    networks:
-      - fluentd
-    logging: &logging
-      options:
-        max-size: 50m
+  # fluentd:
+  #   build:
+  #     context: fluentd/
+  #   restart: on-failure
+  #   volumes:
+  #    - /etc/localtime:/etc/localtime:ro
+  #    - fluentd:/fluentd/log 
+  #   ports:
+  #     - "24224:24224"
+  #   networks:
+  #     - fluentd
+  #   logging: &logging
+  #     options:
+  #       max-size: 50m
       
-  mongo:
-    build:
-      context: mongo/
-    restart: on-failure
-    volumes:
-     - /etc/localtime:/etc/localtime:ro
-     - mongo:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-      MONGO_INITDB_DATABASE: log
-      # MONGODB_APPLICATION_DATABASE: fluentd
-      # MONGODB_APPLICATION_USER: root
-      # MONGODB_APPLICATION_PASS: example
-      # MONGODB_APPLICATION_USER: fluent
-      # MONGODB_APPLICATION_PASS: fluent123
-    networks:
-      - fluentd
-    logging: *logging
+  # mongo:
+  #   build:
+  #     context: mongo/
+  #   restart: on-failure
+  #   volumes:
+  #    - /etc/localtime:/etc/localtime:ro
+  #    - mongo:/data/db
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: example
+  #     MONGO_INITDB_DATABASE: log
+  #     # MONGODB_APPLICATION_DATABASE: fluentd
+  #     # MONGODB_APPLICATION_USER: root
+  #     # MONGODB_APPLICATION_PASS: example
+  #     # MONGODB_APPLICATION_USER: fluent
+  #     # MONGODB_APPLICATION_PASS: fluent123
+  #   networks:
+  #     - fluentd
+  #   logging: *logging
 
-  mongo-express:
-    image: mongo-express
-    restart: on-failure
-    volumes:
-     - /etc/localtime:/etc/localtime:ro
-    ports:
-      - 8181:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-    networks:
-      - fluentd
-    logging: *logging
+  # mongo-express:
+  #   image: mongo-express
+  #   restart: on-failure
+  #   volumes:
+  #    - /etc/localtime:/etc/localtime:ro
+  #   ports:
+  #     - 8181:8081
+  #   environment:
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: root
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: example
+  #   networks:
+  #     - fluentd
+  #   logging: *logging
 
   # fail2ban:
   #   image: crazymax/fail2ban:latest
@@ -305,20 +284,31 @@ services:
   #     options:
   #       max-size: 50m
 
-networks:
-  # elk:
-  #   driver: bridge
-  fluentd:
-    driver: bridge
-  internet:
-    driver: bridge
-  # no-internet:
-  #   driver: bridge
-  #   internal: true
-    
-volumes:
-  # db_data:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+    environment:
+     - PMA_HOST=mysql
+     - PMA_PORT=3306
+    networks:
+      - internet
+    logging: *mainlog
 
-  fluentd:
-    
-  mongo:
+  mysql:
+    image: mysql:5.7
+    restart: on-failure
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+     - db_data:/var/lib/mysql
+    environment:
+     - MYSQL_ROOT_PASSWORD=pass01
+     - MYSQL_USER=wordpress
+     - MYSQL_PASSWORD=123456
+     - MYSQL_DATABASE=wordpress
+    ports: 
+     - 3306:3306
+    networks:
+      - internet
+    logging: *mainlog

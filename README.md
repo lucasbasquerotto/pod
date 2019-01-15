@@ -9,22 +9,22 @@ _(You may want to add the user in the docker group)_
 ## 2. Install docker-compose (actually, download the script to run from a docker container)
 
 ```bash
-curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/docker-compose.sh -o ~/bin/docker-compose
-chmod +x ~/bin/docker-compose
+sudo curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/docker-compose.sh -o /usr/bin/docker-compose
+sudo chmod +x /usr/bin/docker-compose
 ```
 
 ## 3. Download the script to run git (use git from a docker container)
 
 ```bash
-curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/main.sh -o ~/bin/main
-chmod +x ~/bin/main
+sudo curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/main.sh -o /usr/bin/main
+sudo chmod +x /usr/bin/main
 ```
 
 ## 4. Download the script to run the preparation (pull the images before changing the configuration directory in production)
 
 ```bash
-curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/prep-main.sh -o ~/bin/prep-main
-chmod +x ~/bin/prep-main
+sudo curl -L --fail https://raw.githubusercontent.com/lucasbasquerotto/docker-scripts/master/prep-main.sh -o /usr/bin/prep-main
+sudo chmod +x /usr/bin/prep-main
 ```
 
 _(You may need to logout and login to make the changes apply. Make sure that `~/bin/` is in your `PATH`)_

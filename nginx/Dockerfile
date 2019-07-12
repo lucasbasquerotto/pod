@@ -1,7 +1,5 @@
-FROM nginx:alpine
+ARG NGINX_VERSION
 
-ARG HOST
+FROM nginx:$NGINX_VERSION
 
-COPY nginx.conf /tmp/tpl/nginx.conf
-
-RUN sed 's/{{HOST}}/${HOST}/' /tmp/tpl/nginx.conf > /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf

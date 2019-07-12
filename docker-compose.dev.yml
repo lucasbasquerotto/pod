@@ -20,7 +20,7 @@ services:
         NGINX_VERSION: $NGINX_VERSION
     restart: on-failure
     depends_on:
-    - wordpress
+    - main
     - phpmyadmin
     ports:
     - "80:80"
@@ -30,8 +30,8 @@ services:
     - local
     logging: *mainlog
 
-  wordpress:
-    image: wordpress:$WP_VERSION
+  main:
+    image: $MAIN_IMAGE:$MAIN_VERSION
     restart: on-failure
     environment:
     - WORDPRESS_DB_HOST=$DB_HOST:$DB_PORT

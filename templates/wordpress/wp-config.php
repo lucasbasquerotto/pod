@@ -13,6 +13,9 @@ define('DB_PASSWORD', '{{ tpl.main.db_password }}');
 define('DB_CHARSET', '{{ tpl.wp.db_charset | default("utf8mb4") }}');
 define('DB_COLLATE', '{{ tpl.wp.db_collate | default("") }}');
 
+define('WP_HOME', '{{ tpl.main.protocol }}://{{ tpl.main.domain }}');
+define('WP_SITEURL', '{{ tpl.main.protocol }}://{{ tpl.main.domain }}');
+
 // Generate keys automatically at:
 // https://api.wordpress.org/secret-key/1.1/salt/
 define('AUTH_KEY',         '{{ tpl.wp.auth_key }}');

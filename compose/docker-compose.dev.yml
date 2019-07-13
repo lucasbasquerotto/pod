@@ -13,15 +13,16 @@ x-logging:
       max-size: 50m
       
 services:
-  nginx:
+  proxy:
     build: 
-      context: ./nginx
+      context: ./
+      dockerfile: nginx/Dockerfile
       args:
         NGINX_VERSION: $NGINX_VERSION
     restart: on-failure
     depends_on:
     - main
-    - phpmyadmin
+    - db_admin
     ports:
     - "80:80"
     - "8080:8080"
@@ -31,26 +32,33 @@ services:
     logging: *mainlog
 
   main:
-    image: $MAIN_IMAGE:$MAIN_VERSION
+    build: 
+      context: ./
+      dockerfile: wordpress/Dockerfile
+      args:
+        MAIN_IMAGE: $MAIN_IMAGE
+        MAIN_VERSION: $MAIN_VERSION
     restart: on-failure
+    depends_on:
+    - db
     environment:
     - WORDPRESS_DB_HOST=$DB_HOST:$DB_PORT
-    - WORDPRESS_DB_USER=$WP_DB_USER 
-    - WORDPRESS_DB_PASSWORD=$WP_DB_PASS
-    # - WORDPRESS_CONFIG_EXTRA: |
-    #     define( 'AUTOMATIC_UPDATER_DISABLED', true );
+    - WORDPRESS_DB_NAME=$DB_NAME
+    - WORDPRESS_DB_USER=$DB_USER 
     networks:
     - internet
     - local
     logging: *mainlog
 
-  phpmyadmin:
+  db_admin:
     build: 
       context: ./
       dockerfile: phpmyadmin/Dockerfile
       args:
         PMA_VERSION: $PMA_VERSION
     restart: on-failure
+    depends_on:
+    - db
     environment:
     - PMA_HOST=$DB_HOST
     - PMA_PORT=$DB_PORT
@@ -58,18 +66,19 @@ services:
     - local
     logging: *mainlog
 
-  mysql:
+  db:
     build: 
-      context: mysql
+      context: ./
+      dockerfile: mysql/Dockerfile
       args:
         MYSQL_IMAGE: $MYSQL_IMAGE
         MYSQL_VERSION: $MYSQL_VERSION
     restart: on-failure
     environment:
       MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
-      MYSQL_DATABASE: $MYSQL_DATABASE
-      MYSQL_USER: $MYSQL_USER
-      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
     volumes:
     - /data/$PROJECT_NAME:/var/lib/mysql
     networks:

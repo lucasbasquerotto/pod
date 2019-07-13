@@ -1,0 +1,13 @@
+[mysqld]
+bind_address                    = {{ tpl.mysql.bind_address | default('0.0.0.0') }}
+
+default_authentication_plugin   = {{ tpl.mysql.default_authentication_plugin | default('mysql_native_password') }}
+
+collation_server                = {{ tpl.mysql.collation_server | default('utf8mb4_unicode_ci') }}
+character_set_server            = {{ tpl.mysql.character_set_server | default('utf8mb4') }}
+
+slow_query_log                  = {{ tpl.mysql.slow_query_log | default('1') }}
+slow_query_log_file             = {{ tpl.mysql.slow_query_log_file | default('var/log/mysql/mysql-slow.log') }}
+long_query_time                 = {{ tpl.mysql.long_query_time | default('3') }}
+
+log_error                       = {{ tpl.mysql.log_error | default('/var/log/mysql/error.log') }}

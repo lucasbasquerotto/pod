@@ -42,10 +42,9 @@ services:
     depends_on:
     - db
     environment:
-    - WORDPRESS_DB_HOST=$DB_HOST:$DB_PORT
-    - WORDPRESS_DB_NAME=$DB_NAME
-    - WORDPRESS_DB_USER=$DB_USER 
-    - WORDPRESS_DB_PASSWORD=$DB_PASSWORD
+    - DB_HOST=$DB_HOST:$DB_PORT
+    - DB_NAME=$DB_NAME
+    - DB_USER=$DB_USER 
     volumes:
     - /data/$PROJECT_NAME/main/uploads:/var/www/html/wp-content/uploads
     networks:

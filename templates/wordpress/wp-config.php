@@ -6,9 +6,9 @@
 {{ tpl.wp.wp_cache | default(false) | ternary('', '//') 
 }}define('WP_CACHE', {{ tpl.wp.wp_cache | default("") }}); 
 
-define('DB_HOST', getenv('WORDPRESS_DB_HOST'));
-define('DB_NAME', getenv('WORDPRESS_DB_NAME'));
-define('DB_USER', getenv('WORDPRESS_DB_USER'));
+define('DB_HOST', getenv('DB_HOST'));
+define('DB_NAME', getenv('DB_NAME'));
+define('DB_USER', getenv('DB_USER'));
 define('DB_PASSWORD', '{{ tpl.main.db_password }}');
 define('DB_CHARSET', '{{ tpl.wp.db_charset | default("utf8mb4") }}');
 define('DB_COLLATE', '{{ tpl.wp.db_collate | default("") }}');

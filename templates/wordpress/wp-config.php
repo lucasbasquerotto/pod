@@ -32,9 +32,9 @@ $table_prefix  = '{{ tpl.wp.table_prefix | default("wp_") }}';
 define('WPLANG', '{{ tpl.wp.wplang | default("en_US") }}');
 define('WP_DEBUG', {{ tpl.wp.wp_debug | default(false) | lower }});
 
-define('DO_NOT_UPGRADE_GLOBAL_TABLES', {{ tpl.wp.do_not_upgrade_global_tables | default(true) | lower }});
-define('DISALLOW_FILE_EDIT', {{ tpl.wp.disallow_file_edit | default(true) | lower }});
-define('DISALLOW_FILE_MODS', {{ tpl.wp.disallow_file_mods | default(true) | lower }});
+// define('DO_NOT_UPGRADE_GLOBAL_TABLES', {{ tpl.wp.do_not_upgrade_global_tables | default(true) | lower }});
+// define('DISALLOW_FILE_EDIT', {{ tpl.wp.disallow_file_edit | default(true) | lower }});
+// define('DISALLOW_FILE_MODS', {{ tpl.wp.disallow_file_mods | default(true) | lower }});
 
 if ( !defined('ABSPATH') )
 	define('ABSPATH', dirname(__FILE__) . '/');

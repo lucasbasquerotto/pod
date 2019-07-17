@@ -46,7 +46,7 @@ services:
     - DB_NAME=$DB_NAME
     - DB_USER=$DB_USER 
     volumes:
-    - /data/$PROJECT_NAME/main/uploads:/var/www/html/wp-content/uploads
+    - /data/$PROJECT_NAME/main/uploads:/main/wp-content/uploads
     networks:
     - internet
     - local

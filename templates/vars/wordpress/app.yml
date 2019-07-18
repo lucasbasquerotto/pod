@@ -1,0 +1,133 @@
+volumes:
+- { path: "/data/{{ params.project }}/main/uploads", mode: "0777" }
+
+vars:
+  
+  main:
+    project: "{{ params.project }}"
+    protocol: "{{ params.ssl | ternary('https', 'http') }}"
+    domain: "{{ params.domain }}"
+    db_name: "wordpress"
+    db_user: "wp_user"
+    db_password: "{{ params.db_password }}"  
+    mysql_root_password: "{{ params.mysql_root_password }}"
+
+  nginx:
+    conf:
+      worker_processes: 1
+      worker_connections: 512
+      includes:
+      - "includes/log.conf"
+      - "includes/limit_req_zone.conf"
+      - "includes/limit_conn_zone.conf"
+      - "includes/limit_conn_zone_file_upload.conf"
+      - "includes/proxy_cache.conf"
+      - "includes/timeouts.conf"
+      servers:
+      - name: "www"
+        host: "www.{{ params.domain }}"
+        port: "{{ params.ssl | ternary('443', '80') }}"
+        ssl: "{{ params.ssl }}"
+        redirect:
+          protocol: "{{ params.ssl | ternary('https', 'http') }}"
+          host: "{{ params.domain }}"
+          port: "{{ params.ssl | ternary('443', '80') }}"
+      - name: "main"
+        host: "{{ params.domain }}"
+        port: "{{ params.ssl | ternary('443', '80') }}"
+        ssl: "{{ params.ssl }}"
+        upstream:
+          protocol: "http"
+          port: "80"
+        locations:
+        - path: "/wp-admin/"
+          includes:
+          - "includes/file_upload.conf"
+          - "includes/file_upload_ratelimit.conf"
+        - path: "/"
+      - name: "db_admin"
+        host: "{{ params.db_admin.domain }}"
+        port: "{{ params.db_admin.port }}"
+        ssl: "{{ params.ssl }}"
+        upstream:
+          protocol: "http"
+          port: "80"
+        locations:
+        - path: "/"
+    log:
+      format: >-
+        $remote_addr $sent_http_x_user_id $upstream_response_time $status
+        $remote_user [$time_local] "$host" "$request"
+        $body_bytes_sent "$http_referer" "$http_user_agent" $request_time
+    limit_req_zone:
+      zone: "mainlimit"
+      size: "10m"
+      rate: "2r/s"
+    limit_conn_zone:
+      zone: "connlimit"
+      size: "10m"
+    limit_conn_zone_file_upload:
+      zone: "uploadconnlimit"
+      size: "10m"
+      
+    timeouts:
+      proxy_connect_timeout: "30"
+      proxy_send_timeout: "60"
+      proxy_read_timeout: "60"
+      send_timeout: "60"
+      client_body_timeout: "5s"
+      client_header_timeout: "5s"
+    file_upload:
+      proxy_read_timeout: "240"
+      client_max_body_size: "10M"
+    file_upload_ratelimit:
+      limit_req:
+        zone: "mainlimit"
+        burst: 6
+        nodelay: true
+      limit_conn:
+        name: "uploadconnlimit"
+        value: 5
+        
+  wp:
+    auth_key: "{{ params.wp.auth_key }}"
+    secure_auth_key: "{{ params.wp.secure_auth_key }}"
+    logged_in_key: "{{ params.wp.logged_in_key }}"
+    nonce_key: "{{ params.wp.nonce_key }}"
+    auth_salt: "{{ params.wp.auth_salt }}"
+    secure_auth_salt: "{{ params.wp.secure_auth_salt }}"
+    logged_in_salt: "{{ params.wp.logged_in_salt }}"
+    nonce_salt: "{{ params.wp.nonce_salt }}"
+
+  pma:
+    login_cookie_validity: 36000
+
+  mysql:
+    bind_address: "0.0.0.0"
+    default_authentication_plugin: "mysql_native_password"
+    collation_server: "utf8mb4_unicode_ci"
+    character_set_server: "utf8mb4"
+    slow_query_log: "1"
+    slow_query_log_file: "var/log/mysql/mysql-slow.log"
+    long_query_time: "3"
+    log_error: "/var/log/mysql/error.log"
+
+templates:
+- { root: true, src: ".env", params: "{{ vars }}" }
+- { root: true, src: "compose/docker-compose.dev.yml", dest: "docker-compose.yml" }
+- { src: "mysql/mysqld.cnf", params: "{{ vars.mysql }}" }
+- { src: "nginx/nginx.conf", params: "{{ vars.nginx.conf }}" }
+- { src: "nginx/includes/log.conf", params: "{{ vars.nginx.log }}" }
+- { src: "nginx/includes/limit_req_zone.conf", params: "{{ vars.nginx.limit_req_zone }}" }
+- { src: "nginx/includes/limit_conn_zone.conf", params: "{{ vars.nginx.limit_conn_zone }}" }
+- src: "nginx/includes/limit_conn_zone.conf"
+  dest: "nginx/includes/limit_conn_zone_file_upload.conf"
+  params: "{{ vars.nginx.limit_conn_zone_file_upload }}"
+- { src: "nginx/includes/proxy_cache.conf", params: "{{ vars.nginx.proxy_cache }}" }
+- { src: "nginx/includes/timeouts.conf", params: "{{ vars.nginx.timeouts }}" }
+- { src: "nginx/includes/file_upload.conf", params: "{{ vars.nginx.file_upload }}" }
+- src: "nginx/includes/ratelimit.conf"
+  dest: "nginx/includes/file_upload_ratelimit.conf"
+  params: "{{ vars.nginx.file_upload_ratelimit }}"
+- { src: "phpmyadmin/config.user.inc.php", params: "{{ vars.pma }}" }
+- { src: "wordpress/wp-config.php", params: "{{ vars.wp }}" }

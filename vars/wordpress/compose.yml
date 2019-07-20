@@ -1,0 +1,21 @@
+templates:
+
+- src: ".env"
+  root: true
+  params: 
+    docker_repo: "{{ params_aux.docker_repo }}"
+    docker_repo_version: "{{ params_aux.docker_repo_version }}"
+    git_commit: "{{ params_aux.git_commit }}"
+    data_dir: "{{ params_aux.data_dir }}"
+    mysql_image: "mysql"
+    mysql_version: "8.0.16"
+    db_host: "mysql"
+    db_port: 3306
+    db_name: "wordpress"
+    db_user: "wp_user"
+    db_password: "{{ params.db_password }}"
+    mysql_root_password: "{{ params.mysql_root_password }}"
+
+- src: "compose/wordpress/{{ params.docker_compose_file }}"
+  root: true  
+  dest: "docker-compose.yml"

@@ -1,7 +1,4 @@
-ARG MAIN_IMAGE
-ARG MAIN_VERSION
-
-FROM ${MAIN_IMAGE}:${MAIN_VERSION}
+FROM {{ params.wordpress_image }}:{{ params.wordpress_version }}
 
 ENV APACHE_DOCUMENT_ROOT /main
 

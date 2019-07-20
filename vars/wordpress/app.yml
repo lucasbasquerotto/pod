@@ -120,11 +120,17 @@ templates:
 
 - src: "wordpress/Dockerfile"
   params:
-    wordpress_image: "php"
-    wordpress_version: "7.3.7-apache"
+    wordpress_image: "local/wordpress"
+    wordpress_version: "latest"
 
-- src: "wordpress/wp-config.php"
+- src: "wordpress/.env"
+  dest: "wordpress/.env"
   params: 
+    env: "{{ params.wordpress.env }}"
+    db_host: "mysql"
+    db_port: 3306
+    db_name: "wordpress"
+    db_user: "wp_user"
     db_password: "{{ params.wordpress.db_password }}"
     db_charset: "utf8mb4"
     db_collate: ""
@@ -141,6 +147,25 @@ templates:
     table_prefix: "wp_"
     wplang: "en_US"
     wp_debug: "{{ params.wp_debug | default(false) | lower }}"
+
+# - src: "wordpress/wp-config.php"
+#   params: 
+#     db_password: "{{ params.wordpress.db_password }}"
+#     db_charset: "utf8mb4"
+#     db_collate: ""
+#     home: "{{ params.wordpress.ssl | ternary('https', 'http') }}://{{ params.wordpress.domain }}"
+#     siteurl: "{{ params.wordpress.ssl | ternary('https', 'http') }}://{{ params.wordpress.domain }}"
+#     auth_key: "{{ params.wordpress.config.auth_key }}"
+#     secure_auth_key: "{{ params.wordpress.config.secure_auth_key }}"
+#     logged_in_key: "{{ params.wordpress.config.logged_in_key }}"
+#     nonce_key: "{{ params.wordpress.config.nonce_key }}"
+#     auth_salt: "{{ params.wordpress.config.auth_salt }}"
+#     secure_auth_salt: "{{ params.wordpress.config.secure_auth_salt }}"
+#     logged_in_salt: "{{ params.wordpress.config.logged_in_salt }}"
+#     nonce_salt: "{{ params.wordpress.config.nonce_salt }}"
+#     table_prefix: "wp_"
+#     wplang: "en_US"
+#     wp_debug: "{{ params.wp_debug | default(false) | lower }}"
 
 ##################
 ### PHPMyAdmin ###

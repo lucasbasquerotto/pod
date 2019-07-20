@@ -91,8 +91,9 @@ services:
     restart: on-failure
     working_dir: /var/www/html
     volumes:
-    - /main/dev/wordpress-docker:/var/www/html
+    - /main/dev/wordpress-docker:/var/www/html/bedrock
     networks:
     - internet
     - local
     logging: *mainlog
+    command: tail -f /dev/null

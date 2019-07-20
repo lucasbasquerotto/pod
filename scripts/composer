@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eou pipefail
+
+sudo docker-compose exec composer /bin/bash

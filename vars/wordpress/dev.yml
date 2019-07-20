@@ -1,0 +1,6 @@
+templates:
+
+- src: "composer/Dockerfile"
+  params:
+    composer_image: "composer"
+    composer_version: "1.8.6"

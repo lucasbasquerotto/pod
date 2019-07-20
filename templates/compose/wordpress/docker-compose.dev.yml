@@ -14,6 +14,7 @@ x-logging:
       
 services:
   nginx:
+    hostname: nginx
     build: 
       context: ./
       dockerfile: env/nginx/Dockerfile
@@ -30,6 +31,7 @@ services:
     logging: *mainlog
 
   wordpress:
+    hostname: wordpress
     build: 
       context: ./
       dockerfile: env/wordpress/Dockerfile
@@ -41,13 +43,15 @@ services:
     - DB_NAME=$DB_NAME
     - DB_USER=$DB_USER 
     volumes:
-    - $DATA_DIR/wordpress/uploads:/main/wp-content/uploads
+    - /main/dev/wordpress-docker:/var/www/html
+    # - $DATA_DIR/wordpress/uploads:/main/wp-content/uploads
     networks:
     - internet
     - local
     logging: *mainlog
 
   phpmyadmin:
+    hostname: phpmyadmin
     build: 
       context: ./
       dockerfile: env/phpmyadmin/Dockerfile
@@ -62,6 +66,7 @@ services:
     logging: *mainlog
 
   mysql:
+    hostname: mysql
     build: 
       context: ./
       dockerfile: env/mysql/Dockerfile
@@ -77,3 +82,17 @@ services:
     - local
     logging: *mainlog
     command: $MYSQL_CMD
+
+  composer:
+    hostname: composer
+    build: 
+      context: ./
+      dockerfile: env/composer/Dockerfile
+    restart: on-failure
+    working_dir: /var/www/html
+    volumes:
+    - /main/dev/wordpress-docker:/var/www/html
+    networks:
+    - internet
+    - local
+    logging: *mainlog

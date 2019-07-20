@@ -120,8 +120,8 @@ templates:
 
 - src: "wordpress/Dockerfile"
   params:
-    wordpress_image: "wordpress"
-    wordpress_version: "5.2.2"
+    wordpress_image: "php"
+    wordpress_version: "7.3.7-apache"
 
 - src: "wordpress/wp-config.php"
   params: 

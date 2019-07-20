@@ -76,4 +76,4 @@ services:
     networks:
     - local
     logging: *mainlog
-    command: --default-authentication-plugin=mysql_native_password
+    command: $MYSQL_CMD

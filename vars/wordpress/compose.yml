@@ -15,6 +15,7 @@ templates:
     db_user: "wp_user"
     db_password: "{{ params.db_password }}"
     mysql_root_password: "{{ params.mysql_root_password }}"
+    mysql_cmd: "--default-authentication-plugin=mysql_native_password"
 
 - src: "compose/wordpress/{{ params.docker_compose_file }}"
   root: true  

@@ -1,5 +1,5 @@
 volumes:
-- { path: "/data/mysql", mode: "0777" }
+- { path: "/data/mysql", mode: "0700" }
 - { path: "/data/wordpress/uploads", mode: "0777" }
 
 templates:
@@ -158,6 +158,11 @@ templates:
 #############
 ### MySQL ###
 #############
+
+- src: "mysql/Dockerfile"
+  params:
+    mysql_image: "mysql"
+    mysql_version: "8.0.16"
 
 - src: "mysql/mysqld.cnf"
   params:

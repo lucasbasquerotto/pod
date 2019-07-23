@@ -1,6 +1,6 @@
 templates:
 
-- src: ".env"
+- src: "compose/wordpress/.env"
   root: true
   params: 
     docker_repo: "{{ params_aux.docker_repo }}"
@@ -16,6 +16,8 @@ templates:
     db_password: "{{ params.db_password }}"
     mysql_root_password: "{{ params.mysql_root_password }}"
     mysql_cmd: "--default-authentication-plugin=mysql_native_password"
+    wordpress_nginx_image: "{{ params.wordpress_nginx_image }}"
+    wordpress_nginx_version: "{{ params.wordpress_nginx_version }}"
 
 - src: "compose/wordpress/{{ params.docker_compose_file }}"
   root: true  

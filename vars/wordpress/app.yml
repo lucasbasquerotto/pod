@@ -33,7 +33,7 @@ templates:
         protocol: "{{ params.wordpress.ssl | ternary('https', 'http') }}"
         host: "{{ params.wordpress.domain }}"
         port: "{{ params.wordpress.ssl | ternary('443', '80') }}"
-    - name: "wordpress"
+    - name: "wordpress-nginx"
       host: "{{ params.wordpress.domain }}"
       port: "{{ params.wordpress.ssl | ternary('443', '80') }}"
       ssl: "{{ params.wordpress.ssl }}"

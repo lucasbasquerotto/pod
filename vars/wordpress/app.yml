@@ -33,7 +33,7 @@ templates:
         protocol: "{{ params.wordpress.ssl | ternary('https', 'http') }}"
         host: "{{ params.wordpress.domain }}"
         port: "{{ params.wordpress.ssl | ternary('443', '80') }}"
-    - name: "wordpress-nginx"
+    - name: "wordpress"
       host: "{{ params.wordpress.domain }}"
       port: "{{ params.wordpress.ssl | ternary('443', '80') }}"
       ssl: "{{ params.wordpress.ssl }}"
@@ -120,8 +120,9 @@ templates:
 
 - src: "wordpress/Dockerfile"
   params:
-    wordpress_image: "local/wordpress"
-    wordpress_version: "latest"
+    wordpress_image: "{{ params.wordpress.image }}"
+    wordpress_version: "{{ params.wordpress.version }}"
+    env: "{{ params.wordpress.env }}"
 
 - src: "wordpress/.env"
   dest: "wordpress/.env"

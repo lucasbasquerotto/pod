@@ -30,18 +30,6 @@ services:
     - local
     logging: *mainlog
 
-  wordpress-nginx:
-    hostname: wordpress-nginx
-    image: $WORDPRESS_NGINX_IMAGE:$WORDPRESS_NGINX_VERSION
-    restart: on-failure
-    depends_on:
-    - wordpress
-    volumes:
-    - /main/dev/wordpress-docker:/var/www/html
-    networks:
-    - local
-    logging: *mainlog
-
   wordpress:
     hostname: wordpress
     build: 

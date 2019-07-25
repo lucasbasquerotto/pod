@@ -1,6 +1,7 @@
 templates:
 
 - src: "compose/wordpress/.env"
+  dest: ".env"
   root: true
   params: 
     docker_repo: "{{ params_aux.docker_repo }}"

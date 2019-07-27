@@ -91,7 +91,7 @@ services:
     restart: on-failure
     working_dir: /var/www/html
     volumes:
-    - /main/dev/wordpress-docker:/var/www/html
+    - ../app/$REPO_NAME:/var/www/html
     networks:
     - internet
     - local

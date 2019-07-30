@@ -4,8 +4,8 @@ templates:
   dest: ".env"
   root: true
   params: 
-    docker_repo: "{{ params_aux.docker_repo }}"
-    docker_repo_version: "{{ params_aux.docker_repo_version }}"
+    pod_repo: "{{ params_aux.pod_repo }}"
+    pod_repo_version: "{{ params_aux.pod_repo_version }}"
     git_commit: "{{ params_aux.git_commit }}"
     data_dir: "{{ params_aux.data_dir }}"
     mysql_image: "mysql"

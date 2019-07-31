@@ -43,7 +43,7 @@ services:
     - DB_NAME=$DB_NAME
     - DB_USER=$DB_USER 
     volumes:
-    - /main/dev/wordpress-docker:/var/www/html
+    - $WP_REPO_DIR:/var/www/html
     # - $DATA_DIR/wordpress/uploads:/main/wp-content/uploads
     networks:
     - internet
@@ -91,7 +91,7 @@ services:
     restart: on-failure
     working_dir: /var/www/html
     volumes:
-    - ../app/$REPO_NAME:/var/www/html
+    - $WP_REPO_DIR:/var/www/html
     networks:
     - internet
     - local

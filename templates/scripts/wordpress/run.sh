@@ -7,9 +7,6 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 layer_dir="$(dirname "$dir")"
 base_dir="$(dirname "$layer_dir")"
 
-echo "layer_dir=$layer_dir"
-echo "base_dir=$base_dir"
-
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'

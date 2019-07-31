@@ -1,3 +1,4 @@
 /.env
 /env/
+/run
 docker-compose.yml

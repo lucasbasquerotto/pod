@@ -49,7 +49,7 @@ elif [ "$command" = "stop" ]; then
     $ctl_layer_dir/run stop
 
     cd $pod_layer_dir/
-    sudo docker-compose rm --stop -v
+    sudo docker-compose rm --stop -v --force
 else
     echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
     exit 1

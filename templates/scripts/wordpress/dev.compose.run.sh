@@ -27,29 +27,38 @@ fi
 ctl_layer_dir="$base_dir/ansible-manager"
 pod_layer_dir="$dir"
 repo_name="{{ params.repo_name }}"
-
+    
 if [ "$command" = "update" ] || [ "$command" = "u" ]; then    
-    echo -e "${CYAN}update - prepare...${NC}"
+    echo -e "${CYAN}$(date '+%F %X') - update - prepare...${NC}"
     $pod_layer_dir/run prepare 
-    echo -e "${CYAN}update - build...${NC}"
+    echo -e "${CYAN}$(date '+%F %X') - update - build...${NC}"
     $pod_layer_dir/run build
-    echo -e "${CYAN}update - run...${NC}"
+    echo -e "${CYAN}$(date '+%F %X') - update - run...${NC}"
     $pod_layer_dir/run run
-    echo -e "${CYAN}update - ended${NC}"
+    echo -e "${CYAN}$(date '+%F %X') - update - ended${NC}"
 elif [ "$command" = "prepare" ] || [ "$command" = "p" ]; then
+    $pod_layer_dir/env/scripts/run before-prepare
     $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev
+    $pod_layer_dir/env/scripts/run after-prepare
 elif [ "$command" = "run" ]; then
+    $pod_layer_dir/env/scripts/run before-run
     details="${2:-}"
     cd $pod_layer_dir/
     sudo docker-compose up -d --remove-orphans $details
-elif [ "$command" = "build" ] || [ "$command" = "exec" ] || [ "$command" = "logs" ] || [ "$command" = "restart" ]; then
-    cd $pod_layer_dir/
-    sudo docker-compose ${@}
+    $pod_layer_dir/env/scripts/run after-run
 elif [ "$command" = "stop" ]; then
+    $pod_layer_dir/env/scripts/run before-stop
     $ctl_layer_dir/run stop
 
     cd $pod_layer_dir/
     sudo docker-compose rm --stop -v --force
+    $pod_layer_dir/env/scripts/run after-stop
+elif [ "$command" = "build" ] || [ "$command" = "exec" ] || [ "$command" = "logs" ] || [ "$command" = "restart" ]; then
+    cd $pod_layer_dir/
+    sudo docker-compose ${@}
+elif [ "$command" = "sh" ] || [ "$command" = "bash" ]; then
+    cd $pod_layer_dir/
+    sudo docker-compose exec ${1} /bin/$command
 else
     echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
     exit 1

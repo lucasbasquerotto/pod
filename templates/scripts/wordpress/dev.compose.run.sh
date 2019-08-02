@@ -38,7 +38,7 @@ if [ "$command" = "update" ] || [ "$command" = "u" ]; then
     echo -e "${CYAN}$(date '+%F %X') - update - ended${NC}"
 elif [ "$command" = "prepare" ] || [ "$command" = "p" ]; then
     $pod_layer_dir/env/scripts/run before-prepare
-    $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev
+    $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
     $pod_layer_dir/env/scripts/run after-prepare
 elif [ "$command" = "run" ]; then
     $pod_layer_dir/env/scripts/run before-run

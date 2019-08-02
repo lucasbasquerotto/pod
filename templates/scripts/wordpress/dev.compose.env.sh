@@ -31,7 +31,8 @@ elif [ "$command" = "before-run" ]; then
     echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
     cd "$dir"
     sudo docker-compose stop wordpress
-    sudo docker-compose up -d mysql
+    sudo docker-compose exec composer composer install
+    sudo docker-compose exec composer composer update
     ./env/scripts/setup
     echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
 fi

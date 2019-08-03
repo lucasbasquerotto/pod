@@ -149,25 +149,6 @@ templates:
     wplang: "en_US"
     wp_debug: "{{ params.wp_debug | default(false) | lower }}"
 
-# - src: "wordpress/wp-config.php"
-#   params: 
-#     db_password: "{{ params.wordpress.db_password }}"
-#     db_charset: "utf8mb4"
-#     db_collate: ""
-#     home: "{{ params.wordpress.ssl | ternary('https', 'http') }}://{{ params.wordpress.domain }}"
-#     siteurl: "{{ params.wordpress.ssl | ternary('https', 'http') }}://{{ params.wordpress.domain }}"
-#     auth_key: "{{ params.wordpress.config.auth_key }}"
-#     secure_auth_key: "{{ params.wordpress.config.secure_auth_key }}"
-#     logged_in_key: "{{ params.wordpress.config.logged_in_key }}"
-#     nonce_key: "{{ params.wordpress.config.nonce_key }}"
-#     auth_salt: "{{ params.wordpress.config.auth_salt }}"
-#     secure_auth_salt: "{{ params.wordpress.config.secure_auth_salt }}"
-#     logged_in_salt: "{{ params.wordpress.config.logged_in_salt }}"
-#     nonce_salt: "{{ params.wordpress.config.nonce_salt }}"
-#     table_prefix: "wp_"
-#     wplang: "en_US"
-#     wp_debug: "{{ params.wp_debug | default(false) | lower }}"
-
 ##################
 ### PHPMyAdmin ###
 ##################

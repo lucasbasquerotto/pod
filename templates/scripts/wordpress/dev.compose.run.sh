@@ -24,7 +24,7 @@ if [ -z "$command" ]; then
     exit 1
 fi
 
-ctl_layer_dir="$base_dir/ansible-manager"
+ctl_layer_dir="$base_dir/ctl"
 pod_layer_dir="$dir"
 repo_name="{{ params.repo_name }}"
     

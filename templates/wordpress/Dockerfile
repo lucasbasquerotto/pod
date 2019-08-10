@@ -1,6 +1,6 @@
 FROM {{ params.wordpress_image }}:{{ params.wordpress_version }}
 
-COPY env/wordpress/.env /var/www/html/
+COPY --chown=www-data:www-data env/wordpress/.env /var/www/html/
 
 {% set ini_file_type = ((params.env == 'development') | ternary('development', 'production')) -%}
 

@@ -4,20 +4,30 @@ templates:
   dest: ".env"
   root: true
   params: 
-    pod_repo: "{{ params_aux.pod.repo }}"
-    pod_repo_version: "{{ params_aux.pod.repo_version }}"
-    git_commit: "{{ params_aux.git_commit }}"
-    data_dir: "{{ params_aux.data_dir }}"
-    mysql_image: "mysql"
-    mysql_version: "8.0.16"
-    db_host: "mysql"
-    db_port: 3306
-    db_name: "wordpress"
-    db_user: "wp_user"
-    db_password: "{{ params.db_password }}"
-    mysql_root_password: "{{ params.mysql_root_password }}"
-    mysql_cmd: "--default-authentication-plugin=mysql_native_password"
+    pod_repo: "{{ params.env.pod_repo }}"
+    pod_repo_version: "{{ params.env.pod_repo_version }}"
+    git_commit: "{{ params.env.git_commit }}"
+    data_dir: "{{ params.env.data_dir }}"
+    mysql_image: "{{ params.env.mysql_image }}"
+    mysql_version: "{{ params.env.mysql_version }}"
+    db_host: "{{ params.env.db_host }}"
+    db_port: "{{ params.env.db_port }}"
+    db_name: "{{ params.env.db_name }}"
+    db_user: "{{ params.env.db_user }}"
+    db_password: "{{ params.env.db_password }}"
+    mysql_root_password: "{{ params.env.mysql_root_password }}"
+    mysql_cmd: "{{ params.env.mysql_cmd }}"
 
 - src: "compose/wordpress/app.docker-compose.yml"
   root: true  
   dest: "docker-compose.yml"
+
+- src: "scripts/wordpress/compose.setup.app.sh"
+  dest: "scripts/setup"
+  mode: '0755'
+  params:
+    url: "{{ params.setup.url }}"
+    title: "{{ params.setup.title }}"
+    admin_user: "{{ params.setup.admin_user }}"
+    admin_password: "{{ params.setup.admin_password }}"
+    admin_email: "{{ params.setup.admin_email }}"

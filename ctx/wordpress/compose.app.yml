@@ -1,0 +1,50 @@
+params:
+- name: "main.app"
+  params:
+    wordpress:
+      image: "{{ params.wordpress.image }}"
+      version: "{{ params.wordpress.version }}"
+      env: "{{ params.wordpress.env }}"
+      domain: "{{ params.wordpress.domain }}"
+      db_password: "{{ params.wordpress.db_password }}"
+      ssl: "{{ params.wordpress.ssl }}"
+      config:
+        auth_key: "{{ params.wordpress.config.auth_key }}"
+        secure_auth_key: "{{ params.wordpress.config.secure_auth_key }}"
+        logged_in_key: "{{ params.wordpress.config.logged_in_key }}"
+        nonce_key: "{{ params.wordpress.config.nonce_key }}"
+        auth_salt: "{{ params.wordpress.config.auth_salt }}"
+        secure_auth_salt: "{{ params.wordpress.config.secure_auth_salt }}"
+        logged_in_salt: "{{ params.wordpress.config.logged_in_salt }}"
+        nonce_salt: "{{ params.wordpress.config.nonce_salt }}"
+    phpmyadmin:
+      domain: "{{ params.phpmyadmin.domain }}"
+      port: "{{ params.phpmyadmin.port }}"
+      ssl: "{{ params.phpmyadmin.ssl }}"
+    mysql: 
+      root_password: "{{ params.mysql.root_password }}"
+
+- name: "compose.app"
+  params: 
+    env:  
+      db_password: "{{ params.wordpress.db_password }}"
+      mysql_root_password: "{{ params.mysql.root_password }}"
+
+      pod_repo: "{{ params_aux.pod.repo }}"
+      pod_repo_version: "{{ params_aux.pod.repo_version }}"
+      git_commit: "{{ params_aux.git_commit }}"
+      data_dir: "{{ params_aux.data_dir }}"
+
+      mysql_image: "mysql"
+      mysql_version: "8.0.16"
+      db_host: "mysql"
+      db_port: 3306
+      db_name: "wordpress"
+      db_user: "wp_user"
+      mysql_cmd: "--default-authentication-plugin=mysql_native_password"
+    setup:
+      url: "{{ params.setup.url }}"
+      title: "{{ params.setup.title }}"
+      admin_user: "{{ params.setup.admin_user }}"
+      admin_password: "{{ params.setup.admin_password }}"
+      admin_email: "{{ params.setup.admin_email }}"

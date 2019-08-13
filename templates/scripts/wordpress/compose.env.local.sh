@@ -26,11 +26,13 @@ if [ "$command" = "after-prepare" ]; then
     chmod +x $app_layer_dir/
     cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
     chmod +r $app_layer_dir/.env
+    chmod 777 $app_layer_dir/web/app/uploads/
     echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
 elif [ "$command" = "before-run" ]; then
     echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
     cd "$dir"
     sudo docker-compose stop wordpress
+    sudo docker-compose up -d composer
     sudo docker-compose exec composer composer install
     sudo docker-compose exec composer composer update
     ./env/scripts/setup

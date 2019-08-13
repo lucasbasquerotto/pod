@@ -44,8 +44,8 @@ params:
       db_user: "wp_user"
       mysql_cmd: "--default-authentication-plugin=mysql_native_password"
     composer:
-      image: "composer"
-      version: "1.8.6"
+      image: "{{ params.composer.image }}"
+      version: "{{ params.composer.version }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
     env_run:

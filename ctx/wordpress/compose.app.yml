@@ -1,6 +1,8 @@
 params:
 - name: "main.app"
   params:
+    volumes:
+      data_dir_inside: "{{ params_aux.data_dir_inside }}"
     wordpress:
       image: "{{ params.wordpress.image }}"
       version: "{{ params.wordpress.version }}"

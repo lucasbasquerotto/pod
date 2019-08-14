@@ -1,6 +1,6 @@
 volumes:
-- { path: "/data/mysql", mode: "0700" }
-- { path: "/data/wordpress/uploads", mode: "0777" }
+- { path: "{{ params.volumes.data_dir_inside }}/mysql", mode: "0700" }
+- { path: "{{ params.volumes.data_dir_inside }}/wordpress/uploads", mode: "0777" }
 
 templates:
 

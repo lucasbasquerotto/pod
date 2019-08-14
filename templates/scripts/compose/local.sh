@@ -2,7 +2,8 @@
 set -eou pipefail
 
 command="${1:-}"
-commands="update, ansible, run, build, exec, restart, logs, stop"
+commands="update (u), fast-update (f), prepare (p), deploy, run, stop"
+commands="$commands, build, exec, restart, logs, sh, bash"
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 layer_dir="$(dirname "$dir")"
 base_dir="$(dirname "$layer_dir")"
@@ -28,7 +29,19 @@ ctl_layer_dir="$base_dir/ctl"
 pod_layer_dir="$dir"
 repo_name="{{ params.repo_name }}"
     
-if [ "$command" = "update" ] || [ "$command" = "u" ]; then    
+start="$(date '+%F %X')"
+
+if [ "$command" = "update" ] || [ "$command" = "u" ]; then
+    echo -e "${CYAN}$(date '+%F %X') - update - prepare...${NC}"
+    $pod_layer_dir/run prepare 
+    echo -e "${CYAN}$(date '+%F %X') - update - build...${NC}"
+    $pod_layer_dir/run build
+    echo -e "${CYAN}$(date '+%F %X') - update - deploy...${NC}"
+    $pod_layer_dir/run deploy
+    echo -e "${CYAN}$(date '+%F %X') - update - run...${NC}"
+    $pod_layer_dir/run run
+    echo -e "${CYAN}$(date '+%F %X') - update - ended${NC}"
+elif [ "$command" = "fast-update" ] || [ "$command" = "f" ]; then
     echo -e "${CYAN}$(date '+%F %X') - update - prepare...${NC}"
     $pod_layer_dir/run prepare 
     echo -e "${CYAN}$(date '+%F %X') - update - build...${NC}"
@@ -37,9 +50,12 @@ if [ "$command" = "update" ] || [ "$command" = "u" ]; then
     $pod_layer_dir/run run
     echo -e "${CYAN}$(date '+%F %X') - update - ended${NC}"
 elif [ "$command" = "prepare" ] || [ "$command" = "p" ]; then
+    start="$(date '+%F %X')"
     $pod_layer_dir/env/scripts/run before-prepare
     $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
     $pod_layer_dir/env/scripts/run after-prepare
+elif [ "$command" = "deploy" ]; then
+    $pod_layer_dir/env/scripts/run deploy
 elif [ "$command" = "run" ]; then
     $pod_layer_dir/env/scripts/run before-run
     details="${2:-}"
@@ -53,7 +69,8 @@ elif [ "$command" = "stop" ]; then
     cd $pod_layer_dir/
     sudo docker-compose rm --stop -v --force
     $pod_layer_dir/env/scripts/run after-stop
-elif [ "$command" = "build" ] || [ "$command" = "exec" ] || [ "$command" = "logs" ] || [ "$command" = "restart" ]; then
+elif [ "$command" = "build" ] || [ "$command" = "exec" ] \
+     || [ "$command" = "restart" ]|| [ "$command" = "logs" ]; then
     cd $pod_layer_dir/
     sudo docker-compose ${@}
 elif [ "$command" = "sh" ] || [ "$command" = "bash" ]; then
@@ -63,3 +80,6 @@ else
     echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
     exit 1
 fi
+
+end="$(date '+%F %X')"
+echo -e "${CYAN}$command - $start - $end${NC}"

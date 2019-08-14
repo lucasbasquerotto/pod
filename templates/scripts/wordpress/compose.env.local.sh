@@ -22,13 +22,17 @@ pod_layer_dir="$dir"
 app_layer_dir="$base_dir/app/{{ params.wordpress_dev_repo_dir }}"
 
 if [ "$command" = "after-prepare" ]; then
+    start="$(date '+%F %X')"
     echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
     chmod +x $app_layer_dir/
     cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
     chmod +r $app_layer_dir/.env
     chmod 777 $app_layer_dir/web/app/uploads/
     echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
-elif [ "$command" = "before-run" ]; then
+    end="$(date '+%F %X')"
+    echo -e "${CYAN}env - $command - $start - $end${NC}"
+elif [ "$command" = "deploy" ]; then
+    start="$(date '+%F %X')"
     echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
     cd "$dir"
     sudo docker-compose stop wordpress
@@ -37,4 +41,6 @@ elif [ "$command" = "before-run" ]; then
     sudo docker-compose exec composer composer update
     ./env/scripts/setup
     echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
+    end="$(date '+%F %X')"
+    echo -e "${CYAN}env - $command - $start - $end${NC}"
 fi

@@ -75,7 +75,7 @@ elif [ "$command" = "build" ] || [ "$command" = "exec" ] \
     sudo docker-compose ${@}
 elif [ "$command" = "sh" ] || [ "$command" = "bash" ]; then
     cd $pod_layer_dir/
-    sudo docker-compose exec ${1} /bin/$command
+    sudo docker-compose exec ${2} /bin/$command
 else
     echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
     exit 1

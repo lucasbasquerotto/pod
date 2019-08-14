@@ -52,6 +52,8 @@ params:
       repo_name: "{{ params_aux.repo_name }}"
     env_run:
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
+      local_seed_data: "{{ params.env_run.local_seed_data | default('') }}"
+      remote_seed_data: "{{ params.env_run.remote_seed_data | default('') }}"
     setup:
       url: "{{ params.setup.url }}"
       title: "{{ params.setup.title }}"

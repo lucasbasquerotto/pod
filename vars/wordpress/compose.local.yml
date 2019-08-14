@@ -40,6 +40,8 @@ templates:
   mode: '0755'
   params: 
     wordpress_dev_repo_dir: "{{ params.env_run.wordpress_dev_repo_dir }}"
+    local_seed_data: "{{ params.env_run.local_seed_data }}"
+    remote_seed_data: "{{ params.env_run.remote_seed_data }}"
 
 - src: "scripts/wordpress/compose.setup.app.sh"
   dest: "scripts/setup"

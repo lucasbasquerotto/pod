@@ -68,9 +68,6 @@ case "$command" in
         sudo docker-compose rm -f --stop wordpress
 
         $pod_layer_dir/env/scripts/run before-setup
-
-        echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-        $pod_layer_dir/run deploy 
         
         echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
         sudo docker-compose run --rm wordpress \
@@ -80,6 +77,9 @@ case "$command" in
             --admin_user="$setup_admin_user" \
             --admin_password="$setup_admin_password" \
             --admin_email="$setup_admin_email"
+
+        echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+        $pod_layer_dir/run deploy 
 
         if [ ! -z "$setup_local_seed_data" ]; then
             echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"

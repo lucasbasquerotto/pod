@@ -49,9 +49,7 @@ case "$command" in
         if [[ "$command" = @("migrate"|"m") ]]; then
             echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
             $pod_layer_dir/run setup 
-        fi
-
-        if [[ "$command" != @("fast-update"|"f") ]]; then
+        elif [[ "$command" != @("fast-update"|"f") ]]; then
             echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
             $pod_layer_dir/run deploy 
         fi
@@ -70,8 +68,11 @@ case "$command" in
         sudo docker-compose rm -f --stop wordpress
 
         $pod_layer_dir/env/scripts/run before-setup
+
+        echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+        $pod_layer_dir/run deploy 
         
-        echo -e "${CYAN}$(date '+%F %X') - setup - installation${NC}"
+        echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
         sudo docker-compose run --rm wordpress \
             wp --allow-root core install \
             --url="$setup_url" \
@@ -81,13 +82,13 @@ case "$command" in
             --admin_email="$setup_admin_email"
 
         if [ ! -z "$setup_local_seed_data" ]; then
-            echo -e "${CYAN}$(date '+%F %X') - env - $command - import local seed data${NC}"
+            echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
             sudo docker-compose run --rm wordpress \
                 wp --allow-root import ./"$setup_local_seed_data" --authors=create
         fi
 
         if [ ! -z "$setup_remote_seed_data" ]; then
-            echo -e "${CYAN}$(date '+%F %X') - env - $command - import local seed data${NC}"
+            echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
             sudo docker-compose run --rm wordpress \
                 curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
             sudo docker-compose run --rm wordpress \

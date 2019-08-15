@@ -13,22 +13,25 @@ NC='\033[0m' # No Color
     
 start="$(date '+%F %X')"
 
-read "Is this a development environment? [Y/n] " yn
+read -e -p "Is this a development environment? [Y/n] " yn
 dev=""
 
 if [[ $yn == "y" || $yn == "Y" ]]; then
     dev=true
+    echo "development"
+else
+    echo "non-development"
 fi
 
-read "Enter the directory path: " -i "$default_dir_path" dir_path
+read -e -p "Enter the directory path: " -i "$default_dir_path" dir_path
 mkdir "$dir_path"
 
 cd "$dir_path/"
 
-read "Enter the pod directory name to run at the end of the setup: " \
+read -e -p "Enter the pod directory name to run at the end of the setup: " \
     -i "$default_pod_dir_name" pod_dir_name
 
-read "Enter the controller git repository: " \-i "$default_git_repo_ctl" git_repo_ctl
+read -e -p "Enter the controller git repository: " \-i "$default_git_repo_ctl" git_repo_ctl
 git clone "$git_repo_ctl" ctl
 
 if [ "$dev" = true ]; then

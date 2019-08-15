@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eou pipefail
 
+wordpress_dev_repo_dir="{{ params.wordpress_dev_repo_dir }}"
+
 command="${1:-}"
 dir="$(cd "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")" && pwd)"
 layer_dir="$(dirname "$dir")"
@@ -19,52 +21,34 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
 fi
 
 pod_layer_dir="$dir"
-app_layer_dir="$base_dir/app/{{ params.wordpress_dev_repo_dir }}"
-local_seed_data="{{ params.local_seed_data }}"
-remote_seed_data="{{ params.remote_seed_data }}"
+app_layer_dir="$base_dir/app/$wordpress_dev_repo_dir"
 
-if [ "$command" = "after-prepare" ]; then
-    start="$(date '+%F %X')"
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
-    chmod +x $app_layer_dir/
-    cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
-    chmod +r $app_layer_dir/.env
-    chmod 777 $app_layer_dir/web/app/uploads/
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
-    end="$(date '+%F %X')"
-    echo -e "${CYAN}env - $command - $start - $end${NC}"
-elif [ "$command" = "deploy" ]; then
-    start="$(date '+%F %X')"
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
-    cd "$dir"
-    sudo docker-compose stop wordpress
+start="$(date '+%F %X')"
+echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - composer install & update${NC}"
-    sudo docker-compose up -d composer
-    sudo docker-compose exec composer composer install
-    sudo docker-compose exec composer composer update
+case "$command" in
+    "after-prepare")
+        chmod +x $app_layer_dir/
+        cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
+        chmod +r $app_layer_dir/.env
+        chmod 777 $app_layer_dir/web/app/uploads/
+        ;;
+    "before-setup")
+        cd "$dir"
+        sudo docker-compose up -d mysql
+        sudo docker-compose up -d composer
+        sudo docker-compose exec composer composer install
+        ;;
+    "before-deploy")
+        cd "$dir"
+        sudo docker-compose up -d composer
+        sudo docker-compose exec composer composer update
+        ;;
+    *)
+        echo -e "env - $command - nothing to run"
+        ;;
+esac
 
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - setup${NC}"
-    ./env/scripts/setup
-
-    if [ ! -z "$local_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - env - $command - import local seed data${NC}"
-        sudo docker-compose run --rm wordpress \
-            wp --allow-root import ./"$local_seed_data" --authors=create
-    fi
-
-    if [ ! -z "$remote_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - env - $command - import local seed data${NC}"
-        sudo docker-compose run --rm wordpress \
-            curl -o ./tmp/tmp-seed-data.xml -k "$remote_seed_data"
-        sudo docker-compose run --rm wordpress \
-            wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
-        sudo docker-compose run --rm wordpress \
-            rm -f ./tmp/tmp-seed-data.xml
-    fi
-
-
-    echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
-    end="$(date '+%F %X')"
-    echo -e "${CYAN}env - $command - $start - $end${NC}"
-fi
+echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
+end="$(date '+%F %X')"
+echo -e "${CYAN}env - $command - $start - $end${NC}"

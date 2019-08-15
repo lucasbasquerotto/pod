@@ -44,9 +44,12 @@ params:
       db_name: "wordpress"
       db_user: "wp_user"
       mysql_cmd: "--default-authentication-plugin=mysql_native_password"
-    setup:
-      url: "{{ params.setup.url }}"
-      title: "{{ params.setup.title }}"
-      admin_user: "{{ params.setup.admin_user }}"
-      admin_password: "{{ params.setup.admin_password }}"
-      admin_email: "{{ params.setup.admin_email }}"
+    run:
+      repo_name: "{{ params_aux.repo_name }}"
+      setup_url: "{{ params.setup.url }}"
+      setup_title: "{{ params.setup.title }}"
+      setup_admin_user: "{{ params.setup.admin_user }}"
+      setup_admin_password: "{{ params.setup.admin_password }}"
+      setup_admin_email: "{{ params.setup.admin_email }}"
+      setup_local_seed_data: "{{ params.env_run.local_seed_data | default('') }}"
+      setup_remote_seed_data: "{{ params.env_run.remote_seed_data | default('') }}"

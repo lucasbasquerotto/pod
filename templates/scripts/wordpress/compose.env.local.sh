@@ -35,12 +35,13 @@ case "$command" in
         ;;
     "before-setup")
         cd "$dir"
-        sudo docker-compose rm -s -f wordpress composer mysql
+        sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d mysql composer
         sudo docker-compose exec composer composer install
         ;;
     "before-deploy")
         cd "$dir"
+        sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d composer
         sudo docker-compose exec composer composer update
         ;;

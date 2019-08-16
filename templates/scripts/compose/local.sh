@@ -7,8 +7,13 @@ setup_title='{{ params.setup_title }}' \
 setup_admin_user='{{ params.setup_admin_user }}' \
 setup_admin_password='{{ params.setup_admin_password }}' \
 setup_admin_email='{{ params.setup_admin_email }}'
-setup_local_seed_data="{{ params.setup_local_seed_data }}"
-setup_remote_seed_data="{{ params.setup_remote_seed_data }}"
+setup_local_db_file='{{ params.setup_local_db_file }}'
+setup_remote_db_file='{{ params.setup_local_db_file }}'
+setup_local_seed_data='{{ params.setup_local_seed_data }}'
+setup_remote_seed_data='{{ params.setup_remote_seed_data }}'
+# db_user='{{ params.db_user }}'
+# db_pass='{{ params.db_pass }}'
+# db_name='{{ params.db_name }}'
 
 command="${1:-}"
 commands="update (u), fast-update (f), prepare (p), deploy, run, stop"
@@ -69,40 +74,41 @@ case "$command" in
 
         $pod_layer_dir/env/scripts/run before-setup
         
-        echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
-        sudo docker-compose run --rm wordpress \
-            wp --allow-root core install \
-            --url="$setup_url" \
-            --title="$setup_title" \
-            --admin_user="$setup_admin_user" \
-            --admin_password="$setup_admin_password" \
-            --admin_email="$setup_admin_email"
+        tables="$(sudo docker-compose run --rm wordpress wp --allow-root db tables --all-tables | wc -l)"
+
+        if [ "$tables" = "0" ]; then
+            echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
+            sudo docker-compose run --rm wordpress \
+                wp --allow-root core install \
+                --url="$setup_url" \
+                --title="$setup_title" \
+                --admin_user="$setup_admin_user" \
+                --admin_password="$setup_admin_password" \
+                --admin_email="$setup_admin_email"
+
+            if [ ! -z "$setup_local_seed_data" ]; then
+                echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+                sudo docker-compose run --rm wordpress \
+                    wp --allow-root import ./"$setup_local_seed_data" --authors=create
+            fi
+
+            if [ ! -z "$setup_remote_seed_data" ]; then
+                echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+                sudo docker-compose run --rm wordpress \
+                    curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
+                sudo docker-compose run --rm wordpress \
+                    wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
+                sudo docker-compose run --rm wordpress \
+                    rm -f ./tmp/tmp-seed-data.xml
+            fi
+        fi
 
         echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
         $pod_layer_dir/run deploy 
 
-        if [ ! -z "$setup_local_seed_data" ]; then
-            echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
-            sudo docker-compose run --rm wordpress \
-                wp --allow-root import ./"$setup_local_seed_data" --authors=create
-        fi
-
-        if [ ! -z "$setup_remote_seed_data" ]; then
-            echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
-            sudo docker-compose run --rm wordpress \
-                curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
-            sudo docker-compose run --rm wordpress \
-                wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
-            sudo docker-compose run --rm wordpress \
-                rm -f ./tmp/tmp-seed-data.xml
-        fi
-
         $pod_layer_dir/env/scripts/run after-setup
         ;;
     "deploy")
-        cd $pod_layer_dir/
-        sudo docker-compose stop wordpress
-
         $pod_layer_dir/env/scripts/run before-deploy
 
         echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
@@ -132,6 +138,14 @@ case "$command" in
     "sh"|"bash")
         cd $pod_layer_dir/
         sudo docker-compose exec ${2} /bin/$command
+        ;;
+    "backup")
+        cd $pod_layer_dir/
+        file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')"
+        sudo docker-compose exec mysql \
+            sh -c "mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/tmp/main/$file_name.sql'"
+        sudo docker-compose exec mysql \
+            zip "/tmp/main/$file_name.zip" "/tmp/main/$file_name.sql"
         ;;
     *)
         echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"

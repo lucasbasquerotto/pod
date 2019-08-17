@@ -19,8 +19,6 @@ command="${1:-}"
 commands="update (u), fast-update (f), prepare (p), deploy, run, stop"
 commands="$commands, build, exec, restart, logs, sh, bash"
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-layer_dir="$(dirname "$dir")"
-base_dir="$(dirname "$layer_dir")"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -46,8 +44,6 @@ start="$(date '+%F %X')"
 
 case "$command" in
     "migrate"|"m"|"update"|"u"|"fast-update"|"f")
-        echo -e "${CYAN}$(date '+%F %X') - $command - prepare...${NC}"
-        $pod_layer_dir/run prepare 
         echo -e "${CYAN}$(date '+%F %X') - $command - build...${NC}"
         $pod_layer_dir/run build
 
@@ -62,11 +58,6 @@ case "$command" in
         echo -e "${CYAN}$(date '+%F %X') - $command - run...${NC}"
         $pod_layer_dir/run run
         echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
-        ;;
-    "prepare"|"p")
-        $pod_layer_dir/env/scripts/run before-prepare
-        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
-        $pod_layer_dir/env/scripts/run after-prepare
         ;;
     "setup")
         cd $pod_layer_dir/
@@ -125,7 +116,6 @@ case "$command" in
         ;;
     "stop")
         $pod_layer_dir/env/scripts/run before-stop
-        $ctl_layer_dir/run stop
 
         cd $pod_layer_dir/
         sudo docker-compose rm --stop -v --force

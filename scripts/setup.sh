@@ -24,7 +24,7 @@ else
 fi
 
 read -e -p "Enter the directory path: " -i "$default_dir_path" dir_path
-mkdir "$dir_path"
+mkdir -p "$dir_path"
 
 cd "$dir_path/"
 

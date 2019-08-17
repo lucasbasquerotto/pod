@@ -22,20 +22,6 @@ templates:
   root: true  
   dest: "docker-compose.yml"
 
-- src: "scripts/compose/local.sh"
-  dest: "run"
-  root: true
-  mode: '0755'
-  params: 
-    repo_name: "{{ params.run.repo_name }}"
-    setup_url: "{{ params.run.setup_url }}"
-    setup_title: "{{ params.run.setup_title }}"
-    setup_admin_user: "{{ params.run.setup_admin_user }}"
-    setup_admin_password: "{{ params.run.setup_admin_password }}"
-    setup_admin_email: "{{ params.run.setup_admin_email }}"
-    setup_local_seed_data: "{{ params.run.setup_local_seed_data }}"
-    setup_remote_seed_data: "{{ params.run.setup_remote_seed_data }}"
-
 - src: "scripts/wordpress/compose.upgrade.app.sh"
   dest: "scripts/upgrade"
   mode: '0755'

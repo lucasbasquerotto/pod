@@ -24,6 +24,8 @@ params:
       port: "{{ params.phpmyadmin.port }}"
       ssl: "{{ params.phpmyadmin.ssl }}"
     mysql: 
+      image: "{{ params.mysql.image }}"
+      version: "{{ params.mysql.version }}"
       root_password: "{{ params.mysql.root_password }}"
 
 - name: "compose.local"
@@ -38,13 +40,13 @@ params:
       data_dir: "{{ params_aux.data_dir }}"
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
 
-      mysql_image: "mysql"
-      mysql_version: "8.0.16"
-      db_host: "mysql"
-      db_port: 3306
-      db_name: "wordpress"
-      db_user: "wp_user"
-      mysql_cmd: "--default-authentication-plugin=mysql_native_password"
+      mysql_image: "{{ params.mysql.image }}"
+      mysql_version: "{{ params.mysql.version }}"
+      db_host: "{{ params.mysql.db_host | default('mysql', true) }}"
+      db_port: "{{ params.mysql.db_port | default('3306', true) }}"
+      db_name: "{{ params.mysql.db_name | default('wordpress', true) }}"
+      db_user: "{{ params.mysql.db_user | default('wp_user', true) }}"
+      mysql_cmd: "{{ params.mysql.cmd | default('') }}"
     composer:
       image: "{{ params.composer.image }}"
       version: "{{ params.composer.version }}"

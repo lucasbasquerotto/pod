@@ -168,8 +168,8 @@ templates:
 
 - src: "mysql/Dockerfile"
   params:
-    mysql_image: "mysql"
-    mysql_version: "8.0.16"
+    mysql_image: "{{ params.mysql.image }}"
+    mysql_version: "{{ params.mysql.version }}"
 
 - src: "mysql/mysqld.cnf"
   params:

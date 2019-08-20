@@ -143,7 +143,7 @@ case "$command" in
         cd $pod_layer_dir/
         file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')"
         sudo docker-compose exec mysql \
-            sh -c "mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/tmp/main/$file_name.sql'"
+            sh -c "mkdir -p /tmp/main/ && mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/tmp/main/$file_name.sql'"
         sudo docker-compose exec mysql \
             zip "/tmp/main/$file_name.zip" "/tmp/main/$file_name.sql"
         ;;

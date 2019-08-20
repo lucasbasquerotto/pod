@@ -78,6 +78,7 @@ services:
       MYSQL_PASSWORD: $DB_PASSWORD
     volumes:
     - $DATA_DIR/mysql:/var/lib/mysql
+    - $DATA_DIR/tmp/mysql:/tmp/main
     networks:
     - local
     logging: *mainlog

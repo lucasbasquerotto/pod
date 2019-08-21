@@ -82,3 +82,17 @@ services:
     - local
     logging: *mainlog
     command: $MYSQL_CMD
+
+  toolbox:
+    hostname: toolbox
+    build: 
+      context: ./
+      dockerfile: env/toolbox/Dockerfile
+    restart: on-failure
+    volumes:
+    - $DATA_DIR/tmp:/tmp/main
+    networks:
+    - internet
+    - local
+    logging: *mainlog
+    command: tail -f /dev/null

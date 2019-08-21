@@ -52,7 +52,7 @@ case "$command" in
         $pod_layer_dir/run build
 
         if [[ "$command" = @("migrate"|"m") ]]; then
-            echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+            echo -e "${CYAN}$(date '+%F %X') - $command - setup...${NC}"
             $pod_layer_dir/run setup 
         elif [[ "$command" != @("fast-update"|"f") ]]; then
             echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
@@ -77,29 +77,69 @@ case "$command" in
         tables="$(sudo docker-compose run --rm wordpress wp --allow-root db tables --all-tables | wc -l)"
 
         if [ "$tables" = "0" ]; then
-            echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
-            sudo docker-compose run --rm wordpress \
-                wp --allow-root core install \
-                --url="$setup_url" \
-                --title="$setup_title" \
-                --admin_user="$setup_admin_user" \
-                --admin_password="$setup_admin_password" \
-                --admin_email="$setup_admin_email"
+            if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ]; then
+                restore_dir="/tmp/main/mysql/restore"
+                sudo docker-compose up -d toolbox
+                sudo docker-compose exec toolbox mkdir -p "$restore_dir"
+                
+                if [ ! -z "$setup_local_db_file" ]; then
+                    echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
+                    setup_db_file="$setup_local_db_file"
+                else
+                    echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
+                    setup_db_file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+                    setup_db_file="$restore_dir/$setup_db_file_name.zip"
+                    sudo docker-compose up -d toolbox
+                    sudo docker-compose exec toolbox \
+                        curl -o "$setup_db_file" -k "$setup_remote_seed_data"
+                fi
 
-            if [ ! -z "$setup_local_seed_data" ]; then
-                echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
-                sudo docker-compose run --rm wordpress \
-                    wp --allow-root import ./"$setup_local_seed_data" --authors=create
-            fi
+                file_name=${setup_db_file##*/}
+                file_name=${file_name%.*}
+                extension=${setup_db_file##*.}
 
-            if [ ! -z "$setup_remote_seed_data" ]; then
-                echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+                sudo docker-compose exec toolbox \
+                    rm -f "$restore_dir/$db_name.sql"
+
+                if [ "$extension" = "$zip" ]; then
+                    file_name=${setup_db_file##*/}
+                    file_name=${file_name%.*}
+                    sudo docker-compose exec toolbox \
+                        unzip "$setup_db_file" -d "$restore_dir"
+                else
+                    sudo docker-compose exec toolbox \
+                        cp "$setup_db_file" "$restore_dir/$db_name.sql"
+                fi
+                
+                sudo docker-compose exec mysql \
+                    sh -c "pv '$restore_dir/$db_name.sql' | mysql -u '$db_user' -p'$db_pass' '$db_name'"
+                sudo docker-compose exec mysql \
+                    pv "$restore_dir/$db_name.sql" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+            else
+                echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
                 sudo docker-compose run --rm wordpress \
-                    curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
-                sudo docker-compose run --rm wordpress \
-                    wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
-                sudo docker-compose run --rm wordpress \
-                    rm -f ./tmp/tmp-seed-data.xml
+                    wp --allow-root core install \
+                    --url="$setup_url" \
+                    --title="$setup_title" \
+                    --admin_user="$setup_admin_user" \
+                    --admin_password="$setup_admin_password" \
+                    --admin_email="$setup_admin_email"
+
+                if [ ! -z "$setup_local_seed_data" ]; then
+                    echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+                    sudo docker-compose run --rm wordpress \
+                        wp --allow-root import ./"$setup_local_seed_data" --authors=create
+                fi
+
+                if [ ! -z "$setup_remote_seed_data" ]; then
+                    echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+                    sudo docker-compose run --rm wordpress \
+                        curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
+                    sudo docker-compose run --rm wordpress \
+                        wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
+                    sudo docker-compose run --rm wordpress \
+                        rm -f ./tmp/tmp-seed-data.xml
+                fi
             fi
         fi
 
@@ -131,6 +171,12 @@ case "$command" in
         sudo docker-compose rm --stop -v --force
         $pod_layer_dir/env/scripts/run after-stop
         ;;
+    "stop-all")
+        sudo docker stop $(sudo docker ps -q)
+        ;;
+    "rm-all")
+        sudo docker rm --stop --force $(sudo docker ps -aq)
+        ;;
     "build"|"exec"|"restart"|"logs")
         cd $pod_layer_dir/
         sudo docker-compose ${@}
@@ -141,11 +187,16 @@ case "$command" in
         ;;
     "backup")
         cd $pod_layer_dir/
-        file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')"
+        backup_dir="/tmp/main/mysql/backup"
+        sql_file_name="$db_name.sql"
+        zip_file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
+        sudo docker-compose up -d toolbox
+        sudo docker-compose exec toolbox mkdir -p "$backup_dir"
+        sudo docker-compose exec toolbox rm -f "$backup_dir/$sql_file_name"
         sudo docker-compose exec mysql \
-            sh -c "mkdir -p /tmp/main/ && mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/tmp/main/$file_name.sql'"
-        sudo docker-compose exec mysql \
-            zip "/tmp/main/$file_name.zip" "/tmp/main/$file_name.sql"
+            sh -c "mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '$backup_dir/$sql_file_name'"
+        sudo docker-compose exec toolbox \
+            zip "$backup_dir/$zip_file_name" "$backup_dir/$sql_file_name"
         ;;
     *)
         echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"

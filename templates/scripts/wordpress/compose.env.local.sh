@@ -37,13 +37,14 @@ case "$command" in
         cd "$dir"
         sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d mysql composer
-        sudo docker-compose exec composer composer install
+        sudo docker-compose exec composer composer install --verbose
         ;;
     "before-deploy")
         cd "$dir"
         sudo docker-compose rm --stop --force wordpress composer mysql
-        sudo docker-compose up -d composer
-        sudo docker-compose exec composer composer update
+        sudo docker-compose up -d mysql composer
+        sudo docker-compose exec composer composer clear-cache
+        sudo docker-compose exec composer composer update --verbose
         ;;
     *)
         echo -e "env - $command - nothing to run"

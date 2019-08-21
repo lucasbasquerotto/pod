@@ -27,6 +27,9 @@ params:
       image: "{{ params.mysql.image }}"
       version: "{{ params.mysql.version }}"
       root_password: "{{ params.mysql.root_password }}"
+    toolbox:
+      image: "{{ params.toolbox.image }}"
+      version: "{{ params.toolbox.version }}"
 
 - name: "compose.app"
   params: 

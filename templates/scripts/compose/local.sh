@@ -113,7 +113,7 @@ case "$command" in
                 sudo docker-compose exec toolbox \
                     rm -f "$restore_dir/$db_name.sql"
 
-                if [ "$extension" = "$zip" ]; then
+                if [ "$extension" = "zip" ]; then
                     file_name=${setup_db_file##*/}
                     file_name=${file_name%.*}
                     sudo docker-compose exec toolbox \

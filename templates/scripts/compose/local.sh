@@ -73,8 +73,20 @@ case "$command" in
         sudo docker-compose rm -f --stop wordpress
 
         $pod_layer_dir/env/scripts/run before-setup
+
+        cd $pod_layer_dir/
+        sudo docker-compose up -d mysql
         
-        tables="$(sudo docker-compose run --rm wordpress wp --allow-root db tables --all-tables | wc -l)"
+        sql_tables="select count(*) from information_schema.tables where table_schema = '$db_name'"
+        tables="$(sudo docker-compose exec -T mysql \
+            mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
+
+        if [ -z "$tables" ]; then
+            echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
+            sleep 60
+            tables="$(sudo docker-compose exec -T mysql \
+                mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")"
+        fi
 
         if [ "$tables" = "0" ]; then
             if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ]; then
@@ -115,6 +127,9 @@ case "$command" in
                     sh -c "pv '$restore_dir/$db_name.sql' | mysql -u '$db_user' -p'$db_pass' '$db_name'"
                 sudo docker-compose exec mysql \
                     pv "$restore_dir/$db_name.sql" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+
+                echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+                $pod_layer_dir/run deploy 
             else
                 echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
                 sudo docker-compose run --rm wordpress \
@@ -124,6 +139,9 @@ case "$command" in
                     --admin_user="$setup_admin_user" \
                     --admin_password="$setup_admin_password" \
                     --admin_email="$setup_admin_email"
+
+                echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+                $pod_layer_dir/run deploy 
 
                 if [ ! -z "$setup_local_seed_data" ]; then
                     echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
@@ -142,9 +160,6 @@ case "$command" in
                 fi
             fi
         fi
-
-        echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-        $pod_layer_dir/run deploy 
 
         $pod_layer_dir/env/scripts/run after-setup
         ;;

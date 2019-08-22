@@ -37,6 +37,7 @@ params:
       db_password: "{{ params.wordpress.db_password }}"
       mysql_root_password: "{{ params.mysql.root_password }}"
 
+      ctx_name: "{{ params_aux.ctx_name }}"
       pod_repo: "{{ params_aux.pod.repo }}"
       pod_repo_version: "{{ params_aux.pod.repo_version }}"
       git_commit: "{{ params_aux.git_commit }}"
@@ -60,8 +61,8 @@ params:
       setup_admin_user: "{{ params.setup.admin_user }}"
       setup_admin_password: "{{ params.setup.admin_password }}"
       setup_admin_email: "{{ params.setup.admin_email }}"
-      setup_local_db_file: "{{ params.env_run.setup_local_db_file | default('') }}"
-      setup_remote_db_file: "{{ params.env_run.setup_remote_db_file | default('') }}"
+      setup_local_db_file: "{{ params.env_run.local_db_file | default('') }}"
+      setup_remote_db_file: "{{ params.env_run.remote_db_file | default('') }}"
       setup_local_seed_data: "{{ params.env_run.local_seed_data | default('') }}"
       setup_remote_seed_data: "{{ params.env_run.remote_seed_data | default('') }}"
     env_run:

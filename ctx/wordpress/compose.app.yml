@@ -37,6 +37,7 @@ params:
       db_password: "{{ params.wordpress.db_password }}"
       mysql_root_password: "{{ params.mysql.root_password }}"
 
+      ctx_name: "{{ params_aux.ctx_name }}"
       pod_repo: "{{ params_aux.pod.repo }}"
       pod_repo_version: "{{ params_aux.pod.repo_version }}"
       git_commit: "{{ params_aux.git_commit }}"

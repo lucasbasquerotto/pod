@@ -4,6 +4,7 @@ templates:
   dest: ".env"
   root: true
   params: 
+    ctx_name: "{{ params.env.ctx_name }}"
     pod_repo: "{{ params.env.pod_repo }}"
     pod_repo_version: "{{ params.env.pod_repo_version }}"
     git_commit: "{{ params.env.git_commit }}"

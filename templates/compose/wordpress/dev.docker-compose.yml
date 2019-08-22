@@ -15,6 +15,7 @@ x-logging:
 services:
   nginx:
     hostname: nginx
+    container_name: ${CTX_NAME}-nginx
     build: 
       context: ./
       dockerfile: env/nginx/Dockerfile
@@ -32,6 +33,7 @@ services:
 
   wordpress:
     hostname: wordpress
+    container_name: ${CTX_NAME}-wordpress
     build: 
       context: ./
       dockerfile: env/wordpress/Dockerfile
@@ -52,6 +54,7 @@ services:
 
   phpmyadmin:
     hostname: phpmyadmin
+    container_name: ${CTX_NAME}-phpmyadmin
     build: 
       context: ./
       dockerfile: env/phpmyadmin/Dockerfile
@@ -67,6 +70,7 @@ services:
 
   mysql:
     hostname: mysql
+    container_name: ${CTX_NAME}-mysql
     build: 
       context: ./
       dockerfile: env/mysql/Dockerfile
@@ -86,6 +90,7 @@ services:
 
   composer:
     hostname: composer
+    container_name: ${CTX_NAME}-composer
     build: 
       context: ./
       dockerfile: env/composer/Dockerfile
@@ -101,6 +106,7 @@ services:
 
   toolbox:
     hostname: toolbox
+    container_name: ${CTX_NAME}-toolbox
     build: 
       context: ./
       dockerfile: env/toolbox/Dockerfile

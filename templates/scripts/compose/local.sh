@@ -124,9 +124,7 @@ case "$command" in
                 fi
                 
                 sudo docker-compose exec mysql \
-                    sh -c "pv '$restore_dir/$db_name.sql' | mysql -u '$db_user' -p'$db_pass' '$db_name'"
-                sudo docker-compose exec mysql \
-                    pv "$restore_dir/$db_name.sql" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+                    /bin/bash -c "set -eou pipefail; pv '$restore_dir/$db_name.sql' | mysql -u '$db_user' -p'$db_pass' '$db_name'"
 
                 echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
                 $pod_layer_dir/run deploy 
@@ -209,7 +207,7 @@ case "$command" in
         sudo docker-compose exec toolbox mkdir -p "$backup_dir"
         sudo docker-compose exec toolbox rm -f "$backup_dir/$sql_file_name"
         sudo docker-compose exec mysql \
-            sh -c "mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '$backup_dir/$sql_file_name'"
+            /bin/bash -c "set -eou pipefail; mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '$backup_dir/$sql_file_name'"
         sudo docker-compose exec toolbox \
             zip -j "$backup_dir/$zip_file_name" "$backup_dir/$sql_file_name"
         ;;

@@ -25,6 +25,8 @@ services:
     ports:
     - "80:80"
     - "8080:8080"
+    volumes:
+    - $DATA_DIR/tmp/nginx:/tmp/main/nginx
     networks:
     - internet
     - local
@@ -44,6 +46,7 @@ services:
     - DB_USER=$DB_USER 
     volumes:
     - $DATA_DIR/wordpress/uploads:/main/wp-content/uploads
+    - $DATA_DIR/tmp/wordpress:/tmp/main/wordpress
     networks:
     - internet
     - local
@@ -60,6 +63,8 @@ services:
     environment:
     - PMA_HOST=$DB_HOST
     - PMA_PORT=$DB_PORT
+    volumes:
+    - $DATA_DIR/tmp/phpmyadmin:/tmp/main/phpmyadmin
     networks:
     - local
     logging: *mainlog
@@ -77,7 +82,7 @@ services:
       MYSQL_PASSWORD: $DB_PASSWORD
     volumes:
     - $DATA_DIR/mysql:/var/lib/mysql
-    - $DATA_DIR/tmp/mysql:/tmp/main
+    - $DATA_DIR/tmp/mysql:/tmp/main/mysql
     networks:
     - local
     logging: *mainlog

@@ -190,7 +190,7 @@ case "$command" in
         sudo docker stop $(sudo docker ps -q)
         ;;
     "rm-all")
-        sudo docker rm --stop --force $(sudo docker ps -aq)
+        sudo docker rm --force $(sudo docker ps -aq)
         ;;
     "build"|"exec"|"restart"|"logs")
         cd $pod_layer_dir/

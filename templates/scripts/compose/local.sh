@@ -103,7 +103,7 @@ case "$command" in
                     setup_db_file="$restore_dir/$setup_db_file_name.zip"
                     sudo docker-compose up -d toolbox
                     sudo docker-compose exec toolbox \
-                        curl -o "$setup_db_file" -k "$setup_remote_db_file"
+                        curl -L -o "$setup_db_file" -k "$setup_remote_db_file"
                 fi
 
                 file_name=${setup_db_file##*/}
@@ -152,7 +152,7 @@ case "$command" in
                 if [ ! -z "$setup_remote_seed_data" ]; then
                     echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
                     sudo docker-compose run --rm wordpress \
-                        curl -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
+                        curl -L -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
                     sudo docker-compose run --rm wordpress \
                         wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
                     sudo docker-compose run --rm wordpress \

@@ -103,7 +103,7 @@ case "$command" in
                     setup_db_file="$restore_dir/$setup_db_file_name.zip"
                     sudo docker-compose up -d toolbox
                     sudo docker-compose exec toolbox \
-                        curl -o "$setup_db_file" -k "$setup_remote_seed_data"
+                        curl -o "$setup_db_file" -k "$setup_remote_db_file"
                 fi
 
                 file_name=${setup_db_file##*/}
@@ -205,13 +205,13 @@ case "$command" in
         backup_dir="/tmp/main/mysql/backup"
         sql_file_name="$db_name.sql"
         zip_file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
-        sudo docker-compose up -d toolbox
+        sudo docker-compose up -d toolbox mysql
         sudo docker-compose exec toolbox mkdir -p "$backup_dir"
         sudo docker-compose exec toolbox rm -f "$backup_dir/$sql_file_name"
         sudo docker-compose exec mysql \
             sh -c "mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '$backup_dir/$sql_file_name'"
         sudo docker-compose exec toolbox \
-            zip "$backup_dir/$zip_file_name" "$backup_dir/$sql_file_name"
+            zip -j "$backup_dir/$zip_file_name" "$backup_dir/$sql_file_name"
         ;;
     *)
         echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"

@@ -45,4 +45,8 @@ templates:
 - src: "scripts/wordpress/compose.upgrade.app.sh"
   dest: "scripts/upgrade"
   mode: '0755'
+
+- src: "scripts/wordpress/compose.env.app.sh"
+  dest: "scripts/run"
+  mode: '0755'
   

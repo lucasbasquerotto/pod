@@ -23,7 +23,7 @@ templates:
   root: true  
   dest: "docker-compose.yml"
 
-- src: "scripts/compose/remote.sh"
+- src: "scripts/wordpress/compose.sh"
   dest: "run"
   root: true
   mode: '0755'

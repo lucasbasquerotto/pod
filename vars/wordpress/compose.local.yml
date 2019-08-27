@@ -29,7 +29,7 @@ templates:
     composer_image: "{{ params.composer.image }}"
     composer_version: "{{ params.composer.version }}"
 
-- src: "scripts/compose/local.sh"
+- src: "scripts/wordpress/compose.sh"
   dest: "run"
   root: true
   mode: '0755'

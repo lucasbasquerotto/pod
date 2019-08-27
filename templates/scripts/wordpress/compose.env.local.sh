@@ -20,6 +20,7 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
     exit 1
 fi
 
+ctl_layer_dir="$base_dir/ctl"
 pod_layer_dir="$dir"
 app_layer_dir="$base_dir/app/$wordpress_dev_repo_dir"
 
@@ -27,7 +28,9 @@ start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
-    "after-prepare")
+    "prepare")
+        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
+
         chmod +x $app_layer_dir/
         cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
         chmod +r $app_layer_dir/.env
@@ -45,6 +48,9 @@ case "$command" in
         sudo docker-compose up -d mysql composer
         sudo docker-compose exec composer composer clear-cache
         sudo docker-compose exec composer composer update --verbose
+        ;;
+    "after-stop")
+        $ctl_layer_dir/run stop
         ;;
     *)
         echo -e "env - $command - nothing to run"

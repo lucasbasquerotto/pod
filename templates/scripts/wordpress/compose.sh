@@ -27,9 +27,8 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
-    msg="This project must be in a directory structure of type [base_dir]/[layer_dir]/[this_repo]"
-    msg="$msg with base_dir different than '' or '/'"
+if [ -z "$dir" ] || [ "$dir" = "/" ]; then
+    msg="This project must not be in the '/' directory"
     echo -e "${RED}${msg}${NC}"
     exit 1
 fi
@@ -39,7 +38,6 @@ if [ -z "$command" ]; then
     exit 1
 fi
 
-ctl_layer_dir="$base_dir/ctl"
 pod_layer_dir="$dir"
     
 start="$(date '+%F %X')"
@@ -64,9 +62,7 @@ case "$command" in
         echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
         ;;
     "prepare"|"p")
-        $pod_layer_dir/env/scripts/run before-prepare
-        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
-        $pod_layer_dir/env/scripts/run after-prepare
+        $pod_layer_dir/env/scripts/run prepare "$repo_name" ${@:2}
         ;;
     "setup")
         cd $pod_layer_dir/
@@ -178,8 +174,6 @@ case "$command" in
         ;;
     "stop")
         $pod_layer_dir/env/scripts/run before-stop
-        $ctl_layer_dir/run stop
-
         cd $pod_layer_dir/
         sudo docker-compose rm --stop -v --force
         $pod_layer_dir/env/scripts/run after-stop

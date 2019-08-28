@@ -1,5 +1,5 @@
 volumes:
-- { path: "{{ params.volumes.data_dir }}/mysql", mode: "0700" }
+- { path: "{{ params.volumes.data_dir }}/mysql", mode: "0755" }
 - { path: "{{ params.volumes.data_dir }}/wordpress/uploads", mode: "0777" }
 
 templates:

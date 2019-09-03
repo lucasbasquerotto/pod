@@ -61,9 +61,9 @@ params:
       setup_admin_user: "{{ params.setup.admin_user }}"
       setup_admin_password: "{{ params.setup.admin_password }}"
       setup_admin_email: "{{ params.setup.admin_email }}"
-      setup_local_db_file: "{{ params.env_run.local_db_file | default('') }}"
-      setup_remote_db_file: "{{ params.env_run.remote_db_file | default('') }}"
-      setup_local_seed_data: "{{ params.env_run.local_seed_data | default('') }}"
-      setup_remote_seed_data: "{{ params.env_run.remote_seed_data | default('') }}"
+      setup_local_db_file: "{{ params.run.local_db_file | default('') }}"
+      setup_remote_db_file: "{{ params.run.remote_db_file | default('') }}"
+      setup_local_seed_data: "{{ params.run.local_seed_data | default('') }}"
+      setup_remote_seed_data: "{{ params.run.remote_seed_data | default('') }}"
     env_run:
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"

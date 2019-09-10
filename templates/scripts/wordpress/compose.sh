@@ -145,12 +145,10 @@ case "$command" in
 
                 if [ ! -z "$setup_remote_seed_data" ]; then
                     echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
-                    sudo docker-compose run --rm wordpress \
-                        curl -L -o ./tmp/tmp-seed-data.xml -k "$setup_remote_seed_data"
-                    sudo docker-compose run --rm wordpress \
-                        wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create
-                    sudo docker-compose run --rm wordpress \
-                        rm -f ./tmp/tmp-seed-data.xml
+                    sudo docker-compose run --rm wordpress sh -c \
+                        "curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' 
+                        && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create 
+                        && rm -f ./tmp/tmp-seed-data.xml"
                 fi
             fi
         fi

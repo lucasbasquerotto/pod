@@ -86,18 +86,31 @@ case "$command" in
 
 		if [ "$tables" = "0" ]; then
 			if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ]; then
-				restore_dir="/tmp/main/mysql/restore"
+				main_restore_base_dir="tmp/main/backup"
+				db_restore_dir="tmp/main/mysql/backup"
+				uploads_restore_dir="tmp/main/wordpress/uploads"
+
+				echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 				sudo docker-compose up -d toolbox
-				sudo docker-compose exec toolbox mkdir -p "$restore_dir"
+				sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-EOF
+					set -eou pipefail
+
+					rm -rf "/$db_restore_dir"
+					mkdir -p "/$db_restore_dir"
+
+					rm -rf "/$uploads_restore_dir"
+					mkdir -p "/$uploads_restore_dir"
+				EOF
 				
 				if [ ! -z "$setup_local_db_file" ]; then
 					echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
 					setup_db_file="$setup_local_db_file"
 				else
 					echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
+
 					setup_db_file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-					setup_db_file="$restore_dir/$setup_db_file_name.zip"
-					sudo docker-compose up -d toolbox
+					setup_db_file="/$db_restore_dir/$setup_db_file_name.zip"
+
 					sudo docker-compose exec toolbox \
 						curl -L -o "$setup_db_file" -k "$setup_remote_db_file"
 				fi
@@ -107,20 +120,22 @@ case "$command" in
 				extension=${setup_db_file##*.}
 
 				sudo docker-compose exec toolbox \
-					rm -f "$restore_dir/$db_name.sql"
+					rm -f "$db_restore_dir/$db_name.sql"
 
 				if [ "$extension" = "zip" ]; then
+					echo -e "${CYAN}$(date '+%F %X') - $command - unzip db file${NC}"
 					file_name=${setup_db_file##*/}
 					file_name=${file_name%.*}
 					sudo docker-compose exec toolbox \
-						unzip "$setup_db_file" -d "$restore_dir"
-				else
-					sudo docker-compose exec toolbox \
-						cp "$setup_db_file" "$restore_dir/$db_name.sql"
+						unzip "$setup_db_file" -d "$db_restore_dir"
+					setup_db_file="$db_restore_dir/$db_name.sql"
 				fi
 				
-				sudo docker-compose exec mysql \
-					/bin/bash -c "set -eou pipefail; pv '$restore_dir/$db_name.sql' | mysql -u '$db_user' -p'$db_pass' '$db_name'"
+				echo -e "${CYAN}$(date '+%F %X') - $command - db restore${NC}"
+				sudo docker exec -i $(sudo docker-compose ps -q mysql) /bin/bash <<-EOF
+					set -eou pipefail
+					pv "$setup_db_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+				EOF
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
 				$pod_layer_dir/run deploy 
@@ -196,9 +211,9 @@ case "$command" in
 		cd $pod_layer_dir/
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_backup_base_dir="tmp/main/backup"
-		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		db_backup_dir="tmp/main/mysql/backup"
 		uploads_backup_dir="tmp/main/wordpress/uploads"
+		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		sql_file_name="$db_name.sql"
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - start services needed${NC}"
@@ -216,8 +231,10 @@ case "$command" in
 		EOF
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
-		sudo docker-compose exec mysql \
-			/bin/bash -c "set -eou pipefail; mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/$db_backup_dir/$db_name.sql'"
+		sudo docker exec -i $(sudo docker-compose ps -q mysql) /bin/bash <<-EOF
+			set -eou pipefail
+			mysqldump -u "$db_user" -p"$db_pass" "$db_name" > "/$db_backup_dir/$db_name.sql"
+		EOF
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - uploads backup${NC}"
 		sudo docker-compose exec wordpress \

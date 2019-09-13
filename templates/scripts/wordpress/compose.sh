@@ -191,48 +191,63 @@ case "$command" in
 		sudo docker-compose exec ${2} /bin/$command
 		;;
 	"backup")
+		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
+
 		cd $pod_layer_dir/
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-		main_backup_dir="/tmp/main/backup/$main_backup_name"
-		db_backup_dir="/tmp/main/mysql/backup"
-		uploads_backup_dir="/tmp/main/wordpress/uploads"
+		main_backup_base_dir="tmp/main/backup"
+		main_backup_dir="$main_backup_base_dir/$main_backup_name"
+		db_backup_dir="tmp/main/mysql/backup"
+		uploads_backup_dir="tmp/main/wordpress/uploads"
 		sql_file_name="$db_name.sql"
-		zip_file_name="$db_name.zip"
 
+		echo -e "${CYAN}$(date '+%F %X') - $command - start services needed${NC}"
 		sudo docker-compose up -d toolbox wordpress mysql
 	
-		sudo docker-compose exec toolbox /bin/bash <<-EOF
+		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean directories${NC}"
+		sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-EOF
 			set -eou pipefail
 
-			rm -f "$db_backup_dir"
-			mkdir -p "$db_backup_dir"
+			rm -rf "/$db_backup_dir"
+			mkdir -p "/$db_backup_dir"
 
-			rm -f "$uploads_backup_dir"
-			mkdir -p "$uploads_backup_dir"
+			rm -rf "/$uploads_backup_dir"
+			mkdir -p "/$uploads_backup_dir"
 		EOF
 
+		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
 		sudo docker-compose exec mysql \
-			/bin/bash -c "set -eou pipefail; mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '$db_backup_dir/$db_name.sql'"
+			/bin/bash -c "set -eou pipefail; mysqldump -u '$db_user' -p'$db_pass' '$db_name' > '/$db_backup_dir/$db_name.sql'"
 
+		echo -e "${CYAN}$(date '+%F %X') - $command - uploads backup${NC}"
 		sudo docker-compose exec wordpress \
-			cp -r "/main/wp-content/uploads" "$uploads_backup_dir"
+			cp -r "/var/www/html/web/app/uploads" "/$uploads_backup_dir"
 	
-		sudo docker-compose exec toolbox /bin/bash <<-EOF
+		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
+		sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-EOF
 			set -eou pipefail
 
-			zip -j "$db_backup_dir/db.zip" "$db_backup_dir/$db_name.sql"
-			cd '$uploads_backup_dir'
+			zip -j "/$db_backup_dir/db.zip" "/$db_backup_dir/$db_name.sql"
+			cd '/$uploads_backup_dir'
 			zip -r uploads.zip ./*
 
-			rm -f "$main_backup_dir"
-			mkdir -p "$main_backup_dir"
+			rm -rf "/$main_backup_dir"
+			mkdir -p "/$main_backup_dir"
 
-			mv "$db_backup_dir/db.zip" "$main_backup_dir/db.zip"
-			mv "$uploads_backup_dir/uploads.zip" "$main_backup_dir/uploads.zip"
+			mv "/$db_backup_dir/db.zip" "/$main_backup_dir/db.zip"
+			mv "/$uploads_backup_dir/uploads.zip" "/$main_backup_dir/uploads.zip"
 
-			cd '$main_backup_dir'
+			cd "/$main_backup_dir"
 			zip -r "$main_backup_name.zip" ./*
+
+			mv "$main_backup_name.zip" "/$main_backup_base_dir/$main_backup_name.zip"
+			cd "/$main_backup_base_dir"
+			rm -rf "/$main_backup_dir"
 		EOF
+
+		path="[data_dir]/$main_backup_base_dir/$main_backup_name.zip"
+		echo -e "${CYAN}$(date '+%F %X') - $command - generated file at '$path'${NC}"
+		;;
 	*)
 		echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
 		exit 1

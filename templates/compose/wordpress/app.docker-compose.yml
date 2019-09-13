@@ -45,7 +45,7 @@ services:
     - DB_NAME=$DB_NAME
     - DB_USER=$DB_USER 
     volumes:
-    - $DATA_DIR/wordpress/uploads:/main/wp-content/uploads
+    - $DATA_DIR/wordpress/uploads:/var/www/html/web/app/uploads
     - $DATA_DIR/tmp/wordpress:/tmp/main/wordpress
     networks:
     - internet

@@ -4,6 +4,8 @@ set -eou pipefail
 wordpress_dev_repo_dir="{{ params.wordpress_dev_repo_dir }}"
 
 command="${1:-}"
+shift
+
 dir="$(cd "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")" && pwd)"
 layer_dir="$(dirname "$dir")"
 base_dir="$(dirname "$layer_dir")"
@@ -29,7 +31,10 @@ echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
     "prepare")
-        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@:2}
+        repo_name="$1"
+        shift
+
+        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@}
 
         chmod +x $app_layer_dir/
         cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env

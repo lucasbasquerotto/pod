@@ -108,7 +108,7 @@ case "$command" in
 				else
 					echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
 
-					setup_db_file_name="wordpress_dbase-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+					setup_db_file_name="wordpress-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 					setup_db_file="/$db_restore_dir/$setup_db_file_name.zip"
 
 					sudo docker-compose exec toolbox \
@@ -135,7 +135,33 @@ case "$command" in
 				sudo docker exec -i $(sudo docker-compose ps -q mysql) /bin/bash <<-EOF
 					set -eou pipefail
 					pv "$setup_db_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
-				EOF
+				EOF				
+				
+				if [ ! -z "$setup_local_uploads_zip_file" ]; then
+					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
+					setup_uploads_zip_file="$setup_local_uploads_zip_file"
+				else if [ ! -z "$setup_remote_uploads_zip_file" ]; then
+					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
+
+					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name.zip"
+
+					sudo docker-compose exec toolbox \
+						curl -L -o "$setup_uploads_zip_file" -k "$setup_remote_uploads_zip_file"
+				fi
+
+				uploads_restore_specific_dir="/$uploads_restore_dir/uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+
+				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore${NC}"
+				sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash \
+					unzip -r "$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
+
+				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore - main${NC}"
+				sudo docker-compose run --rm wordpress \
+					cp -r  "/$uploads_restore_specific_dir" "/var/www/html/web/app/uploads"
+
+				sudo docker-compose exec wordpress \
+					cp -r "/$uploads_backup_dir" "/var/www/html/web/app/uploads" 
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
 				$pod_layer_dir/run deploy 

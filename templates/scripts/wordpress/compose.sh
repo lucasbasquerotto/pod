@@ -9,6 +9,8 @@ setup_admin_password='{{ params.setup_admin_password }}' \
 setup_admin_email='{{ params.setup_admin_email }}'
 setup_local_db_file='{{ params.setup_local_db_file }}'
 setup_remote_db_file='{{ params.setup_remote_db_file }}'
+setup_local_uploads_zip_file='{{ params.setup_local_uploads_zip_file }}'
+setup_remote_uploads_zip_file='{{ params.setup_remote_uploads_zip_file }}'
 setup_local_seed_data='{{ params.setup_local_seed_data }}'
 setup_remote_seed_data='{{ params.setup_remote_seed_data }}'
 db_user='{{ params.db_user }}'
@@ -92,7 +94,7 @@ case "$command" in
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 				sudo docker-compose up -d toolbox
-				sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-EOF
+				sudo docker exec -i "$(sudo docker-compose ps -q toolbox)" /bin/bash <<-EOF
 					set -eou pipefail
 
 					rm -rf "/$db_restore_dir"
@@ -132,15 +134,15 @@ case "$command" in
 				fi
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore${NC}"
-				sudo docker exec -i $(sudo docker-compose ps -q mysql) /bin/bash <<-EOF
+				sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-EOF
 					set -eou pipefail
 					pv "$setup_db_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
-				EOF				
+				EOF
 				
 				if [ ! -z "$setup_local_uploads_zip_file" ]; then
 					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
 					setup_uploads_zip_file="$setup_local_uploads_zip_file"
-				else if [ ! -z "$setup_remote_uploads_zip_file" ]; then
+				elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
 					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
 
 					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"

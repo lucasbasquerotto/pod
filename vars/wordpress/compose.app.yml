@@ -36,6 +36,8 @@ templates:
     setup_admin_email: "{{ params.run.setup_admin_email }}"
     setup_local_db_file: "{{ params.run.setup_local_db_file }}"
     setup_remote_db_file: "{{ params.run.setup_remote_db_file }}"
+    setup_local_uploads_zip_file: "{{ params.run.setup_local_uploads_zip_file }}"
+    setup_remote_uploads_zip_file: "{{ params.run.setup_remote_uploads_zip_file }}"
     setup_local_seed_data: "{{ params.run.setup_local_seed_data }}"
     setup_remote_seed_data: "{{ params.run.setup_remote_seed_data }}"
     db_user: "{{ params.env.db_user }}"

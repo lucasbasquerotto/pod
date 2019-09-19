@@ -68,7 +68,7 @@ case "$command" in
 		;;
 	"setup")
 		cd $pod_layer_dir/
-		sudo docker-compose rm -f --stop wordpress
+		sudo docker-compose rm -f --stop wordpress mysql
 
 		$pod_layer_dir/env/scripts/run before-setup
 
@@ -79,11 +79,27 @@ case "$command" in
 		tables="$(sudo docker-compose exec -T mysql \
 			mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
 
+		if [ ! -z "$tables" ]; then
+			tables="$(echo "$tables" | tail -n 1)"
+		fi
+
 		if [ -z "$tables" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
 			sleep 60
 			tables="$(sudo docker-compose exec -T mysql \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")"
+
+			if [ ! -z "$tables" ]; then
+				tables="$(echo "$tables" | tail -n 1)"
+			fi
+		fi
+
+		re='^[0-9]+$'
+
+		if ! [[ $tables =~ $re ]] ; then
+			msg="Could nor verify number of tables in database - $tables"
+			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
+			exit 1
 		fi
 
 		if [ "$tables" = "0" ]; then
@@ -155,15 +171,12 @@ case "$command" in
 				uploads_restore_specific_dir="/$uploads_restore_dir/uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore${NC}"
-				sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash \
-					unzip -r "$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
+				sudo docker exec -i $(sudo docker-compose ps -q toolbox) \
+					unzip "$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore - main${NC}"
 				sudo docker-compose run --rm wordpress \
 					cp -r  "/$uploads_restore_specific_dir" "/var/www/html/web/app/uploads"
-
-				sudo docker-compose exec wordpress \
-					cp -r "/$uploads_backup_dir" "/var/www/html/web/app/uploads" 
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
 				$pod_layer_dir/run deploy 

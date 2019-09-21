@@ -190,3 +190,9 @@ templates:
   params:
     toolbox_image: "{{ params.toolbox.image }}"
     toolbox_version: "{{ params.toolbox.version }}"
+
+- src: "toolbox/s3cmd.cfg"
+  params:
+    access_key: "{{ params.toolbox.s3cmd.access_key }}"
+    secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
+    host_base: "{{ params.toolbox.s3cmd.host_base }}"

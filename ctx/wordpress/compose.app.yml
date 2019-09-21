@@ -30,6 +30,10 @@ params:
     toolbox:
       image: "{{ params.toolbox.image }}"
       version: "{{ params.toolbox.version }}"
+      s3cmd:
+        access_key: "{{ params.toolbox.s3cmd.access_key }}"
+        secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
+        host_base: "{{ params.toolbox.s3cmd.host_base }}"
 
 - name: "compose.app"
   params: 

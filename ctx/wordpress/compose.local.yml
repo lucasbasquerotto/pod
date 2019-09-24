@@ -71,5 +71,8 @@ params:
       setup_remote_uploads_zip_file: "{{ params.run.remote_uploads_zip_file | default('') }}"
       setup_local_seed_data: "{{ params.run.local_seed_data | default('') }}"
       setup_remote_seed_data: "{{ params.run.remote_seed_data | default('') }}"
+      s3cmd_access_key: "{{ params.toolbox.s3cmd.access_key }}"
+      s3cmd_secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
+      s3cmd_host_base: "{{ params.toolbox.s3cmd.host_base }}"
     env_run:
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"

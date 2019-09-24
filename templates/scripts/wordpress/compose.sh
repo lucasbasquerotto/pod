@@ -83,6 +83,12 @@ case "$command" in
 			tables="$(echo "$tables" | tail -n 1)"
 		fi
 
+		re='^[0-9]+$'
+
+		if ! [[ $tables =~ $re ]] ; then
+			tables=""
+		fi
+
 		if [ -z "$tables" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
 			sleep 60

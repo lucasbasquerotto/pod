@@ -13,9 +13,10 @@ setup_local_uploads_zip_file='{{ params.setup_local_uploads_zip_file }}'
 setup_remote_uploads_zip_file='{{ params.setup_remote_uploads_zip_file }}'
 setup_local_seed_data='{{ params.setup_local_seed_data }}'
 setup_remote_seed_data='{{ params.setup_remote_seed_data }}'
-s3cmd_access_key='{{ params.s3cmd_access_key }}'
-s3cmd_secret_key='{{ params.s3cmd_secret_key }}'
-s3cmd_host_base='{{ params.s3cmd_host_base }}'
+use_s3cmd='{{ params.use_s3cmd }}'
+backup_bucket_name='{{ params.backup_bucket_name }}'
+backup_bucket_path='{{ params.backup_bucket_path }}'
+backup_delete_old_days='{{ params.backup_delete_old_days }}'
 db_user='{{ params.db_user }}'
 db_pass='{{ params.db_pass }}'
 db_name='{{ params.db_name }}'
@@ -26,6 +27,7 @@ commands="$commands, build, exec, restart, logs, sh, bash"
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 layer_dir="$(dirname "$dir")"
 base_dir="$(dirname "$layer_dir")"
+re_number='^[0-9]+$'
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -86,9 +88,7 @@ case "$command" in
 			tables="$(echo "$tables" | tail -n 1)"
 		fi
 
-		re='^[0-9]+$'
-
-		if ! [[ $tables =~ $re ]] ; then
+		if ! [[ $tables =~ $re_number ]] ; then
 			tables=""
 		fi
 
@@ -265,6 +265,8 @@ case "$command" in
 		uploads_backup_dir="tmp/main/wordpress/uploads"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		sql_file_name="$db_name.sql"
+		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/$main_backup_name/"
+		backup_bucket_prefix=$(echo "$backup_bucket_prefix" | tr -s /)
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - start services needed${NC}"
 		sudo docker-compose up -d toolbox wordpress mysql
@@ -298,22 +300,29 @@ case "$command" in
 			cd '/$uploads_backup_dir'
 			zip -r uploads.zip ./*
 
-			rm -rf "/$main_backup_dir"
 			mkdir -p "/$main_backup_dir"
 
 			mv "/$db_backup_dir/db.zip" "/$main_backup_dir/db.zip"
 			mv "/$uploads_backup_dir/uploads.zip" "/$main_backup_dir/uploads.zip"
 
-			cd "/$main_backup_dir"
-			zip -r "$main_backup_name.zip" ./*
+			if [ "$use_s3cmd" = 'true' ] && [ ! -z "$backup_bucket_name" ]; then
+				msg="$command - toolbox - sync local backup with bucket"
+				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+				s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
+			fi
 
-			mv "$main_backup_name.zip" "/$main_backup_base_dir/$main_backup_name.zip"
-			cd "/$main_backup_base_dir"
-			rm -rf "/$main_backup_dir"
+			if ! [[ $backup_delete_old_days =~ $re_number ]] ; then
+				msg="The variable 'backup_delete_old_days' should be a number"
+				msg="\$msg (value=$backup_delete_old_days)"
+				echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+				exit 1
+			fi
+
+			find /$main_backup_base_dir/* -ctime +$backup_delete_old_days -delete;
+			find /$main_backup_base_dir/* -maxdepth 0 -type d -ctime +$backup_delete_old_days -exec rm -rf {} \;
 		EOF
 
-		path="[data_dir]/$main_backup_base_dir/$main_backup_name.zip"
-		echo -e "${CYAN}$(date '+%F %X') - $command - generated file at '$path'${NC}"
+		echo -e "${CYAN}$(date '+%F %X') - $command - generated backup file(s) at '/$main_backup_dir'${NC}"
 		;;
 	*)
 		echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"

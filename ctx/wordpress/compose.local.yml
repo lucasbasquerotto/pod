@@ -34,6 +34,10 @@ params:
         access_key: "{{ params.toolbox.s3cmd.access_key }}"
         secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
         host_base: "{{ params.toolbox.s3cmd.host_base }}"
+      aws_s3:
+        access_key: "{{ params.toolbox.aws_s3.access_key }}"
+        secret_key: "{{ params.toolbox.aws_s3.secret_key }}"
+        host_base: "{{ params.toolbox.aws_s3.host_base }}"
 
 - name: "compose.local"
   params: 

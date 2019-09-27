@@ -46,6 +46,8 @@ templates:
     setup_remote_uploads_zip_file: "{{ params.run.setup_remote_uploads_zip_file }}"
     setup_local_seed_data: "{{ params.run.setup_local_seed_data }}"
     setup_remote_seed_data: "{{ params.run.setup_remote_seed_data }}"
+    s3_endpoint: "{{ params.run.s3_endpoint }}"
+    use_aws_s3: "{{ params.run.use_aws_s3 }}"
     use_s3cmd: "{{ params.run.use_s3cmd }}"
     backup_bucket_name: "{{ params.run.backup_bucket_name }}"
     backup_bucket_path: "{{ params.run.backup_bucket_path }}"

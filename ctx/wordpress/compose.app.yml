@@ -30,14 +30,13 @@ params:
     toolbox:
       image: "{{ params.toolbox.image }}"
       version: "{{ params.toolbox.version }}"
+      s3_endpoint: "{{ params.toolbox.s3_endpoint | default('') }}"
       s3cmd:
-        access_key: "{{ params.toolbox.s3cmd.access_key }}"
-        secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
-        host_base: "{{ params.toolbox.s3cmd.host_base }}"
+        access_key: "{{ params.toolbox.s3cmd.access_key | default('') }}"
+        secret_key: "{{ params.toolbox.s3cmd.secret_key | default('') }}"
       aws_s3:
-        access_key: "{{ params.toolbox.aws_s3.access_key }}"
-        secret_key: "{{ params.toolbox.aws_s3.secret_key }}"
-        host_base: "{{ params.toolbox.aws_s3.host_base }}"
+        access_key: "{{ params.toolbox.aws_s3.access_key | default('') }}"
+        secret_key: "{{ params.toolbox.aws_s3.secret_key | default('') }}"
 
 - name: "compose.app"
   params: 
@@ -71,6 +70,8 @@ params:
       setup_remote_uploads_zip_file: "{{ params.run.remote_uploads_zip_file | default('') }}"
       setup_local_seed_data: "{{ params.run.local_seed_data | default('') }}"
       setup_remote_seed_data: "{{ params.run.remote_seed_data | default('') }}"
+      s3_endpoint: "{{ params.toolbox.s3_endpoint | default('') }}"
+      use_aws_s3: "{{ ((params.toolbox.aws_s3.access_key | default('')) != '') | ternary('true', 'false') }}"
       use_s3cmd: "{{ ((params.toolbox.s3cmd.access_key | default('')) != '') | ternary('true', 'false') }}"
       backup_bucket_name: "{{ params.run.backup_bucket_name | default('') }}"
       backup_bucket_path: "{{ params.run.backup_bucket_path | default('') }}"

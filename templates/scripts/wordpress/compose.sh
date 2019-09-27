@@ -13,6 +13,8 @@ setup_local_uploads_zip_file='{{ params.setup_local_uploads_zip_file }}'
 setup_remote_uploads_zip_file='{{ params.setup_remote_uploads_zip_file }}'
 setup_local_seed_data='{{ params.setup_local_seed_data }}'
 setup_remote_seed_data='{{ params.setup_remote_seed_data }}'
+s3_endpoint='{{ params.s3_endpoint }}'
+use_aws_s3='{{ params.use_aws_s3 }}'
 use_s3cmd='{{ params.use_s3cmd }}'
 backup_bucket_name='{{ params.backup_bucket_name }}'
 backup_bucket_path='{{ params.backup_bucket_path }}'
@@ -305,10 +307,28 @@ case "$command" in
 			mv "/$db_backup_dir/db.zip" "/$main_backup_dir/db.zip"
 			mv "/$uploads_backup_dir/uploads.zip" "/$main_backup_dir/uploads.zip"
 
-			if [ "$use_s3cmd" = 'true' ] && [ ! -z "$backup_bucket_name" ]; then
-				msg="$command - toolbox - sync local backup with bucket"
-				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-				s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
+			if [ ! -z "$backup_bucket_name" ]; then
+				if [ "$use_aws_s3" = 'true' ]; then
+					if aws s3 --endpoint="$s3_endpoint" ls "s3://$backup_bucket_name" 2>&1 | grep -q 'NoSuchBucket'; then
+						aws s3api create-bucket \
+							--endpoint="$s3_endpoint" \
+							--bucket "$backup_bucket_name" 
+					fi
+
+					msg="$command - toolbox - aws_s3 - sync local backup with bucket"
+					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					aws s3 sync \
+						--endpoint="$s3_endpoint" \
+						"/$main_backup_base_dir/" \
+						"s3://$backup_bucket_prefix"
+				elif [ "$use_s3cmd" = 'true' ]; then
+					msg="$command - toolbox - s3cmd - sync local backup with bucket"
+					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
+				else
+					msg="$command - toolbox - not able to sync local backup with bucket"
+					echo -e "${YELLOW}\$(date '+%F %X') - \${msg}${NC}"
+				fi
 			fi
 
 			if ! [[ $backup_delete_old_days =~ $re_number ]] ; then

@@ -309,12 +309,16 @@ case "$command" in
 
 			if [ ! -z "$backup_bucket_name" ]; then
 				if [ "$use_aws_s3" = 'true' ]; then
-					if aws s3 --endpoint="$s3_endpoint" ls "s3://$backup_bucket_name" 2>&1 | grep -q 'NoSuchBucket'; then
-						msg="$command - toolbox - aws_s3 - create bucket $backup_bucket_name"
-						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						aws s3api create-bucket \
-							--endpoint="$s3_endpoint" \
-							--bucket "$backup_bucket_name" 
+					error_log_file="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
+
+					if ! aws s3 --endpoint="$s3_endpoint" ls "s3://$backup_bucket_name" 2> "\$error_log_file"; then
+						if grep -q 'NoSuchBucket' "\$error_log_file"; then
+							msg="$command - toolbox - aws_s3 - create bucket $backup_bucket_name"
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							aws s3api create-bucket \
+								--endpoint="$s3_endpoint" \
+								--bucket "$backup_bucket_name" 
+						fi
 					fi
 
 					msg="$command - toolbox - aws_s3 - sync local backup with bucket"

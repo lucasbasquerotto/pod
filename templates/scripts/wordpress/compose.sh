@@ -115,9 +115,44 @@ case "$command" in
 
 		if [ "$tables" = "0" ]; then
 			if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ]; then
-				main_restore_base_dir="tmp/main/backup"
+				main_restore_base_dir="tmp/main/restore"
 				db_restore_dir="tmp/main/mysql/backup"
 				uploads_restore_dir="tmp/main/wordpress/uploads"
+				backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/"
+				backup_bucket_prefix=$(echo "$backup_bucket_prefix" | tr -s /)
+				
+				if [ ! -z "$setup_local_db_file" ]; then
+					setup_db_file="$setup_local_db_file"
+				else
+					setup_db_file_name="wordpress-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+					setup_db_file="$db_restore_dir/$setup_db_file_name.zip"
+				fi
+
+				extension=${setup_db_file##*.}
+
+				if [ "$extension" = "zip" ]; then
+					file_name=${setup_db_file##*/}
+					file_name=${file_name%.*}
+					setup_db_sql_file="$db_restore_dir/$db_name.sql"
+				else
+					setup_db_sql_file="$setup_db_file"
+				fi
+
+				if [ ! -z "$setup_local_uploads_zip_file" ]; then
+					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
+					setup_uploads_zip_file="$setup_local_uploads_zip_file"
+				elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
+					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
+					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
+				elif [ ! -z "$setup_remote_bucket_path_uploads_zip_file" ]; then
+					setup_uploads_zip_file_name="$setup_remote_bucket_path_uploads_zip_file"
+					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
+
+					backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/"
+					backup_bucket_prefix=$(echo "$backup_bucket_prefix" | tr -s /)
+					restore_remote_src="s3://$backup_bucket_prefix/$setup_uploads_zip_file_name"
+					restore_local_dest="/$uploads_restore_dir/$setup_uploads_zip_file_name"
+				fi
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 				sudo docker-compose up -d toolbox
@@ -129,55 +164,76 @@ case "$command" in
 
 					rm -rf "/$uploads_restore_dir"
 					mkdir -p "/$uploads_restore_dir"
-				EOF
 				
-				if [ ! -z "$setup_local_db_file" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
-					setup_db_file="$setup_local_db_file"
-				else
-					echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
+					if [ ! -z "$setup_local_db_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
+					elif [ ! -z "$setup_remote_db_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
+						curl -L -o "/$setup_db_file" -k "$setup_remote_db_file"
+					elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote bucket${NC}"0
 
-					setup_db_file_name="wordpress-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-					setup_db_file="/$db_restore_dir/$setup_db_file_name.zip"
+						restore_remote_src="s3://$backup_bucket_prefix/$setup_remote_bucket_path_db_file"
+						restore_local_dest="/$db_restore_dir/$setup_remote_bucket_path_db_file"
 
-					sudo docker-compose exec toolbox \
-						curl -L -o "$setup_db_file" -k "$setup_remote_db_file"
-				fi
+						if [ "$use_aws_s3" = 'true' ]; then
+							msg="$command - toolbox - aws_s3 - copy bucket file to local path
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							aws s3 cp \
+								--endpoint="$s3_endpoint" \
+								"$restore_remote_src" "$restore_local_dest"
+						elif [ "$use_s3cmd" = 'true' ]; then
+							msg="$command - toolbox - s3cmd - copy bucket file to local path
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							s3cmd cp "$restore_remote_src" "$restore_local_dest"
+						else
+							msg="$command - toolbox - not able to copy bucket file to local path"
+							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+							exit 1
+						fi
+					else
+						msg="$command - db file to restore not specified"
+						echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+						exit 1
+					fi
+				
+					if [ ! -z "$setup_local_uploads_zip_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
+					elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
+						curl -L -o "$setup_uploads_zip_file" -k "$setup_remote_uploads_zip_file"
+					elif [ ! -z "$setup_remote_bucket_path_uploads_zip_file" ]; then
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote bucket${NC}"
+					
+						if [ "$use_aws_s3" = 'true' ]; then
+							msg="$command - toolbox - aws_s3 - copy bucket file to local path
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							aws s3 cp \
+								--endpoint="$s3_endpoint" \
+								"$restore_remote_src" "$restore_local_dest"
+						elif [ "$use_s3cmd" = 'true' ]; then
+							msg="$command - toolbox - s3cmd - copy bucket file to local path
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							s3cmd cp "$restore_remote_src" "$restore_local_dest"
+						else
+							msg="$command - toolbox - not able to copy bucket file to local path"
+							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+							exit 1
+						fi
+					fi
 
-				file_name=${setup_db_file##*/}
-				file_name=${file_name%.*}
-				extension=${setup_db_file##*.}
+					rm -f "/$db_restore_dir/$db_name.sql"
 
-				sudo docker-compose exec toolbox \
-					rm -f "$db_restore_dir/$db_name.sql"
-
-				if [ "$extension" = "zip" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - unzip db file${NC}"
-					file_name=${setup_db_file##*/}
-					file_name=${file_name%.*}
-					sudo docker-compose exec toolbox \
-						unzip "$setup_db_file" -d "$db_restore_dir"
-					setup_db_file="$db_restore_dir/$db_name.sql"
-				fi
+					if [ "$extension" = "zip" ]; then
+						unzip "/$setup_db_file" -d "/$db_restore_dir"
+					fi
+				EOF
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore${NC}"
 				sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-EOF
 					set -eou pipefail
-					pv "$setup_db_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+					pv "$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
 				EOF
-				
-				if [ ! -z "$setup_local_uploads_zip_file" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
-					setup_uploads_zip_file="$setup_local_uploads_zip_file"
-				elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
-
-					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name.zip"
-
-					sudo docker-compose exec toolbox \
-						curl -L -o "$setup_uploads_zip_file" -k "$setup_remote_uploads_zip_file"
-				fi
 
 				uploads_restore_specific_dir="/$uploads_restore_dir/uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 
@@ -267,7 +323,7 @@ case "$command" in
 		uploads_backup_dir="tmp/main/wordpress/uploads"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		sql_file_name="$db_name.sql"
-		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/$main_backup_name/"
+		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/"
 		backup_bucket_prefix=$(echo "$backup_bucket_prefix" | tr -s /)
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - start services needed${NC}"

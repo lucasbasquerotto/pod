@@ -121,15 +121,16 @@ case "$command" in
 				db_restore_dir="tmp/main/mysql/backup"
 				uploads_restore_dir="tmp/main/wordpress/uploads"
 				backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/"
+				key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 				
 				if [ ! -z "$setup_local_db_file" ]; then
 					setup_db_file="$setup_local_db_file"
 				elif [ ! -z "$setup_remote_db_file" ]; then
-					setup_db_file_name="wordpress-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-					setup_db_file="$db_restore_dir/$setup_db_file_name.zip"
+					setup_db_file_name="db-$key.zip"
+					setup_db_file="$db_restore_dir/$setup_db_file_name"
 				elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
-					setup_db_file_name="wordpress-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-					setup_db_file="$db_restore_dir/$setup_db_file_name.zip"
+					setup_db_file_name="db-$key.zip"
+					setup_db_file="$db_restore_dir/$setup_db_file_name"
 
 					backup_bucket_path="$backup_bucket_prefix/$setup_remote_bucket_path_db_file"
 					backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
@@ -156,18 +157,18 @@ case "$command" in
 					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
 					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
 				elif [ ! -z "$setup_remote_bucket_path_uploads_file" ]; then
-					setup_uploads_zip_file_name="$setup_remote_bucket_path_uploads_file"
-					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
+					setup_uploads_zip_file_name="uploads-$key.zip"
+					setup_uploads_zip_file="$uploads_restore_dir/$setup_uploads_zip_file_name"
 
-					backup_bucket_path="$backup_bucket_prefix/$setup_uploads_zip_file_name"
+					backup_bucket_path="$backup_bucket_prefix/$setup_remote_bucket_path_uploads_file"
 					backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 					
 					restore_remote_src_uploads="s3://$backup_bucket_path"
 					restore_local_dest_uploads="/$setup_uploads_zip_file"
-					restore_local_dest_uploads=$(echo "$restore_local_dest_db" | tr -s /)
+					restore_local_dest_uploads=$(echo "$restore_local_dest_uploads" | tr -s /)
 				fi
 
-				uploads_restore_specific_dir="/$uploads_restore_dir/uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+				uploads_restore_specific_dir="$uploads_restore_dir/uploads-$key"
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 				sudo docker-compose up -d toolbox

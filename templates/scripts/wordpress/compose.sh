@@ -179,13 +179,13 @@ case "$command" in
 						restore_local_dest="/$db_restore_dir/$setup_remote_bucket_path_db_file"
 
 						if [ "$use_aws_s3" = 'true' ]; then
-							msg="$command - toolbox - aws_s3 - copy bucket file to local path
+							msg="$command - toolbox - aws_s3 - copy bucket file to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 							aws s3 cp \
 								--endpoint="$s3_endpoint" \
 								"$restore_remote_src" "$restore_local_dest"
 						elif [ "$use_s3cmd" = 'true' ]; then
-							msg="$command - toolbox - s3cmd - copy bucket file to local path
+							msg="$command - toolbox - s3cmd - copy bucket file to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 							s3cmd cp "$restore_remote_src" "$restore_local_dest"
 						else
@@ -208,13 +208,13 @@ case "$command" in
 						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote bucket${NC}"
 					
 						if [ "$use_aws_s3" = 'true' ]; then
-							msg="$command - toolbox - aws_s3 - copy bucket file to local path
+							msg="$command - toolbox - aws_s3 - copy bucket file to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 							aws s3 cp \
 								--endpoint="$s3_endpoint" \
 								"$restore_remote_src" "$restore_local_dest"
 						elif [ "$use_s3cmd" = 'true' ]; then
-							msg="$command - toolbox - s3cmd - copy bucket file to local path
+							msg="$command - toolbox - s3cmd - copy bucket file to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 							s3cmd cp "$restore_remote_src" "$restore_local_dest"
 						else

@@ -173,7 +173,7 @@ case "$command" in
 						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
 						curl -L -o "/$setup_db_file" -k "$setup_remote_db_file"
 					elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
-						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote bucket${NC}"0
+						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote bucket${NC}"
 
 						restore_remote_src="s3://$backup_bucket_prefix/$setup_remote_bucket_path_db_file"
 						restore_local_dest="/$db_restore_dir/$setup_remote_bucket_path_db_file"

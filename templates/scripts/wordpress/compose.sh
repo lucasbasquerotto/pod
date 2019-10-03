@@ -8,9 +8,11 @@ setup_admin_user='{{ params.setup_admin_user }}' \
 setup_admin_password='{{ params.setup_admin_password }}' \
 setup_admin_email='{{ params.setup_admin_email }}'
 setup_local_db_file='{{ params.setup_local_db_file }}'
-setup_remote_db_file='{{ params.setup_remote_db_file }}'
 setup_local_uploads_zip_file='{{ params.setup_local_uploads_zip_file }}'
+setup_remote_db_file='{{ params.setup_remote_db_file }}'
 setup_remote_uploads_zip_file='{{ params.setup_remote_uploads_zip_file }}'
+setup_remote_bucket_path_db_file='{{ params.setup_remote_bucket_path_db_file }}'
+setup_remote_bucket_path_uploads_file='{{ params.setup_remote_bucket_path_uploads_file }}'
 setup_local_seed_data='{{ params.setup_local_seed_data }}'
 setup_remote_seed_data='{{ params.setup_remote_seed_data }}'
 s3_endpoint='{{ params.s3_endpoint }}'
@@ -114,7 +116,7 @@ case "$command" in
 		fi
 
 		if [ "$tables" = "0" ]; then
-			if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ]; then
+			if [ ! -z "$setup_local_db_file" ] || [ ! -z "$setup_remote_db_file" ] || [ ! -z "$setup_remote_bucket_path_db_file" ]; then
 				main_restore_base_dir="tmp/main/restore"
 				db_restore_dir="tmp/main/mysql/backup"
 				uploads_restore_dir="tmp/main/wordpress/uploads"
@@ -144,8 +146,8 @@ case "$command" in
 				elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
 					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
 					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
-				elif [ ! -z "$setup_remote_bucket_path_uploads_zip_file" ]; then
-					setup_uploads_zip_file_name="$setup_remote_bucket_path_uploads_zip_file"
+				elif [ ! -z "$setup_remote_bucket_path_uploads_file" ]; then
+					setup_uploads_zip_file_name="$setup_remote_bucket_path_uploads_file"
 					setup_uploads_zip_file="/$uploads_restore_dir/$setup_uploads_zip_file_name"
 
 					backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path/"
@@ -202,7 +204,7 @@ case "$command" in
 					elif [ ! -z "$setup_remote_uploads_zip_file" ]; then
 						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
 						curl -L -o "$setup_uploads_zip_file" -k "$setup_remote_uploads_zip_file"
-					elif [ ! -z "$setup_remote_bucket_path_uploads_zip_file" ]; then
+					elif [ ! -z "$setup_remote_bucket_path_uploads_file" ]; then
 						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote bucket${NC}"
 					
 						if [ "$use_aws_s3" = 'true' ]; then

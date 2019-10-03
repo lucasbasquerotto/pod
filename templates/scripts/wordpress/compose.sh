@@ -242,11 +242,11 @@ case "$command" in
 					rm -f "/$db_restore_dir/$db_name.sql"
 
 					if [ "$extension" = "zip" ]; then
-						echo -e "${CYAN}$(date '+%F %X') - $command - db restore${NC}"
+						echo -e "${CYAN}$(date '+%F %X') - $command - db unzip${NC}"
 						unzip "/$setup_db_file" -d "/$db_restore_dir"
 					fi
 
-					echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore${NC}"
+					echo -e "${CYAN}$(date '+%F %X') - $command - uploads unzip${NC}"
 					unzip "/$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
 				EOF
 				

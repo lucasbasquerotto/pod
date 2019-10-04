@@ -250,7 +250,7 @@ case "$command" in
 					unzip "/$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
 				EOF
 				
-				echo -e "${CYAN}$(date '+%F %X') - $command - db restore${NC}"
+				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - main${NC}"
 				sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-EOF
 					set -eou pipefail
 					pv "$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"

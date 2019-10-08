@@ -1,13 +1,9 @@
 #!/bin/bash
 set -eou pipefail
 
-wordpress_dev_repo_dir="{{ params.wordpress_dev_repo_dir }}"
+. "${DIR}/env/scripts/vars.sh"
 
-command="${1:-}"
-shift
-
-dir="$(cd "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")" && pwd)"
-layer_dir="$(dirname "$dir")"
+layer_dir="$(dirname "$DIR")"
 base_dir="$(dirname "$layer_dir")"
 
 CYAN='\033[0;36m'
@@ -22,8 +18,11 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
     exit 1
 fi
 
+command="${1:-}"
+shift
+
 ctl_layer_dir="$base_dir/ctl"
-pod_layer_dir="$dir"
+pod_layer_dir="$DIR"
 app_layer_dir="$base_dir/app/$wordpress_dev_repo_dir"
 
 start="$(date '+%F %X')"
@@ -42,13 +41,13 @@ case "$command" in
         chmod 777 $app_layer_dir/web/app/uploads/
         ;;
     "before-setup")
-        cd "$dir"
+        cd "$DIR"
         sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d mysql composer
         sudo docker-compose exec composer composer install --verbose
         ;;
     "before-deploy")
-        cd "$dir"
+        cd "$DIR"
         sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d mysql composer
         sudo docker-compose exec composer composer clear-cache

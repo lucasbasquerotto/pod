@@ -29,11 +29,14 @@ templates:
     composer_image: "{{ params.composer.image }}"
     composer_version: "{{ params.composer.version }}"
 
-- src: "scripts/wordpress/compose.sh"
-  dest: "run"
-  root: true
+- src: "scripts/wordpress/compose.vars.app.sh"
+  dest: "scripts/vars.sh"
   mode: '0755'
   params: 
+    scripts_dir: "main/wordpress/files/scripts"
+    script_run_file: "compose.sh"
+    script_env_file: "compose.env.local.sh"
+    wordpress_dev_repo_dir: "{{ params.env_run.wordpress_dev_repo_dir }}"    
     repo_name: "{{ params.run.repo_name }}"
     setup_url: "{{ params.run.setup_url }}"
     setup_title: "{{ params.run.setup_title }}"
@@ -57,13 +60,3 @@ templates:
     db_user: "{{ params.env.db_user }}"
     db_pass: "{{ params.env.db_password }}"
     db_name: "{{ params.env.db_name }}"
-
-- src: "scripts/wordpress/compose.upgrade.app.sh"
-  dest: "scripts/upgrade"
-  mode: '0755'
-
-- src: "scripts/wordpress/compose.env.local.sh"
-  dest: "scripts/run"
-  mode: '0755'
-  params: 
-    wordpress_dev_repo_dir: "{{ params.env_run.wordpress_dev_repo_dir }}"

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
-. "${DIR}/env/scripts/vars.sh"
+. "${DIR}/vars.sh"
 
 layer_dir="$(dirname "$DIR")"
 base_dir="$(dirname "$layer_dir")"
@@ -33,12 +33,12 @@ case "$command" in
         repo_name="$1"
         shift
 
-        $ctl_layer_dir/run dev-cmd /root/r/w/$repo_name/dev ${@}
+        "$ctl_layer_dir/run" dev-cmd "/root/r/w/$repo_name/dev" ${@}
 
-        chmod +x $app_layer_dir/
-        cp $pod_layer_dir/env/wordpress/.env $app_layer_dir/.env
-        chmod +r $app_layer_dir/.env
-        chmod 777 $app_layer_dir/web/app/uploads/
+        chmod +x "$app_layer_dir/"
+        cp "$pod_layer_dir/$pod_env_dir/wordpress/.env" "$app_layer_dir/.env"
+        chmod +r "$app_layer_dir/.env"
+        chmod 777 "$app_layer_dir/web/app/uploads/"
         ;;
     "before-setup")
         cd "$DIR"

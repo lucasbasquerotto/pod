@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
-. "${DIR}/env/scripts/vars.sh"
+. "${DIR}/vars.sh"
 
 pod_layer_dir="$DIR"
 

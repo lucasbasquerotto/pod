@@ -3,8 +3,10 @@
 scripts_dir="{{ params.scripts_dir }}"
 script_run_file="{{ params.script_run_file }}"
 script_env_file="{{ params.script_env_file }}"
+script_upgrade_file="{{ params.script_upgrade_file }}"
 
 repo_name="{{ params.repo_name }}"
+pod_env_dir="{{ params.pod_env_dir }}"
 setup_url='{{ params.setup_url }}' \
 setup_title='{{ params.setup_title }}' \
 setup_admin_user='{{ params.setup_admin_user }}' \

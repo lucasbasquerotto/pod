@@ -18,7 +18,7 @@ services:
     container_name: ${CTX_NAME}-nginx
     build: 
       context: ./
-      dockerfile: env/nginx/Dockerfile
+      dockerfile: $POD_ENV_DIR/nginx/Dockerfile
     restart: on-failure
     depends_on:
     - wordpress
@@ -38,7 +38,7 @@ services:
     container_name: ${CTX_NAME}-wordpress
     build: 
       context: ./
-      dockerfile: env/wordpress/Dockerfile
+      dockerfile: $POD_ENV_DIR/wordpress/Dockerfile
     restart: on-failure
     depends_on:
     - mysql
@@ -60,7 +60,7 @@ services:
     container_name: ${CTX_NAME}-phpmyadmin
     build: 
       context: ./
-      dockerfile: env/phpmyadmin/Dockerfile
+      dockerfile: $POD_ENV_DIR/phpmyadmin/Dockerfile
     restart: on-failure
     depends_on:
     - mysql
@@ -78,7 +78,7 @@ services:
     container_name: ${CTX_NAME}-mysql
     build: 
       context: ./
-      dockerfile: env/mysql/Dockerfile
+      dockerfile: $POD_ENV_DIR/mysql/Dockerfile
     restart: on-failure
     environment:
       MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
@@ -98,7 +98,7 @@ services:
     container_name: ${CTX_NAME}-composer
     build: 
       context: ./
-      dockerfile: env/composer/Dockerfile
+      dockerfile: $POD_ENV_DIR/composer/Dockerfile
     restart: on-failure
     working_dir: /var/www/html
     volumes:
@@ -115,7 +115,7 @@ services:
     container_name: ${CTX_NAME}-toolbox
     build: 
       context: ./
-      dockerfile: env/toolbox/Dockerfile
+      dockerfile: $POD_ENV_DIR/toolbox/Dockerfile
     restart: on-failure
     volumes:
     - $DATA_DIR/tmp:/tmp/main

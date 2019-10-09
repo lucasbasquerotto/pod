@@ -43,14 +43,13 @@ params:
     env:  
       db_password: "{{ params.wordpress.db_password }}"
       mysql_root_password: "{{ params.mysql.root_password }}"
-
       ctx_name: "{{ params_aux.ctx_name }}"
       pod_repo: "{{ params_aux.pod.repo }}"
       pod_repo_version: "{{ params_aux.pod.repo_version }}"
       git_commit: "{{ params_aux.git_commit }}"
+      pod_env_dir: "{{ params_aux.pod_env_dir }}"
       data_dir: "{{ params_aux.data_dir }}"
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
-
       mysql_image: "{{ params.mysql.image }}"
       mysql_version: "{{ params.mysql.version }}"
       db_host: "{{ params.mysql.db_host | default('mysql', true) }}"
@@ -63,6 +62,7 @@ params:
       version: "{{ params.composer.version }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
+      pod_env_dir: "{{ params_aux.pod_env_dir }}"
       setup_url: "{{ params.setup.url }}"
       setup_title: "{{ params.setup.title }}"
       setup_admin_user: "{{ params.setup.admin_user }}"

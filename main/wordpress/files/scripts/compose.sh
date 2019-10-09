@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
-. "${DIR}/env/scripts/vars.sh"
+. "${DIR}/vars.sh"
 
 scripts_full_dir="${DIR}/${scripts_dir}"
 pod_layer_dir="$DIR"
@@ -58,7 +58,7 @@ case "$command" in
 		cd "$pod_layer_dir/"
 		sudo docker-compose rm -f --stop wordpress mysql
 
-		"$pod_layer_dir/env/scripts/run" before-setup
+		"$pod_layer_dir/$scripts_dir/$script_env_file" before-setup
 
 		cd "$pod_layer_dir/"
 		sudo docker-compose up -d mysql
@@ -293,28 +293,28 @@ case "$command" in
 			fi
 		fi
 
-		"$pod_layer_dir/env/scripts/run" after-setup
+		"$pod_layer_dir/$scripts_dir/$script_env_file" after-setup
 		;;
 	"deploy")
-		"$pod_layer_dir/env/scripts/run" before-deploy
+		"$pod_layer_dir/$scripts_dir/$script_env_file" before-deploy
 
 		echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
-		"$pod_layer_dir/env/scripts/upgrade"
+		"$pod_layer_dir/$scripts_dir/$script_upgrade_file"
 
-		"$pod_layer_dir/env/scripts/run" after-deploy
+		"$pod_layer_dir/$scripts_dir/$script_env_file" after-deploy
 		;;
 	"run")
-		"$pod_layer_dir/env/scripts/run" before-run
+		"$pod_layer_dir/$scripts_dir/$script_env_file" before-run
 		details="${2:-}"
 		cd "$pod_layer_dir/"
 		sudo docker-compose up -d --remove-orphans $details
-		"$pod_layer_dir/env/scripts/run" after-run
+		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
 	"stop")
-		"$pod_layer_dir/env/scripts/run" before-stop
+		"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
 		cd "$pod_layer_dir/"
 		sudo docker-compose rm --stop -v --force
-		"$pod_layer_dir/env/scripts/run" after-stop
+		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
 		;;
 	"stop-all")
 		sudo docker stop $(sudo docker ps -q)

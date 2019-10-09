@@ -1,6 +1,7 @@
 templates:
 
-- src: "compose/wordpress/app.env"
+- dir_base: "main/wordpress/templates"
+  src: "compose/app.env"
   dest: ".env"
   root: true
   params: 
@@ -8,6 +9,7 @@ templates:
     pod_repo: "{{ params.env.pod_repo }}"
     pod_repo_version: "{{ params.env.pod_repo_version }}"
     git_commit: "{{ params.env.git_commit }}"
+    pod_env_dir: "{{ params.env.pod_env_dir }}"
     data_dir: "{{ params.env.data_dir }}"
     mysql_image: "{{ params.env.mysql_image }}"
     mysql_version: "{{ params.env.mysql_version }}"
@@ -19,18 +21,23 @@ templates:
     mysql_root_password: "{{ params.env.mysql_root_password }}"
     mysql_cmd: "{{ params.env.mysql_cmd }}"
 
-- src: "compose/wordpress/app.docker-compose.yml"
+- dir_base: "main/wordpress/templates"
+  src: "compose/app.docker-compose.yml"
   root: true  
   dest: "docker-compose.yml"
 
-- src: "scripts/wordpress/compose.vars.local.sh"
-  dest: "scripts/vars.sh"
+- dir_base: "main/wordpress/templates"
+  src: "scripts/compose.vars.local.sh"
+  root: true  
+  dest: "vars.sh"
   mode: '0755'
   params: 
     scripts_dir: "main/wordpress/files/scripts"
     script_run_file: "compose.sh"
     script_env_file: "compose.env.app.sh"
+    script_upgrade_file: "compose.upgrade.app.sh"
     repo_name: "{{ params.run.repo_name }}"
+    pod_env_dir: "{{ params.run.pod_env_dir }}"
     setup_url: "{{ params.run.setup_url }}"
     setup_title: "{{ params.run.setup_title }}"
     setup_admin_user: "{{ params.run.setup_admin_user }}"

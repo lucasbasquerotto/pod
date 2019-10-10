@@ -1,7 +1,7 @@
 FROM {{ params.wordpress_image }}:{{ params.wordpress_version }}
 
-COPY --chown=www-data:www-data env/wordpress/.env /var/www/html/
+ARG POD_ENV_DIR
 
-{% set ini_file_type = ((params.env == 'development') | ternary('development', 'production')) -%}
+COPY --chown=www-data:www-data $POD_ENV_DIR/wordpress/.env /var/www/html/
 
-RUN mv "$PHP_INI_DIR/php.ini-{{ ini_file_type }}" "$PHP_INI_DIR/php.ini" 
+RUN mv "$PHP_INI_DIR/php.ini-{{ params.ini_file_type }}" "$PHP_INI_DIR/php.ini" 

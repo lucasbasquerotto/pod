@@ -18,6 +18,8 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/nginx/Dockerfile
+      args:
+        POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
     - wordpress
@@ -37,6 +39,8 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/wordpress/Dockerfile
+      args:
+        POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
     - mysql
@@ -57,6 +61,8 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/phpmyadmin/Dockerfile
+      args:
+        POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
     - mysql
@@ -74,6 +80,8 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/mysql/Dockerfile
+      args:
+        POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     environment:
       MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
@@ -93,6 +101,8 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/toolbox/Dockerfile
+      args:
+        POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     volumes:
     - $DATA_DIR/tmp:/tmp/main

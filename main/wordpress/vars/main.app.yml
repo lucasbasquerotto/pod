@@ -122,7 +122,7 @@ templates:
   params:
     wordpress_image: "{{ params.wordpress.image }}"
     wordpress_version: "{{ params.wordpress.version }}"
-    env: "{{ params.wordpress.env }}"
+    ini_file_type: "{{ (params.wordpress.env == 'development') | ternary('development', 'production') }}"
 
 - src: "wordpress/.env"
   dest: "wordpress/.env"

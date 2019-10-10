@@ -4,8 +4,6 @@ params:
     volumes:
       data_dir: "{{ params_aux.data_dir_inside }}"
     wordpress:
-      image: "{{ params.wordpress.image }}"
-      version: "{{ params.wordpress.version }}"
       env: "{{ params.wordpress.env }}"
       domain: "{{ params.wordpress.domain }}"
       db_password: "{{ params.wordpress.db_password }}"
@@ -24,12 +22,8 @@ params:
       port: "{{ params.phpmyadmin.port }}"
       ssl: "{{ params.phpmyadmin.ssl }}"
     mysql: 
-      image: "{{ params.mysql.image }}"
-      version: "{{ params.mysql.version }}"
       root_password: "{{ params.mysql.root_password }}"
     toolbox:
-      image: "{{ params.toolbox.image }}"
-      version: "{{ params.toolbox.version }}"
       s3_endpoint: "{{ params.toolbox.s3_endpoint | default('') }}"
       s3cmd:
         access_key: "{{ params.toolbox.s3cmd.access_key | default('') }}"
@@ -50,16 +44,24 @@ params:
       pod_env_dir: "{{ params_aux.pod_env_dir }}"
       data_dir: "{{ params_aux.data_dir }}"
       wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
-      mysql_image: "{{ params.mysql.image }}"
-      mysql_version: "{{ params.mysql.version }}"
       db_host: "{{ params.mysql.db_host | default('mysql', true) }}"
       db_port: "{{ params.mysql.db_port | default('3306', true) }}"
       db_name: "{{ params.mysql.db_name | default('wordpress', true) }}"
       db_user: "{{ params.mysql.db_user | default('wp_user', true) }}"
-      mysql_cmd: "{{ params.mysql.cmd | default('') }}"
-    composer:
-      image: "{{ params.composer.image }}"
-      version: "{{ params.composer.version }}"
+      mysql_cmd: "{{ params.mysql.cmd | default('') }}"  
+      nginx_image: "{{ params.nginx.image | default('nginx') }}"
+      nginx_version: "{{ params.nginx.version | default('1.14.2-alpine') }}"
+      wordpress_image: "{{ params.wordpress.image }}"
+      wordpress_version: "{{ params.wordpress.version }}"
+      wordpress_env: "{{ params.wordpress.env }}"
+      pma_image: "{{ params.pma.image | default('phpmyadmin/phpmyadmin') }}"
+      pma_version: "{{ params.pma.version | default('4.8.5') }}"
+      mysql_image: "{{ params.mysql.image }}"
+      mysql_version: "{{ params.mysql.version }}"
+      toolbox_image: "{{ params.toolbox.image }}"
+      toolbox_version: "{{ params.toolbox.version }}"
+      composer_image: "{{ params.composer.image }}"
+      composer_version: "{{ params.composer.version }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"

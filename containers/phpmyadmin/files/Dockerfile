@@ -1,4 +1,7 @@
-FROM {{ params.pma_image }}:{{ params.pma_version }}
+ARG PMA_IMAGE
+ARG PMA_VERSION
+
+FROM $PMA_IMAGE:$PMA_VERSION
 
 ARG POD_ENV_DIR
 

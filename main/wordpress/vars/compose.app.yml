@@ -11,8 +11,6 @@ templates:
     git_commit: "{{ params.env.git_commit }}"
     pod_env_dir: "{{ params.env.pod_env_dir }}"
     data_dir: "{{ params.env.data_dir }}"
-    mysql_image: "{{ params.env.mysql_image }}"
-    mysql_version: "{{ params.env.mysql_version }}"
     db_host: "{{ params.env.db_host }}"
     db_port: "{{ params.env.db_port }}"
     db_name: "{{ params.env.db_name }}"
@@ -20,6 +18,18 @@ templates:
     db_password: "{{ params.env.db_password }}"
     mysql_root_password: "{{ params.env.mysql_root_password }}"
     mysql_cmd: "{{ params.env.mysql_cmd }}"
+    nginx_image: "{{ params.env.nginx_image }}"
+    nginx_version: "{{ params.env.nginx_version }}"
+    wordpress_image: "{{ params.env.wordpress_image }}"
+    wordpress_version: "{{ params.env.wordpress_version }}"
+    wordpress_ini_file_type: >-
+      {{ (params.env.wordpress_env == 'development') | ternary('development', 'production') }}
+    pma_image: "{{ params.env.pma_image }}"
+    pma_version: "{{ params.env.pma_version }}"
+    mysql_image: "{{ params.env.mysql_image }}"
+    mysql_version: "{{ params.env.mysql_version }}"
+    toolbox_image: "{{ params.env.toolbox_image }}"
+    toolbox_version: "{{ params.env.toolbox_version }}"
 
 - dir_base: "main/wordpress/templates"
   src: "compose/app.docker-compose.yml"

@@ -20,6 +20,8 @@ services:
       context: ./
       dockerfile: $POD_ENV_DIR/nginx/Dockerfile
       args:
+        NGINX_IMAGE: $NGINX_IMAGE
+        NGINX_VERSION: $NGINX_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
@@ -42,6 +44,9 @@ services:
       context: ./
       dockerfile: $POD_ENV_DIR/wordpress/Dockerfile
       args:
+        WORDPRESS_IMAGE: $WORDPRESS_IMAGE
+        WORDPRESS_VERSION: $WORDPRESS_VERSION
+        WORDPRESS_INI_FILE_TYPE: $WORDPRESS_INI_FILE_TYPE
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
@@ -66,6 +71,8 @@ services:
       context: ./
       dockerfile: $POD_ENV_DIR/phpmyadmin/Dockerfile
       args:
+        PMA_IMAGE: $PMA_IMAGE
+        PMA_VERSION: $PMA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     depends_on:
@@ -86,6 +93,8 @@ services:
       context: ./
       dockerfile: $POD_ENV_DIR/mysql/Dockerfile
       args:
+        MYSQL_IMAGE: $MYSQL_IMAGE
+        MYSQL_VERSION: $MYSQL_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     environment:
@@ -107,6 +116,9 @@ services:
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/composer/Dockerfile
+      args:
+        COMPOSER_IMAGE: $COMPOSER_IMAGE
+        COMPOSER_VERSION: $COMPOSER_VERSION
     restart: on-failure
     working_dir: /var/www/html
     volumes:
@@ -125,6 +137,8 @@ services:
       context: ./
       dockerfile: $POD_ENV_DIR/toolbox/Dockerfile
       args:
+        TOOLBOX_IMAGE: $TOOLBOX_IMAGE
+        TOOLBOX_VERSION: $TOOLBOX_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     volumes:

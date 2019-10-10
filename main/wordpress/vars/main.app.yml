@@ -2,18 +2,41 @@ volumes:
 - { path: "{{ params.volumes.data_dir }}/mysql", mode: "0755" }
 - { path: "{{ params.volumes.data_dir }}/wordpress/uploads", mode: "0777" }
 
+files:
+
+- dir_base: "containers/nginx/files"
+  src: "Dockerfile"
+  dest: "nginx/Dockerfile"
+
+- dir_base: "containers/wordpress/files"
+  src: "Dockerfile"
+  dest: "wordpress/Dockerfile"
+
+- dir_base: "containers/phpmyadmin/files"
+  src: "Dockerfile"
+  dest: "phpmyadmin/Dockerfile"
+
+- dir_base: "containers/mysql/files"
+  src: "Dockerfile"
+  dest: "mysql/Dockerfile"
+
+- dir_base: "containers/toolbox/files"
+  src: "Dockerfile"
+  dest: "toolbox/Dockerfile"
+
+- dir_base: "containers/toolbox/files"
+  src: "aws/config.cfg"
+  dest: "toolbox/aws/config"
+
 templates:
 
 #############
 ### Nginx ###
 #############
 
-- src: "nginx/Dockerfile"
-  params:
-    nginx_image: "nginx"
-    nginx_version: "1.14.2-alpine"
-
-- src: "nginx/nginx.conf"
+- dir_base: "containers/nginx/templates"
+  src: "nginx.conf"
+  dest: "nginx/nginx.conf"
   params:
     worker_processes: 1
     worker_connections: 512
@@ -56,31 +79,40 @@ templates:
       locations:
       - path: "/"
 
-- src: "nginx/includes/log.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/log.conf"
+  dest: "nginx/includes/log.conf"
   params: 
     format: >-
       $remote_addr $sent_http_x_user_id $upstream_response_time $status
       $remote_user [$time_local] "$host" "$request"
       $body_bytes_sent "$http_referer" "$http_user_agent" $request_time
 
-- src: "nginx/includes/limit_req_zone.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/limit_req_zone.conf"
+  dest: "nginx/includes/limit_req_zone.conf"
   params: 
     zone: "mainlimit"
     size: "10m"
     rate: "2r/s"
 
-- src: "nginx/includes/limit_conn_zone.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/limit_conn_zone.conf"
+  dest: "nginx/includes/limit_conn_zone.conf"
   params:
     zone: "connlimit"
     size: "10m"
 
-- src: "nginx/includes/limit_conn_zone.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/limit_conn_zone.conf"
   dest: "nginx/includes/limit_conn_zone_file_upload.conf"
   params: 
     zone: "uploadconnlimit"
     size: "10m"
 
-- src: "nginx/includes/proxy_cache.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/proxy_cache.conf"
+  dest: "nginx/includes/proxy_cache.conf"
   params:
     proxy_cache_path: "/var/cache/nginx"
     levels: "1:2"
@@ -89,7 +121,9 @@ templates:
     max_size: "200m"
     inactive: "30m"
 
-- src: "nginx/includes/timeouts.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/timeouts.conf"
+  dest: "nginx/includes/timeouts.conf"
   params:
     proxy_connect_timeout: "30"
     proxy_send_timeout: "60"
@@ -98,12 +132,15 @@ templates:
     client_body_timeout: "5s"
     client_header_timeout: "5s"
 
-- src: "nginx/includes/file_upload.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/file_upload.conf"
+  dest: "nginx/includes/file_upload.conf"
   params: 
     proxy_read_timeout: "240"
     client_max_body_size: "10M"
 
-- src: "nginx/includes/ratelimit.conf"
+- dir_base: "containers/nginx/templates"
+  src: "includes/ratelimit.conf"
   dest: "nginx/includes/file_upload_ratelimit.conf"
   params:
     limit_req:
@@ -118,13 +155,8 @@ templates:
 ### Wordpress ###
 #################
 
-- src: "wordpress/Dockerfile"
-  params:
-    wordpress_image: "{{ params.wordpress.image }}"
-    wordpress_version: "{{ params.wordpress.version }}"
-    ini_file_type: "{{ (params.wordpress.env == 'development') | ternary('development', 'production') }}"
-
-- src: "wordpress/.env"
+- dir_base: "containers/wordpress/templates"
+  src: ".env"
   dest: "wordpress/.env"
   params: 
     env: "{{ params.wordpress.env }}"
@@ -153,12 +185,9 @@ templates:
 ### PHPMyAdmin ###
 ##################
 
-- src: "phpmyadmin/Dockerfile"
-  params:
-    pma_image: "phpmyadmin/phpmyadmin"
-    pma_version: "4.8.5"
-
-- src: "phpmyadmin/config.user.inc.php"
+- dir_base: "containers/phpmyadmin/templates"
+  src: "config.user.inc.php"
+  dest: "phpmyadmin/config.user.inc.php"
   params:
     login_cookie_validity: 36000
 
@@ -166,12 +195,9 @@ templates:
 ### MySQL ###
 #############
 
-- src: "mysql/Dockerfile"
-  params:
-    mysql_image: "{{ params.mysql.image }}"
-    mysql_version: "{{ params.mysql.version }}"
-
-- src: "mysql/mysqld.cnf"
+- dir_base: "containers/mysql/templates"
+  src: "mysqld.cnf"
+  dest: "mysql/mysqld.cnf"
   params:
     bind_address: "0.0.0.0"
     default_authentication_plugin: "mysql_native_password"
@@ -186,22 +212,17 @@ templates:
 ## TOOLBOX ##
 #############
 
-- src: "toolbox/Dockerfile"
-  params:
-    toolbox_image: "{{ params.toolbox.image }}"
-    toolbox_version: "{{ params.toolbox.version }}"
-
-- src: "toolbox/s3cmd.cfg"
+- dir_base: "containers/toolbox/templates"
+  src: "s3cmd.cfg"
+  dest: "toolbox/s3cmd.cfg"
   params:
     access_key: "{{ params.toolbox.s3cmd.access_key }}"
     secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
     host_base: "{{ params.toolbox.s3_endpoint }}"
 
-- src: "toolbox/aws/credentials.cfg"
+- dir_base: "containers/toolbox/templates"
+  src: "aws/credentials.cfg"
   dest: "toolbox/aws/credentials"
   params:
     access_key: "{{ params.toolbox.aws_s3.access_key }}"
     secret_key: "{{ params.toolbox.aws_s3.secret_key }}"
-
-- src: "toolbox/aws/config.cfg"
-  dest: "toolbox/aws/config"

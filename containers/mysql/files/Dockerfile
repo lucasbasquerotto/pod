@@ -1,4 +1,7 @@
-FROM {{ params.mysql_image }}:{{ params.mysql_version }}
+ARG MYSQL_IMAGE
+ARG MYSQL_VERSION
+
+FROM $MYSQL_IMAGE:$MYSQL_VERSION
 
 ARG POD_ENV_DIR
 

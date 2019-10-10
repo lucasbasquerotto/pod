@@ -1,4 +1,7 @@
-FROM {{ params.toolbox_image }}:{{ params.toolbox_version }}
+ARG TOOLBOX_IMAGE
+ARG TOOLBOX_VERSION
+
+FROM $TOOLBOX_IMAGE:$TOOLBOX_VERSION
 
 ARG POD_ENV_DIR
 

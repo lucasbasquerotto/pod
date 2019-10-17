@@ -92,6 +92,7 @@ case "$command" in
 		if [[ $dir_ls -eq 0 ]]; then 
 			if [ ! -z "$setup_local_uploads_zip_file" ] \
 			|| [ ! -z "$setup_remote_uploads_zip_file" ] \
+			|| [ ! -z "$setup_remote_bucket_path_uploads_dir" ] \
 			|| [ ! -z "$setup_remote_bucket_path_uploads_file" ]; then
 
 				if [ ! -z "$setup_local_uploads_zip_file" ]; then
@@ -221,6 +222,7 @@ case "$command" in
 		if [ "$tables" = "0" ]; then
 			if [ ! -z "$setup_local_db_file" ] \
 			|| [ ! -z "$setup_remote_db_file" ] \
+			|| [ ! -z "$setup_remote_bucket_path_db_dir" ] \
 			|| [ ! -z "$setup_remote_bucket_path_db_file" ]; then
 				
 				if [ ! -z "$setup_local_db_file" ]; then
@@ -228,6 +230,13 @@ case "$command" in
 				elif [ ! -z "$setup_remote_db_file" ]; then
 					setup_db_file_name="db-$key.zip"
 					setup_db_file="$db_restore_dir/$setup_db_file_name"
+				elif [ ! -z "$setup_remote_bucket_path_db_dir" ]; then
+					setup_db_file="$db_restore_dir/$db_name.sql"
+
+					backup_bucket_path="$backup_bucket_prefix/$setup_remote_bucket_path_db_dir"
+					backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
+					
+					restore_remote_src_uploads="s3://$backup_bucket_path"
 				elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
 					setup_db_file_name="db-$key.zip"
 					setup_db_file="$db_restore_dir/$setup_db_file_name"
@@ -263,6 +272,28 @@ case "$command" in
 					elif [ ! -z "$setup_remote_db_file" ]; then
 						echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
 						curl -L -o "/$setup_db_file" -k "$setup_remote_db_file"
+					elif [ ! -z "$setup_remote_bucket_path_db_dir" ]; then
+						msg="$command - restore db from remote bucket dir"
+						msg="\$msg [$restore_remote_src_uploads -> $db_restore_dir]"
+						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+
+						if [ "$use_aws_s3" = 'true' ]; then
+							msg="$command - toolbox - aws_s3 - sync bucket db dir to local path"
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							ls -la "/$db_restore_dir"
+							aws s3 sync \
+								--endpoint="$s3_endpoint" \
+								"$restore_remote_src_uploads" "/$db_restore_dir"
+							ls -la "/$db_restore_dir"
+						elif [ "$use_s3cmd" = 'true' ]; then
+							msg="$command - toolbox - s3cmd - sync bucket db dir to local path"
+							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+							s3cmd sync "$restore_remote_src_uploads" "/$db_restore_dir"
+						else
+							msg="$command - toolbox - not able to sync bucket db dir to local path"
+							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+							exit 1
+						fi
 					elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
 						msg="$command - restore db from remote bucket"
 						msg="\$msg [$restore_remote_src_db -> $restore_local_dest_db]"
@@ -289,7 +320,9 @@ case "$command" in
 						exit 1
 					fi
 
-					rm -f "/$db_restore_dir/$db_name.sql"
+					if [ -z "$setup_remote_bucket_path_db_dir" ]; then
+						rm -f "/$db_restore_dir/$db_name.sql"
+					fi
 
 					if [ "$extension" = "zip" ]; then
 						echo -e "${CYAN}$(date '+%F %X') - $command - db unzip${NC}"
@@ -300,7 +333,8 @@ case "$command" in
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - main${NC}"
 				sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-SHELL
 					set -eou pipefail
-					pv "$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
+					mysql -u "$db_user" -p"$db_pass" -e "CREATE DATABASE IF NOT EXISTS $db_name;"
+					pv "/$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
 				SHELL
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
@@ -377,7 +411,7 @@ case "$command" in
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_backup_base_dir="tmp/main/backup"
 		db_backup_dir="tmp/main/mysql/backup"
-		uploads_toolbox_dir="tmp/wordpress/uploads"
+		uploads_toolbox_dir="tmp/data/wordpress/uploads"
 		uploads_backup_dir="tmp/main/wordpress/uploads"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		sql_file_name="$db_name.sql"
@@ -388,7 +422,7 @@ case "$command" in
 		backup_bucket_db_sync_dir_full="$backup_bucket_name/$backup_bucket_path/$backup_bucket_db_sync_dir"
 		backup_bucket_db_sync_dir_full="$(echo "$backup_bucket_db_sync_dir_full" | tr -s /)"		
 
-		echo -e "${CYAN}$(date '+%F %X') - $command - start services needed${NC}"
+		echo -e "${CYAN}$(date '+%F %X') - $command - start needed services${NC}"
 		sudo docker-compose up -d toolbox wordpress mysql
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean directories${NC}"
@@ -448,7 +482,7 @@ case "$command" in
 						"/$main_backup_base_dir/" \
 						"s3://$backup_bucket_prefix"
 
-					if [ !-z "$backup_bucket_uploads_sync_dir" ]; then
+					if [ ! -z "$backup_bucket_uploads_sync_dir" ]; then
 						msg="$command - toolbox - aws_s3 - sync local uploads dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 						aws s3 sync \
@@ -457,7 +491,7 @@ case "$command" in
 							"s3://$backup_bucket_uploads_sync_dir_full/"
 					fi
 
-					if [ !-z "$backup_bucket_db_sync_dir" ]; then
+					if [ ! -z "$backup_bucket_db_sync_dir" ]; then
 						msg="$command - toolbox - aws_s3 - sync local db dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 						aws s3 sync \
@@ -470,13 +504,13 @@ case "$command" in
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
 
-					if [ !-z "$backup_bucket_uploads_sync_dir" ]; then
+					if [ ! -z "$backup_bucket_uploads_sync_dir" ]; then
 						msg="$command - toolbox - s3cmd - sync local uploads dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 						s3cmd sync "/$uploads_toolbox_dir/" "s3://$backup_bucket_uploads_sync_dir_full/"
 					fi
 
-					if [ !-z "$backup_bucket_db_sync_dir" ]; then
+					if [ ! -z "$backup_bucket_db_sync_dir" ]; then
 						msg="$command - toolbox - s3cmd - sync local db dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 						s3cmd sync "/$db_backup_dir/" "s3://$backup_bucket_db_sync_dir_full/"

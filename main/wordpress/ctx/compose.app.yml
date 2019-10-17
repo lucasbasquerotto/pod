@@ -93,6 +93,6 @@ params:
       use_s3cmd: "{{ ((params.toolbox.s3cmd.access_key | default('')) != '') | ternary('true', 'false') }}"
       backup_bucket_name: "{{ params.run.backup_bucket_name | default('') }}"
       backup_bucket_path: "{{ params.run.backup_bucket_path | default('') }}"
-      backup_bucket_uploads_sync_dir: "{{ params.run.backup_bucket_uploads_sync_dir | default('') }}"
       backup_bucket_db_sync_dir: "{{ params.run.backup_bucket_db_sync_dir | default('') }}"
+      backup_bucket_uploads_sync_dir: "{{ params.run.backup_bucket_uploads_sync_dir | default('') }}"
       backup_delete_old_days: "{{ params.run.backup_delete_old_days }}"

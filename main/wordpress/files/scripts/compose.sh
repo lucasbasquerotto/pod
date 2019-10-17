@@ -280,11 +280,9 @@ case "$command" in
 						if [ "$use_aws_s3" = 'true' ]; then
 							msg="$command - toolbox - aws_s3 - sync bucket db dir to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							ls -la "/$db_restore_dir"
 							aws s3 sync \
 								--endpoint="$s3_endpoint" \
 								"$restore_remote_src_uploads" "/$db_restore_dir"
-							ls -la "/$db_restore_dir"
 						elif [ "$use_s3cmd" = 'true' ]; then
 							msg="$command - toolbox - s3cmd - sync bucket db dir to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"

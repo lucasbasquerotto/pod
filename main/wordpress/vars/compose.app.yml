@@ -37,7 +37,7 @@ templates:
   dest: "docker-compose.yml"
 
 - dir_base: "main/wordpress/templates"
-  src: "scripts/compose.vars.local.sh"
+  src: "scripts/compose.vars.app.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'

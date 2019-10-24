@@ -7,10 +7,10 @@ script_upgrade_file="{{ params.script_upgrade_file }}"
 
 repo_name="{{ params.repo_name }}"
 pod_env_dir="{{ params.pod_env_dir }}"
-setup_url='{{ params.setup_url }}' \
-setup_title='{{ params.setup_title }}' \
-setup_admin_user='{{ params.setup_admin_user }}' \
-setup_admin_password='{{ params.setup_admin_password }}' \
+setup_url='{{ params.setup_url }}'
+setup_title='{{ params.setup_title }}'
+setup_admin_user='{{ params.setup_admin_user }}'
+setup_admin_password='{{ params.setup_admin_password }}'
 setup_admin_email='{{ params.setup_admin_email }}'
 setup_local_db_file='{{ params.setup_local_db_file }}'
 setup_local_uploads_zip_file='{{ params.setup_local_uploads_zip_file }}'

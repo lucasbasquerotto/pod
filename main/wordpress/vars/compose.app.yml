@@ -74,4 +74,6 @@ templates:
     db_user: "{{ params.env.db_user }}"
     db_pass: "{{ params.env.db_password }}"
     db_name: "{{ params.env.db_name }}"
+    old_domain_host: "{{ params.run.old_domain_host }}"
+    new_domain_host: "{{ params.run.new_domain_host }}"
     

@@ -34,4 +34,7 @@ db_user='{{ params.db_user }}'
 db_pass='{{ params.db_pass }}'
 db_name='{{ params.db_name }}'
 
+old_domain_host='{{ params.old_domain_host }}'
+new_domain_host='{{ params.new_domain_host }}'
+
 wordpress_dev_repo_dir="{{ params.wordpress_dev_repo_dir | default('') }}"

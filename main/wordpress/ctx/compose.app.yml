@@ -96,3 +96,5 @@ params:
       backup_bucket_db_sync_dir: "{{ params.run.backup_bucket_db_sync_dir | default('') }}"
       backup_bucket_uploads_sync_dir: "{{ params.run.backup_bucket_uploads_sync_dir | default('') }}"
       backup_delete_old_days: "{{ params.run.backup_delete_old_days }}"
+      old_domain_host: "{{ params.run.old_domain_host | default('') }}"
+      new_domain_host: "{{ params.run.new_domain_host | default('') }}"

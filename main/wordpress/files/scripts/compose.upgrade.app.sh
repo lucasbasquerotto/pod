@@ -17,7 +17,7 @@ echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - activate plugins${NC}"
 sudo docker-compose run --rm wordpress wp --allow-root \
     plugin activate --all
 
-if [ ! -z "$old_domain_host" ] && [ ! -z "$new_domain_host" ] then
+if [ ! -z "$old_domain_host" ] && [ ! -z "$new_domain_host" ]; then
     echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update domain${NC}"
     sudo docker-compose run --rm wordpress wp --allow-root \
         search-replace "$old_domain_host" "$new_domain_host"

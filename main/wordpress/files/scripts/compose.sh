@@ -89,7 +89,10 @@ case "$command" in
 			dir_ls="0"
 		fi
 
-		if [[ $dir_ls -eq 0 ]]; then 
+		if [[ $dir_ls -ne 0 ]]; then
+			msg="There are already uploaded files restored, skipping phase..."
+			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
+		else
 			if [ ! -z "$setup_local_uploads_zip_file" ] \
 			|| [ ! -z "$setup_remote_uploads_zip_file" ] \
 			|| [ ! -z "$setup_remote_bucket_path_uploads_dir" ] \
@@ -219,7 +222,10 @@ case "$command" in
 			exit 1
 		fi
 
-		if [ "$tables" = "0" ]; then
+		if [ "$tables" != "0" ]; then
+			msg="The database already has $tables tables, skipping database restore..."
+			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
+		else
 			if [ ! -z "$setup_local_db_file" ] \
 			|| [ ! -z "$setup_remote_db_file" ] \
 			|| [ ! -z "$setup_remote_bucket_path_db_dir" ] \

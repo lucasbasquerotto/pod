@@ -225,6 +225,9 @@ case "$command" in
 		if [ "$tables" != "0" ]; then
 			msg="The database already has $tables tables, skipping database restore..."
 			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
+
+			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+			"$pod_layer_dir/run" deploy 
 		else
 			if [ ! -z "$setup_local_db_file" ] \
 			|| [ ! -z "$setup_remote_db_file" ] \

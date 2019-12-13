@@ -1,0 +1,32 @@
+params:
+
+- name: "vars.env"
+  params:
+    env_files: {{ params.env_files | default([]) | to_json }}
+
+- name: "vars.main"
+  params:
+    volumes:
+      data_dir: "{{ params_aux.data_dir }}"
+    fluentd:
+      elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
+      flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"
+
+- name: "vars.compose"
+  params: 
+    env:  
+      ctx_name: "{{ params_aux.ctx_name }}"
+      pod_repo: "{{ params_aux.pod.repo }}"
+      pod_repo_version: "{{ params_aux.pod.repo_version }}"
+      git_commit: "{{ params_aux.git_commit }}"
+      pod_env_dir: "{{ params_aux.pod_env_dir }}"
+      data_dir: "{{ params_aux.data_dir }}"
+      fluentd_image: "{{ params.fluentd.image | default('fluent/fluentd') }}"
+      fluentd_version: "{{ params.fluentd.version | default('v1.7.4-debian-2.0') }}"
+      fluentd_port: "{{ params.fluentd.port | default('24224') }}"
+      elasticsearch_image: "{{ params.elasticsearch.image | default('docker.elastic.co/elasticsearch/elasticsearch') }}"
+      elasticsearch_version: "{{ params.elasticsearch.version | default('7.5.0') }}"
+      elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
+      kibana_image: "{{ params.kibana.image | default('docker.elastic.co/kibana/kibana') }}"
+      kibana_version: "{{ params.kibana.version | default('7.5.0') }}"
+      kibana_port: "{{ params.kibana.port | default('5601') }}"

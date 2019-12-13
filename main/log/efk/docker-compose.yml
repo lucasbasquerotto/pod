@@ -1,0 +1,52 @@
+version: '2.4'
+
+networks:
+  local:
+    driver: bridge
+    internal: true
+
+services:
+
+  fluentd:
+    hostname: fluentd
+    build: 
+      context: ./
+      dockerfile: $POD_ENV_DIR/fluentd/Dockerfile
+      args:
+        FLUENTD_IMAGE: $FLUENTD_IMAGE
+        FLUENTD_VERSION: $FLUENTD_VERSION
+        POD_ENV_DIR: $POD_ENV_DIR
+    networks:
+    - local
+    ports:
+    - "$FLUENTD_PORT:24224"
+    - "$FLUENTD_PORT:24224/udp"
+
+  elasticsearch:
+    hostname: elasticsearch
+    build: 
+      context: ./
+      dockerfile: $POD_ENV_DIR/elasticsearch/Dockerfile
+      args:
+        ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
+        ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
+        POD_ENV_DIR: $POD_ENV_DIR
+    networks:
+    - local
+    ports:
+    - "$ELASTICSEARCH_PORT:9200"
+
+  kibana:
+    hostname: kibana
+    build: 
+      context: ./
+      dockerfile: $POD_ENV_DIR/kibana/Dockerfile
+      args:
+        KIBANA_IMAGE: $KIBANA_IMAGE
+        KIBANA_VERSION: $KIBANA_VERSION
+        POD_ENV_DIR: $POD_ENV_DIR
+    networks:
+    - local
+    ports:
+    - "$KIBANA_PORT:5601"
+    

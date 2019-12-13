@@ -1,0 +1,27 @@
+files:
+
+- dir_base: "containers/fluentd/files"
+  src: "Dockerfile"
+  dest: "fluentd/Dockerfile"
+
+- dir_base: "containers/fluentd/files"
+  src: "Dockerfile"
+  dest: "fluentd/Dockerfile"
+
+- dir_base: "containers/elasticsearch/files"
+  src: "Dockerfile"
+  dest: "elasticsearch/Dockerfile"
+
+- dir_base: "containers/kibana/files"
+  src: "Dockerfile"
+  dest: "kibana/Dockerfile"
+
+templates:
+  
+- dir_base: "containers/fluentd/templates"
+  src: "elasticsearch.conf"
+  dest: "fluentd/fluent.conf"
+  params:
+    elasticsearch_port: "{{ params.fluentd.elasticsearch_port }}"
+    flush_interval: "{{ params.fluentd.flush_interval }}"
+    

@@ -9,8 +9,6 @@ params:
     volumes:
       data_dir: "{{ params_aux.data_dir }}"
     wordpress:
-      image: "{{ params.wordpress.image }}"
-      version: "{{ params.wordpress.version }}"
       env: "{{ params.wordpress.env }}"
       domain: "{{ params.wordpress.domain }}"
       db_password: "{{ params.wordpress.db_password }}"
@@ -29,12 +27,8 @@ params:
       port: "{{ params.phpmyadmin.port }}"
       ssl: "{{ params.phpmyadmin.ssl }}"
     mysql: 
-      image: "{{ params.mysql.image }}"
-      version: "{{ params.mysql.version }}"
       root_password: "{{ params.mysql.root_password }}"
     toolbox:
-      image: "{{ params.toolbox.image }}"
-      version: "{{ params.toolbox.version }}"
       s3_endpoint: "{{ params.toolbox.s3_endpoint | default('') }}"
       s3cmd:
         access_key: "{{ params.toolbox.s3cmd.access_key | default('') }}"
@@ -70,6 +64,9 @@ params:
       mysql_version: "{{ params.mysql.version }}"
       toolbox_image: "{{ params.toolbox.image }}"
       toolbox_version: "{{ params.toolbox.version }}"
+      log_driver: "{{ params.log.driver | default('fluentd') }}"
+      log_address: "{{ params.log.address | default('localhost:24224') }}"
+      log_tag: "{{ params.log.tag | default('docker.{{.Name}}.{{.ID}}') }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"

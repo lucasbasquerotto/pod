@@ -9,8 +9,10 @@ networks:
     
 x-logging: 
   main: &mainlog
+    driver: "fluentd"
     options:
-      max-size: 50m
+      fluentd-address: "$LOG_ADDRESS"
+      tag: "$LOG_TAG"
       
 services:
   nginx:

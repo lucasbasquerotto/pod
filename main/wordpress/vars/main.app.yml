@@ -209,7 +209,7 @@ templates:
     log_error: "/var/log/mysql/error.log"
 
 #############
-## TOOLBOX ##
+## Toolbox ##
 #############
 
 - dir_base: "containers/toolbox/templates"

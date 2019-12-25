@@ -20,8 +20,8 @@ services:
     networks:
     - local
     ports:
-    - "$FLUENTD_PORT:24224"
-    - "$FLUENTD_PORT:24224/udp"
+    - "24224:24224"
+    # - "$FLUENTD_PORT:24224/udp"
 
   elasticsearch:
     hostname: elasticsearch
@@ -34,11 +34,11 @@ services:
         POD_ENV_DIR: $POD_ENV_DIR
     restart: on-failure
     environment:
-    - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     networks:
     - local
     ports:
-    - "$ELASTICSEARCH_PORT:9200"
+    - "9200:9200"
 
   kibana:
     hostname: kibana
@@ -53,5 +53,5 @@ services:
     networks:
     - local
     ports:
-    - "$KIBANA_PORT:5601"
+    - "5601:5601"
     

@@ -1,10 +1,10 @@
 params:
 
-- name: "env"
+- name: "main/wordpress/vars/env.yml"
   params:
     env_files: {{ params.env_files | default([]) | to_json }}
 
-- name: "main.app"
+- name: "main/wordpress/vars/main.app.yml"
   params:
     volumes:
       data_dir: "{{ params_aux.data_dir }}"
@@ -37,12 +37,12 @@ params:
         access_key: "{{ params.toolbox.aws_s3.access_key | default('') }}"
         secret_key: "{{ params.toolbox.aws_s3.secret_key | default('') }}"
 
-- name: "compose.app"
+- name: "main/wordpress/vars/compose.app.yml"
   params: 
     env:  
       db_password: "{{ params.wordpress.db_password }}"
       mysql_root_password: "{{ params.mysql.root_password }}"
-      ctx_name: "{{ params_aux.ctx_name }}"
+      ctx_name: "{{ params_aux.pod_id }}"
       pod_repo: "{{ params_aux.pod.repo }}"
       pod_repo_version: "{{ params_aux.pod.repo_version }}"
       git_commit: "{{ params_aux.git_commit }}"

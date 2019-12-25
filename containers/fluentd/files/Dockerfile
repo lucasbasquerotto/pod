@@ -5,4 +5,8 @@ FROM $FLUENTD_IMAGE:$FLUENTD_VERSION
 
 ARG POD_ENV_DIR
 
+USER root
+
 COPY $POD_ENV_DIR/fluentd/fluent.conf /fluentd/etc/
+
+USER fluent

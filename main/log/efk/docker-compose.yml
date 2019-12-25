@@ -16,6 +16,7 @@ services:
         FLUENTD_IMAGE: $FLUENTD_IMAGE
         FLUENTD_VERSION: $FLUENTD_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    restart: on-failure
     networks:
     - local
     ports:
@@ -31,6 +32,9 @@ services:
         ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    restart: on-failure
+    environment:
+    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     networks:
     - local
     ports:
@@ -45,6 +49,7 @@ services:
         KIBANA_IMAGE: $KIBANA_IMAGE
         KIBANA_VERSION: $KIBANA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    restart: on-failure
     networks:
     - local
     ports:

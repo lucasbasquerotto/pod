@@ -30,9 +30,9 @@ templates:
     mysql_version: "{{ params.env.mysql_version }}"
     toolbox_image: "{{ params.env.toolbox_image }}"
     toolbox_version: "{{ params.env.toolbox_version }}"
-    log_driver: "{{ params.log_driver }}"
-    log_address: "{{ params.log_address }}"
-    log_tag: "{{ params.log_tag }}"
+    log_driver: "{{ params.env.log_driver }}"
+    log_address: "{{ params.env.log_address }}"
+    log_tag: "{{ params.env.log_tag }}"
 
 - dir_base: "main/wordpress/templates"
   src: "compose/app.docker-compose.yml"

@@ -66,7 +66,7 @@ params:
       toolbox_version: "{{ params.toolbox.version }}"
       log_driver: "{{ params.log.driver | default('fluentd') }}"
       log_address: "{{ params.log.address | default('localhost:24224') }}"
-      log_tag: "{{ params.log.tag | default('docker') }}"
+      log_tag: "{{ params.log.tag | default('docker.[[.Name]].[[.ID]]') }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"

@@ -1,7 +1,7 @@
 version: '2.4'
 
 networks:
-  local:
+  efk:
     driver: bridge
     # internal: true
 
@@ -17,7 +17,7 @@ services:
         FLUENTD_VERSION: $FLUENTD_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     networks:
-    - local
+    - efk
     ports:
     - "$FLUENTD_PORT:24224"
     - "$FLUENTD_PORT:24224/udp"
@@ -32,9 +32,10 @@ services:
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     environment:
+    - "cluster.initial_master_nodes=elasticsearch"
     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     networks:
-    - local
+    - efk
     ports:
     - "$ELASTICSEARCH_PORT:9200"
 
@@ -48,7 +49,7 @@ services:
         KIBANA_VERSION: $KIBANA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
     networks:
-    - local
+    - efk
     ports:
     - "$KIBANA_PORT:5601"
     

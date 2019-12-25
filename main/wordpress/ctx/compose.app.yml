@@ -1,10 +1,10 @@
 params:
 
-- name: "main/wordpress/vars/env.yml"
+- name: "env"
   params:
     env_files: {{ params.env_files | default([]) | to_json }}
 
-- name: "main/wordpress/vars/main.app.yml"
+- name: "main.app"
   params:
     volumes:
       data_dir: "{{ params_aux.data_dir }}"
@@ -37,12 +37,12 @@ params:
         access_key: "{{ params.toolbox.aws_s3.access_key | default('') }}"
         secret_key: "{{ params.toolbox.aws_s3.secret_key | default('') }}"
 
-- name: "main/wordpress/vars/compose.app.yml"
+- name: "compose.app"
   params: 
     env:  
       db_password: "{{ params.wordpress.db_password }}"
       mysql_root_password: "{{ params.mysql.root_password }}"
-      ctx_name: "{{ params_aux.pod_id }}"
+      ctx_name: "{{ params_aux.ctx_name }}"
       pod_repo: "{{ params_aux.pod.repo }}"
       pod_repo_version: "{{ params_aux.pod.repo_version }}"
       git_commit: "{{ params_aux.git_commit }}"
@@ -66,7 +66,7 @@ params:
       toolbox_version: "{{ params.toolbox.version }}"
       log_driver: "{{ params.log.driver | default('fluentd') }}"
       log_address: "{{ params.log.address | default('localhost:24224') }}"
-      log_tag: "{{ params.log.tag | default('{% raw %}docker.{{.Name}}.{{.ID}}{% endraw %}') }}"
+      log_tag: "{{ params.log.tag | default(\"docker.{{ '{{' }}.Name{{ '}}' }}.{{ '{{' }}.ID{{ '}}' }}\") }}"
     run:
       repo_name: "{{ params_aux.repo_name }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"

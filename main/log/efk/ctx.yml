@@ -1,10 +1,10 @@
 params:
 
-- name: "vars.env"
+- name: "main/log/efk/vars.env"
   params:
     env_files: {{ params.env_files | default([]) | to_json }}
 
-- name: "vars.main"
+- name: "main/log/efk/vars.main"
   params:
     volumes:
       data_dir: "{{ params_aux.data_dir }}"
@@ -12,7 +12,7 @@ params:
       elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
       flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"
 
-- name: "vars.compose"
+- name: "main/log/efk/vars.compose"
   params: 
     env:  
       ctx_name: "{{ params_aux.pod_id }}"

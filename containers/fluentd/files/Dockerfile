@@ -9,4 +9,6 @@ USER root
 
 COPY $POD_ENV_DIR/fluentd/fluent.conf /fluentd/etc/
 
+RUN chmod +rx /fluentd/etc/fluent.conf
+
 USER fluent

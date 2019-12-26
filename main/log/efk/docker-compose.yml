@@ -3,7 +3,6 @@ version: '2.4'
 networks:
   efk:
     driver: bridge
-    # internal: true
 
 services:
 
@@ -16,11 +15,24 @@ services:
         FLUENTD_IMAGE: $FLUENTD_IMAGE
         FLUENTD_VERSION: $FLUENTD_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    {% if params.fluentd.environments | default([]) | length > 0 %}
+    environment:
+    {%- for item in params.fluentd.environments %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.fluentd.ports | default([]) | length > 0 %}
     networks:
-    - efk
+    {%- for item in params.fluentd.networks %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.fluentd.ports | default([]) | length > 0 %}
     ports:
-    - "$FLUENTD_PORT:24224"
-    - "$FLUENTD_PORT:24224/udp"
+    {%- for item in params.fluentd.ports %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
 
   elasticsearch:
     hostname: elasticsearch
@@ -31,13 +43,24 @@ services:
         ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    {% if params.elasticsearch.environments | default([]) | length > 0 %}
     environment:
-    - "cluster.initial_master_nodes=elasticsearch"
-    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    {%- for item in params.elasticsearch.environments %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.elasticsearch.ports | default([]) | length > 0 %}
     networks:
-    - efk
+    {%- for item in params.elasticsearch.networks %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.elasticsearch.ports | default([]) | length > 0 %}
     ports:
-    - "$ELASTICSEARCH_PORT:9200"
+    {%- for item in params.elasticsearch.ports %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
 
   kibana:
     hostname: kibana
@@ -48,8 +71,22 @@ services:
         KIBANA_IMAGE: $KIBANA_IMAGE
         KIBANA_VERSION: $KIBANA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
+    {% if params.kibana.environments | default([]) | length > 0 %}
+    environment:
+    {%- for item in params.kibana.environments %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.kibana.ports | default([]) | length > 0 %}
     networks:
-    - efk
+    {%- for item in params.kibana.networks %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
+    {% if params.kibana.ports | default([]) | length > 0 %}
     ports:
-    - "$KIBANA_PORT:5601"
+    {%- for item in params.kibana.ports %}
+    - "{{ item }}"
+    {% endfor %}
+    {% endif %}
     

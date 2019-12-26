@@ -14,6 +14,19 @@ params:
 
 - name: "main/log/efk/vars.compose"
   params: 
+    compose:
+      fluentd:
+        networks: "{{ params.compose.fluentd.networks }}"
+        environments: "{{ params.compose.fluentd.networks }}"
+        ports: "{{ params.compose.fluentd.networks }}"
+      elasticsearch:
+        networks: "{{ params.compose.elasticsearch.networks }}"
+        environments: "{{ params.compose.elasticsearch.networks }}"
+        ports: "{{ params.compose.elasticsearch.networks }}"
+      kibana:
+        networks: "{{ params.compose.kibana.networks }}"
+        environments: "{{ params.compose.kibana.networks }}"
+        ports: "{{ params.compose.kibana.networks }}"
     env:  
       ctx_name: "{{ params_aux.pod_id }}"
       pod_repo: "{{ params_aux.pod.repo }}"
@@ -21,12 +34,9 @@ params:
       git_commit: "{{ params_aux.git_commit }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"
       data_dir: "{{ params_aux.data_dir }}"
-      fluentd_image: "{{ params.fluentd.image | default('fluent/fluentd') }}"
-      fluentd_version: "{{ params.fluentd.version | default('v1.7.4-debian-2.0') }}"
-      fluentd_port: "{{ params.fluentd.port | default('24224') }}"
-      elasticsearch_image: "{{ params.elasticsearch.image | default('docker.elastic.co/elasticsearch/elasticsearch') }}"
-      elasticsearch_version: "{{ params.elasticsearch.version | default('7.5.0') }}"
-      elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
-      kibana_image: "{{ params.kibana.image | default('docker.elastic.co/kibana/kibana') }}"
-      kibana_version: "{{ params.kibana.version | default('7.5.0') }}"
-      kibana_port: "{{ params.kibana.port | default('5601') }}"
+      fluentd_image: "{{ params.fluentd.image }}"
+      fluentd_version: "{{ params.fluentd.version }}"
+      elasticsearch_image: "{{ params.elasticsearch.image }}"
+      elasticsearch_version: "{{ params.elasticsearch.version }}"
+      kibana_image: "{{ params.kibana.image }}"
+      kibana_version: "{{ params.kibana.version }}"

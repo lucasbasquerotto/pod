@@ -1,6 +1,24 @@
 templates:
 
 - dir_base: "main/log/efk"
+  src: "docker-compose.yml"
+  dest: "docker-compose.yml"
+  root: true
+  params:
+    fluentd:
+      networks: "{{ params.compose.fluentd.networks }}"
+      environments: "{{ params.compose.fluentd.networks }}"
+      ports: "{{ params.compose.fluentd.networks }}"
+    elasticsearch:
+      networks: "{{ params.compose.elasticsearch.networks }}"
+      environments: "{{ params.compose.elasticsearch.networks }}"
+      ports: "{{ params.compose.elasticsearch.networks }}"
+    kibana:
+      networks: "{{ params.compose.kibana.networks }}"
+      environments: "{{ params.compose.kibana.networks }}"
+      ports: "{{ params.compose.kibana.networks }}"
+
+- dir_base: "main/log/efk"
   src: ".env"
   dest: ".env"
   root: true

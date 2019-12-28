@@ -14,6 +14,8 @@ params:
 
 - name: "main/log/efk/vars.compose"
   params: 
+    data_dir: "{{ params_aux.data_dir }}"
+    volumes: {{ params.volumes | default([]) | to_json }}
     compose:
       networks: {{ params.compose.networks | default({}) | to_json }}
       mainlog:

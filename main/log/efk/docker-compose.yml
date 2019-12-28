@@ -2,9 +2,11 @@ version: '2.4'
 
 x-logging: 
   main: &mainlog
+
     {% if (params.mainlog.driver | default('')) != '' 
     %}driver: {{ params.mainlog.driver | to_json }}
     {% endif %}
+
     {% if params.mainlog.options | default({})
     | dict2items | default([]) | list | length > 0 
     %}options: {{ params.mainlog.options | to_json }}
@@ -20,6 +22,7 @@ services:
   fluentd:
     hostname: fluentd
     container_name: ${CTX_NAME}-fluentd
+    image: ${CTX_NAME}-fluentd
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/fluentd/Dockerfile
@@ -62,13 +65,13 @@ services:
   elasticsearch:
     hostname: elasticsearch
     container_name: ${CTX_NAME}-elasticsearch
+    image: ${CTX_NAME}-elasticsearch
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/elasticsearch/Dockerfile
       args:
         ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
-        POD_ENV_DIR: $POD_ENV_DIR
     restart: unless-stopped
     logging: *mainlog
 
@@ -105,13 +108,13 @@ services:
   kibana:
     hostname: kibana
     container_name: ${CTX_NAME}-kibana
+    image: ${CTX_NAME}-kibana
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/kibana/Dockerfile
       args:
         KIBANA_IMAGE: $KIBANA_IMAGE
         KIBANA_VERSION: $KIBANA_VERSION
-        POD_ENV_DIR: $POD_ENV_DIR
     restart: unless-stopped
     logging: *mainlog
 

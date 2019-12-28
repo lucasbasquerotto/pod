@@ -1,7 +1,11 @@
 
 
 {% if params.volumes | default([]) | list | length > 0 %}volumes:
-{% for item in params.volumes | list %}- {{ item | to_json }}
+{% for item in params.volumes | list -%}
+- path: "{{ params.data_dir + '/' + item.rel_path }}"
+  {% if (item.mode | default('')) != '' 
+  %}mode: "{{ item.mode }}"
+  {% endif %}
 {% endfor %}
 {% endif %}
 

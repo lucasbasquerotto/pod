@@ -7,16 +7,16 @@ templates:
   params:
     fluentd:
       networks: "{{ params.compose.fluentd.networks }}"
-      environments: "{{ params.compose.fluentd.networks }}"
-      ports: "{{ params.compose.fluentd.networks }}"
+      environments: "{{ params.compose.fluentd.environments }}"
+      ports: "{{ params.compose.fluentd.ports }}"
     elasticsearch:
       networks: "{{ params.compose.elasticsearch.networks }}"
-      environments: "{{ params.compose.elasticsearch.networks }}"
-      ports: "{{ params.compose.elasticsearch.networks }}"
+      environments: "{{ params.compose.elasticsearch.environments }}"
+      ports: "{{ params.compose.elasticsearch.ports }}"
     kibana:
       networks: "{{ params.compose.kibana.networks }}"
-      environments: "{{ params.compose.kibana.networks }}"
-      ports: "{{ params.compose.kibana.networks }}"
+      environments: "{{ params.compose.kibana.environments }}"
+      ports: "{{ params.compose.kibana.ports }}"
 
 - dir_base: "main/log/efk"
   src: ".env"
@@ -31,15 +31,7 @@ templates:
     data_dir: "{{ params.env.data_dir }}"
     fluentd_image: "{{ params.env.fluentd_image }}"
     fluentd_version: "{{ params.env.fluentd_version }}"
-    fluentd_port: "{{ params.env.fluentd_port }}"
     elasticsearch_image: "{{ params.env.elasticsearch_image }}"
     elasticsearch_version: "{{ params.env.elasticsearch_version }}"
-    elasticsearch_port: "{{ params.env.elasticsearch_port }}"
     kibana_image: "{{ params.env.kibana_image }}"
     kibana_version: "{{ params.env.kibana_version }}"
-    kibana_port: "{{ params.env.kibana_port }}"
-
-- dir_base: "main/log/efk"
-  src: "docker-compose.yml"
-  dest: "docker-compose.yml"
-  root: true  

@@ -8,6 +8,7 @@ services:
 
   fluentd:
     hostname: fluentd
+    container_name: ${CTX_NAME}-fluentd
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/fluentd/Dockerfile
@@ -15,27 +16,28 @@ services:
         FLUENTD_IMAGE: $FLUENTD_IMAGE
         FLUENTD_VERSION: $FLUENTD_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.fluentd.environments | default([]) | length > 0 %}
+    {% if params.fluentd.environments | default([]) | list | length > 0 %}
     environment:
-    {%- for item in params.fluentd.environments %}
+    {%- for item in params.fluentd.environments | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.fluentd.ports | default([]) | length > 0 %}
+    {% if params.fluentd.networks | default([]) | list | length > 0 %}
     networks:
-    {%- for item in params.fluentd.networks %}
+    {%- for item in params.fluentd.networks | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.fluentd.ports | default([]) | length > 0 %}
+    {% if params.fluentd.ports | default([]) | list | length > 0 %}
     ports:
-    {%- for item in params.fluentd.ports %}
+    {%- for item in params.fluentd.ports | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
 
   elasticsearch:
     hostname: elasticsearch
+    container_name: ${CTX_NAME}-elasticsearch
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/elasticsearch/Dockerfile
@@ -43,27 +45,28 @@ services:
         ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.elasticsearch.environments | default([]) | length > 0 %}
+    {% if params.elasticsearch.environments | default([]) | list | length > 0 %}
     environment:
-    {%- for item in params.elasticsearch.environments %}
+    {%- for item in params.elasticsearch.environments | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.elasticsearch.ports | default([]) | length > 0 %}
+    {% if params.elasticsearch.networks | default([]) | list | length > 0 %}
     networks:
-    {%- for item in params.elasticsearch.networks %}
+    {%- for item in params.elasticsearch.networks | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.elasticsearch.ports | default([]) | length > 0 %}
+    {% if params.elasticsearch.ports | default([]) | list | length > 0 %}
     ports:
-    {%- for item in params.elasticsearch.ports %}
+    {%- for item in params.elasticsearch.ports | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
 
   kibana:
     hostname: kibana
+    container_name: ${CTX_NAME}-kibana
     build: 
       context: ./
       dockerfile: $POD_ENV_DIR/kibana/Dockerfile
@@ -71,21 +74,21 @@ services:
         KIBANA_IMAGE: $KIBANA_IMAGE
         KIBANA_VERSION: $KIBANA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.kibana.environments | default([]) | length > 0 %}
+    {% if params.kibana.environments | default([]) | list | length > 0 %}
     environment:
-    {%- for item in params.kibana.environments %}
+    {%- for item in params.kibana.environments | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.kibana.ports | default([]) | length > 0 %}
+    {% if params.kibana.networks | default([]) | list | length > 0 %}
     networks:
-    {%- for item in params.kibana.networks %}
+    {%- for item in params.kibana.networks | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.kibana.ports | default([]) | length > 0 %}
+    {% if params.kibana.ports | default([]) | list | length > 0 %}
     ports:
-    {%- for item in params.kibana.ports %}
+    {%- for item in params.kibana.ports | list %}
     - "{{ item }}"
     {% endfor %}
     {% endif %}

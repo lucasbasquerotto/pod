@@ -16,17 +16,17 @@ params:
   params: 
     compose:
       fluentd:
-        networks: "{{ params.compose.fluentd.networks }}"
-        environments: "{{ params.compose.fluentd.networks }}"
-        ports: "{{ params.compose.fluentd.networks }}"
+        networks: "{{ params.fluentd.networks | default([]) }}"
+        environments: "{{ params.fluentd.environments | default([]) }}"
+        ports: "{{ params.fluentd.ports | default([]) }}"
       elasticsearch:
-        networks: "{{ params.compose.elasticsearch.networks }}"
-        environments: "{{ params.compose.elasticsearch.networks }}"
-        ports: "{{ params.compose.elasticsearch.networks }}"
+        networks: "{{ params.elasticsearch.networks | default([]) }}"
+        environments: "{{ params.elasticsearch.environments | default([]) }}"
+        ports: "{{ params.elasticsearch.ports | default([]) }}"
       kibana:
-        networks: "{{ params.compose.kibana.networks }}"
-        environments: "{{ params.compose.kibana.networks }}"
-        ports: "{{ params.compose.kibana.networks }}"
+        networks: "{{ params.kibana.networks | default([]) }}"
+        environments: "{{ params.kibana.environments | default([]) }}"
+        ports: "{{ params.kibana.ports | default([]) }}"
     env:  
       ctx_name: "{{ params_aux.pod_id }}"
       pod_repo: "{{ params_aux.pod.repo }}"

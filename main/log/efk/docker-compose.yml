@@ -2,13 +2,18 @@ version: '2.4'
 
 x-logging: 
   main: &mainlog
-    options:
-      max-size: 50m
-    
-      
-networks:
-  efk:
-    driver: bridge
+    {% if (params.mainlog.driver | default('')) != '' 
+    %}driver: {{ params.mainlog.driver | to_json }}
+    {% endif %}
+    {% if params.mainlog.options | default({})
+    | dict2items | default([]) | list | length > 0 
+    %}options: {{ params.mainlog.options | to_json }}
+    {% endif %}
+
+{% if params.networks 
+| dict2items | default([]) | list | length > 0 
+%}networks: {{ params.networks | to_json }}
+{% endif %}
 
 services:
 
@@ -25,6 +30,11 @@ services:
     restart: unless-stopped
     logging: *mainlog
 
+    {% if params.fluentd.volumes | default([]) | list | length > 0 %}volumes:
+    {% for item in params.fluentd.volumes | list %}- "{{ item }}"
+    {% endfor %}
+    {% endif %}
+
     {% if params.fluentd.environments | default([]) | list | length > 0 %}environment:
     {% for item in params.fluentd.environments | list %}- "{{ item }}"
     {% endfor %}
@@ -40,6 +50,15 @@ services:
     {% endfor %}
     {% endif %}
 
+    {% if (params.fluentd.mem_limit | default('')) != '' 
+    %}mem_limit: "{{ params.fluentd.mem_limit }}"
+    {% endif %}
+
+    {% if params.fluentd.ulimits 
+    | dict2items | default([]) | list | length > 0 
+    %}ulimits: {{ params.fluentd.ulimits | to_json }}
+    {% endif %}
+
   elasticsearch:
     hostname: elasticsearch
     container_name: ${CTX_NAME}-elasticsearch
@@ -52,6 +71,11 @@ services:
         POD_ENV_DIR: $POD_ENV_DIR
     restart: unless-stopped
     logging: *mainlog
+
+    {% if params.elasticsearch.volumes | default([]) | list | length > 0 %}volumes:
+    {% for item in params.elasticsearch.volumes | list %}- "{{ item }}"
+    {% endfor %}
+    {% endif %}
 
     {% if params.elasticsearch.environments | default([]) | list | length > 0 %}environment:
     {% for item in params.elasticsearch.environments | list %}- "{{ item }}"
@@ -68,6 +92,16 @@ services:
     {% endfor %}
     {% endif %}
 
+    {% if (params.elasticsearch.mem_limit 
+    | default('')) != '' 
+    %}mem_limit: "{{ params.elasticsearch.mem_limit }}"
+    {% endif %}
+
+    {% if params.elasticsearch.ulimits 
+    | dict2items | default([]) | list | length > 0 
+    %}ulimits: {{ params.elasticsearch.ulimits | to_json }}
+    {% endif %}
+
   kibana:
     hostname: kibana
     container_name: ${CTX_NAME}-kibana
@@ -80,6 +114,11 @@ services:
         POD_ENV_DIR: $POD_ENV_DIR
     restart: unless-stopped
     logging: *mainlog
+
+    {% if params.kibana.volumes | default([]) | list | length > 0 %}volumes:
+    {% for item in params.kibana.volumes | list %}- "{{ item }}"
+    {% endfor %}
+    {% endif %}
 
     {% if params.kibana.environments | default([]) | list | length > 0 %}environment:
     {% for item in params.kibana.environments | list %}- "{{ item }}"
@@ -94,5 +133,15 @@ services:
     {% if params.kibana.ports | default([]) | list | length > 0 %}ports:
     {% for item in params.kibana.ports | list %}- "{{ item }}"
     {% endfor %}
+    {% endif %}
+
+    {% if (params.kibana.mem_limit 
+    | default('')) != '' 
+    %}mem_limit: "{{ params.kibana.mem_limit }}"
+    {% endif %}
+
+    {% if params.kibana.ulimits 
+    | dict2items | default([]) | list | length > 0 
+    %}ulimits: {{ params.kibana.ulimits | to_json }}
     {% endif %}
     

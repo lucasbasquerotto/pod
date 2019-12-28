@@ -1,3 +1,10 @@
+
+
+{% if params.volumes | default([]) | list | length > 0 %}volumes:
+{% for item in params.volumes | list %}- {{ item | to_json }}
+{% endfor %}
+{% endif %}
+
 templates:
 
 - dir_base: "main/log/efk"
@@ -5,18 +12,31 @@ templates:
   dest: "docker-compose.yml"
   root: true
   params:
+    networks: {{ params.compose.networks | to_json }}
+    mainlog:
+      driver: "{{ params.compose.mainlog.driver }}"
+      options: {{ params.compose.mainlog.options | to_json }}
     fluentd:
-      networks: {{ params.compose.fluentd.networks | to_json }}
+      volumes: {{ params.compose.fluentd.volumes | to_json }}
       environments: {{ params.compose.fluentd.environments | to_json }}
+      networks: {{ params.compose.fluentd.networks | to_json }}
       ports: {{ params.compose.fluentd.ports | to_json }}
+      ulimits: {{ params.compose.fluentd.ulimits | to_json }}
+      mem_limit: "{{ params.compose.fluentd.mem_limit }}"
     elasticsearch:
-      networks: {{ params.compose.elasticsearch.networks | to_json }}
+      volumes: {{ params.compose.elasticsearch.volumes | to_json }}
       environments: {{ params.compose.elasticsearch.environments | to_json }}
+      networks: {{ params.compose.elasticsearch.networks | to_json }}
       ports: {{ params.compose.elasticsearch.ports | to_json }}
+      ulimits: {{ params.compose.elasticsearch.ulimits | to_json }}
+      mem_limit: "{{ params.compose.elasticsearch.mem_limit }}"
     kibana:
-      networks: {{ params.compose.kibana.networks | to_json }}
+      volumes: {{ params.compose.kibana.volumes | to_json }}
       environments: {{ params.compose.kibana.environments | to_json }}
+      networks: {{ params.compose.kibana.networks | to_json }}
       ports: {{ params.compose.kibana.ports | to_json }}
+      ulimits: {{ params.compose.kibana.ulimits | to_json }}
+      mem_limit: "{{ params.compose.kibana.mem_limit }}"
 
 - dir_base: "main/log/efk"
   src: ".env"

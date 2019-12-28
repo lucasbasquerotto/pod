@@ -198,13 +198,14 @@ templates:
 - dir_base: "containers/mysql/templates"
   src: "mysqld.cnf"
   dest: "mysql/mysqld.cnf"
+  mode: "0644"
   params:
     bind_address: "0.0.0.0"
     default_authentication_plugin: "mysql_native_password"
     collation_server: "utf8mb4_unicode_ci"
     character_set_server: "utf8mb4"
     slow_query_log: "1"
-    slow_query_log_file: "var/log/mysql/mysql-slow.log"
+    slow_query_log_file: "/var/log/mysql/mysql-slow.log"
     long_query_time: "3"
     log_error: "/var/log/mysql/error.log"
 

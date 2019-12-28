@@ -1,5 +1,11 @@
 version: '2.4'
 
+x-logging: 
+  main: &mainlog
+    options:
+      max-size: 50m
+    
+      
 networks:
   efk:
     driver: bridge
@@ -16,22 +22,21 @@ services:
         FLUENTD_IMAGE: $FLUENTD_IMAGE
         FLUENTD_VERSION: $FLUENTD_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.fluentd.environments | default([]) | list | length > 0 %}
-    environment:
-    {%- for item in params.fluentd.environments | list %}
-    - "{{ item }}"
+    restart: unless-stopped
+    logging: *mainlog
+
+    {% if params.fluentd.environments | default([]) | list | length > 0 %}environment:
+    {% for item in params.fluentd.environments | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.fluentd.networks | default([]) | list | length > 0 %}
-    networks:
-    {%- for item in params.fluentd.networks | list %}
-    - "{{ item }}"
+
+    {% if params.fluentd.networks | default([]) | list | length > 0 %}networks:
+    {% for item in params.fluentd.networks | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.fluentd.ports | default([]) | list | length > 0 %}
-    ports:
-    {%- for item in params.fluentd.ports | list %}
-    - "{{ item }}"
+
+    {% if params.fluentd.ports | default([]) | list | length > 0 %}ports:
+    {% for item in params.fluentd.ports | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
 
@@ -45,22 +50,21 @@ services:
         ELASTICSEARCH_IMAGE: $ELASTICSEARCH_IMAGE
         ELASTICSEARCH_VERSION: $ELASTICSEARCH_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.elasticsearch.environments | default([]) | list | length > 0 %}
-    environment:
-    {%- for item in params.elasticsearch.environments | list %}
-    - "{{ item }}"
+    restart: unless-stopped
+    logging: *mainlog
+
+    {% if params.elasticsearch.environments | default([]) | list | length > 0 %}environment:
+    {% for item in params.elasticsearch.environments | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.elasticsearch.networks | default([]) | list | length > 0 %}
-    networks:
-    {%- for item in params.elasticsearch.networks | list %}
-    - "{{ item }}"
+
+    {% if params.elasticsearch.networks | default([]) | list | length > 0 %}networks:
+    {% for item in params.elasticsearch.networks | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.elasticsearch.ports | default([]) | list | length > 0 %}
-    ports:
-    {%- for item in params.elasticsearch.ports | list %}
-    - "{{ item }}"
+
+    {% if params.elasticsearch.ports | default([]) | list | length > 0 %}ports:
+    {% for item in params.elasticsearch.ports | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
 
@@ -74,22 +78,21 @@ services:
         KIBANA_IMAGE: $KIBANA_IMAGE
         KIBANA_VERSION: $KIBANA_VERSION
         POD_ENV_DIR: $POD_ENV_DIR
-    {% if params.kibana.environments | default([]) | list | length > 0 %}
-    environment:
-    {%- for item in params.kibana.environments | list %}
-    - "{{ item }}"
+    restart: unless-stopped
+    logging: *mainlog
+
+    {% if params.kibana.environments | default([]) | list | length > 0 %}environment:
+    {% for item in params.kibana.environments | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.kibana.networks | default([]) | list | length > 0 %}
-    networks:
-    {%- for item in params.kibana.networks | list %}
-    - "{{ item }}"
+
+    {% if params.kibana.networks | default([]) | list | length > 0 %}networks:
+    {% for item in params.kibana.networks | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
-    {% if params.kibana.ports | default([]) | list | length > 0 %}
-    ports:
-    {%- for item in params.kibana.ports | list %}
-    - "{{ item }}"
+
+    {% if params.kibana.ports | default([]) | list | length > 0 %}ports:
+    {% for item in params.kibana.ports | list %}- "{{ item }}"
     {% endfor %}
     {% endif %}
     

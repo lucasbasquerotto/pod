@@ -6,17 +6,17 @@ templates:
   root: true
   params:
     fluentd:
-      networks: "{{ params.compose.fluentd.networks }}"
-      environments: "{{ params.compose.fluentd.environments }}"
-      ports: "{{ params.compose.fluentd.ports }}"
+      networks: {{ params.compose.fluentd.networks | to_json }}
+      environments: {{ params.compose.fluentd.environments | to_json }}
+      ports: {{ params.compose.fluentd.ports | to_json }}
     elasticsearch:
-      networks: "{{ params.compose.elasticsearch.networks }}"
-      environments: "{{ params.compose.elasticsearch.environments }}"
-      ports: "{{ params.compose.elasticsearch.ports }}"
+      networks: {{ params.compose.elasticsearch.networks | to_json }}
+      environments: {{ params.compose.elasticsearch.environments | to_json }}
+      ports: {{ params.compose.elasticsearch.ports | to_json }}
     kibana:
-      networks: "{{ params.compose.kibana.networks }}"
-      environments: "{{ params.compose.kibana.environments }}"
-      ports: "{{ params.compose.kibana.ports }}"
+      networks: {{ params.compose.kibana.networks | to_json }}
+      environments: {{ params.compose.kibana.environments | to_json }}
+      ports: {{ params.compose.kibana.ports | to_json }}
 
 - dir_base: "main/log/efk"
   src: ".env"

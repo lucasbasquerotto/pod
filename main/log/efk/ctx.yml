@@ -16,17 +16,17 @@ params:
   params: 
     compose:
       fluentd:
-        networks: "{{ params.fluentd.networks | default([]) }}"
-        environments: "{{ params.fluentd.environments | default([]) }}"
-        ports: "{{ params.fluentd.ports | default([]) }}"
+        networks: {{ params.fluentd.networks | default([]) | to_json }}
+        environments: {{ params.fluentd.environments | default([]) | to_json }}
+        ports: {{ params.fluentd.ports | default([]) | to_json }}
       elasticsearch:
-        networks: "{{ params.elasticsearch.networks | default([]) }}"
-        environments: "{{ params.elasticsearch.environments | default([]) }}"
-        ports: "{{ params.elasticsearch.ports | default([]) }}"
+        networks: {{ params.elasticsearch.networks | default([]) | to_json }}
+        environments: {{ params.elasticsearch.environments | default([]) | to_json }}
+        ports: {{ params.elasticsearch.ports | default([]) | to_json }}
       kibana:
-        networks: "{{ params.kibana.networks | default([]) }}"
-        environments: "{{ params.kibana.environments | default([]) }}"
-        ports: "{{ params.kibana.ports | default([]) }}"
+        networks: {{ params.kibana.networks | default([]) | to_json }}
+        environments: {{ params.kibana.environments | default([]) | to_json }}
+        ports: {{ params.kibana.ports | default([]) | to_json }}
     env:  
       ctx_name: "{{ params_aux.pod_id }}"
       pod_repo: "{{ params_aux.pod.repo }}"

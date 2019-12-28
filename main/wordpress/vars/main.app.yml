@@ -216,13 +216,13 @@ templates:
   src: "s3cmd.cfg"
   dest: "toolbox/s3cmd.cfg"
   params:
-    access_key: "{{ params.toolbox.s3cmd.access_key }}"
-    secret_key: "{{ params.toolbox.s3cmd.secret_key }}"
+    access_key: "{{ params.toolbox.bucket.access_key }}"
+    secret_key: "{{ params.toolbox.bucket.secret_key }}"
     host_base: "{{ params.toolbox.s3_endpoint }}"
 
 - dir_base: "containers/toolbox/templates"
   src: "aws/credentials.cfg"
   dest: "toolbox/aws/credentials"
   params:
-    access_key: "{{ params.toolbox.aws_s3.access_key }}"
-    secret_key: "{{ params.toolbox.aws_s3.secret_key }}"
+    access_key: "{{ params.toolbox.bucket.access_key }}"
+    secret_key: "{{ params.toolbox.bucket.secret_key }}"

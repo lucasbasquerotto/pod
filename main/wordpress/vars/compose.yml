@@ -42,7 +42,11 @@ templates:
   params: 
     scripts_dir: "main/wordpress/files/scripts"
     script_run_file: "compose.sh"
-    script_env_file: "compose.env.local.sh"
+    script_env_file: >-
+      {{ 
+      params.local | default(false) | bool 
+      | ternary('compose.env.local.sh', 'compose.env.app.sh') 
+      }}
     script_upgrade_file: "compose.upgrade.app.sh"
     wordpress_dev_repo_dir: "{{ params.env_run.wordpress_dev_repo_dir }}"    
     repo_name: "{{ params.run.repo_name }}"

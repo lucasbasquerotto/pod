@@ -2,6 +2,7 @@ params:
 
 - name: "main/wordpress/vars/main.app.yml"
   params:
+    local: "{{ params.local }}"
     volumes:
       data_dir: "{{ params_aux.data_dir_inside }}"
     env_files: {{ params.env_files | default([]) | to_json }}
@@ -33,6 +34,7 @@ params:
 
 - name: "main/wordpress/vars/compose.yml"
   params: 
+    local: "{{ params.local }}"
     compose: {{ params.compose | to_json }}
     env:  
       db_password: "{{ credentials.wordpress.db_password }}"
@@ -43,7 +45,11 @@ params:
       git_commit: "{{ params_aux.git_commit }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"
       data_dir: "{{ params_aux.data_dir }}"
-      wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
+      wordpress_dev_repo_dir: >-
+        {{ 
+        params.local | default(false) | bool | 
+        ternary(params_aux.app.wordpress.dir_rel, '') 
+        }}
       db_host: "{{ params.mysql.db_host | default('mysql', true) }}"
       db_port: "{{ params.mysql.db_port | default('3306', true) }}"
       db_name: "{{ params.mysql.db_name | default('wordpress', true) }}"
@@ -77,4 +83,8 @@ params:
       old_domain_host: "{{ params.run.old_domain_host | default('') }}"
       new_domain_host: "{{ params.run.new_domain_host | default('') }}"
     env_run:
-      wordpress_dev_repo_dir: "{{ params_aux.app.wordpress.dir_rel }}"
+      wordpress_dev_repo_dir: >-
+        {{ 
+        params.local | default(false) | bool | 
+        ternary(params_aux.app.wordpress.dir_rel, '') 
+        }}

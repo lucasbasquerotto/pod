@@ -1,8 +1,11 @@
-files:
+{% if params.local | default(false) | bool
+%}files:
 
 - dir_base: "containers/composer/files"
   src: "Dockerfile"
   dest: "composer/Dockerfile"
+
+{% endif %}
 
 templates:
 

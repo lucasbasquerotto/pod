@@ -9,8 +9,8 @@
 
 templates:
 
-- dir_base: "main/wordpress/templates"
-  src: "compose/.env"
+- dir_base: "main/compose"
+  src: ".env"
   dest: ".env"
   root: true
   params: 
@@ -20,18 +20,22 @@ templates:
     git_commit: "{{ params.env.git_commit }}"
     pod_env_dir: "{{ params.env.pod_env_dir }}"
     data_dir: "{{ params.env.data_dir }}"
-    db_host: "{{ params.env.db_host }}"
-    db_port: "{{ params.env.db_port }}"
-    db_name: "{{ params.env.db_name }}"
-    db_user: "{{ params.env.db_user }}"
-    db_password: "{{ params.env.db_password }}"
-    mysql_root_password: "{{ params.env.mysql_root_password }}"
-    wordpress_dev_repo_dir: "{{ params.env.wordpress_dev_repo_dir }}"
+    env_params: |
+      DB_HOST={{ params.env.db_host }}
+      DB_PORT={{ params.env.db_port }}
+      DB_NAME={{ params.env.db_name }}
+      DB_USER={{ params.env.db_user }}
+      DB_PASSWORD={{ params.env.db_password }}
+      MYSQL_ROOT_PASSWORD={{ params.env.mysql_root_password }}
+      {{ 
+      params.env.wordpress_dev_repo_dir
+      | ternary('WP_APP_REPO_DIR=../../app/' + params.env.wordpress_dev_repo_dir, '') 
+      }}
 
-- dir_base: "main/wordpress/templates"
-  src: "compose/docker-compose.yml"
-  root: true  
+- dir_base: "main/compose"
+  src: "docker-compose.yml"
   dest: "docker-compose.yml"
+  root: true
   params: {{ params.compose | to_json }}
 
 - dir_base: "main/wordpress/templates"

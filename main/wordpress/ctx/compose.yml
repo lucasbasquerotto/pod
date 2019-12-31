@@ -1,13 +1,10 @@
 params:
 
-- name: "main/wordpress/vars/env.yml"
-  params:
-    env_files: {{ params.env_files | default([]) | to_json }}
-
 - name: "main/wordpress/vars/main.app.yml"
   params:
     volumes:
       data_dir: "{{ params_aux.data_dir_inside }}"
+    env_files: {{ params.env_files | default([]) | to_json }}
     wordpress:
       env: "{{ params.wordpress.env }}"
       domain: "{{ params.wordpress.domain }}"

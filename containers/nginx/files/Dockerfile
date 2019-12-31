@@ -1,8 +1,9 @@
-ARG NGINX_IMAGE
-ARG NGINX_VERSION
+ARG IMAGE
+ARG VERSION
 
-FROM $NGINX_IMAGE:$NGINX_VERSION
+FROM $IMAGE:$VERSION
 
-ARG POD_ENV_DIR
+ARG ENV_DIR
 
-COPY $POD_ENV_DIR/nginx/ /etc/nginx/
+COPY $ENV_DIR/nginx.conf /etc/nginx/nginx.conf
+COPY $ENV_DIR/includes/ /etc/nginx/includes/

@@ -1,13 +1,13 @@
-ARG FLUENTD_IMAGE
-ARG FLUENTD_VERSION
+ARG IMAGE
+ARG VERSION
 
-FROM $FLUENTD_IMAGE:$FLUENTD_VERSION
+FROM $IMAGE:$VERSION
 
-ARG POD_ENV_DIR
+ARG ENV_DIR
 
 USER root
 
-COPY $POD_ENV_DIR/fluentd/fluent.conf /fluentd/etc/
+COPY $ENV_DIR/fluent.conf /fluentd/etc/
 
 RUN chmod +rx /fluentd/etc/fluent.conf
 

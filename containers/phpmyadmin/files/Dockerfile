@@ -1,8 +1,8 @@
-ARG PMA_IMAGE
-ARG PMA_VERSION
+ARG IMAGE
+ARG VERSION
 
-FROM $PMA_IMAGE:$PMA_VERSION
+FROM $IMAGE:$VERSION
 
-ARG POD_ENV_DIR
+ARG ENV_DIR
 
-COPY $POD_ENV_DIR/phpmyadmin/config.user.inc.php /etc/phpmyadmin/config.user.inc.php
+COPY $ENV_DIR/config.user.inc.php /etc/phpmyadmin/config.user.inc.php

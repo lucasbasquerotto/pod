@@ -1,11 +1,11 @@
-ARG MYSQL_IMAGE
-ARG MYSQL_VERSION
+ARG IMAGE
+ARG VERSION
 
-FROM $MYSQL_IMAGE:$MYSQL_VERSION
+FROM $IMAGE:$VERSION
 
-ARG POD_ENV_DIR
+ARG ENV_DIR
 
-COPY $POD_ENV_DIR/mysql/mysqld.cnf /etc/mysql/conf.d/mysqld.cnf
+COPY $ENV_DIR/mysqld.cnf /etc/mysql/conf.d/mysqld.cnf
 
 RUN mkdir -p /var/log/mysql \
  && chown -R mysql:mysql /var/log/mysql/ \

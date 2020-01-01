@@ -9,7 +9,9 @@
 
 env_files: {{ params.env_files | default([]) | to_json }}
 
-files:
+{% if (params.compose | default(false) | bool) and 
+  (params.services | default([]) | length > 0) 
+%}files:
 
 {% if params.compose | default(false) | bool %}
 
@@ -20,12 +22,12 @@ files:
   src: "Dockerfile"
   dest: "{{ item }}/Dockerfile"
 {% endif %}
-
 {% endfor %}
-
+{% endif %}
 {% endif %}
 
-templates:
+{% if 'fluentd' in (params.services | default([]))
+%}templates:
   
 {% if 'fluentd' in (params.services | default([]))
 %}- dir_base: "containers/fluentd/templates"
@@ -35,6 +37,5 @@ templates:
     elasticsearch_port: "{{ params.fluentd.elasticsearch_port }}"
     flush_interval: "{{ params.fluentd.flush_interval }}"
 {% endif %}
-
-
+{% endif %}
     

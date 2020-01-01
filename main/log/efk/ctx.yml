@@ -1,10 +1,11 @@
 params:
 
-- name: "main/log/efk/vars.main"
+- name: "main/log/efk/vars.main.yml"
   params:
     data_dir: "{{ params_aux.local_data_dir_inside | default(params_aux.data_dir, true) }}"
     volumes: {{ params.volumes | default([]) | to_json }}
-    services: {{ params.volumes | default([]) | to_json }}
+    services: {{ params.services | default([]) | to_json }}
+    compose: "{{ params.compose is defined }}"
     fluentd:
       elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
       flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"
@@ -13,5 +14,5 @@ params:
   params: 
     compose: {{ params.compose | to_json }}
     env:  
-      base_params: "{{ params_aux }}"
+      base_params: {{ params_aux | to_json }}
       env_params: ""

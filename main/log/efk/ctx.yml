@@ -2,7 +2,7 @@ params:
 
 - name: "main/log/efk/vars.main"
   params:
-    data_dir: "{{ params_aux.data_dir }}"
+    data_dir: "{{ params_aux.local_data_dir_inside | default(params_aux.data_dir, true) }}"
     volumes: {{ params.volumes | default([]) | to_json }}
     services: {{ params.volumes | default([]) | to_json }}
     fluentd:

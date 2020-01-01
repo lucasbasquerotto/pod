@@ -4,7 +4,7 @@ params:
   params:
     local: "{{ params.local }}"
     volumes:
-      data_dir: "{{ params_aux.data_dir_inside }}"
+      data_dir: "{{ params_aux.local_data_dir_inside }}"
     env_files: {{ params.env_files | default([]) | to_json }}
     wordpress:
       env: "{{ params.wordpress.env }}"

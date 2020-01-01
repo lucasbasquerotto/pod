@@ -1,57 +1,16 @@
 params:
 
-- name: "main/log/efk/vars.env.yml"
-  params:
-    env_files: {{ params.env_files | default([]) | to_json }}
-
 - name: "main/log/efk/vars.main"
   params:
-    volumes:
-      data_dir: "{{ params_aux.data_dir }}"
+    data_dir: "{{ params_aux.data_dir }}"
+    volumes: {{ params.volumes | default([]) | to_json }}
     fluentd:
       elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
       flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"
 
-- name: "main/log/efk/vars.compose.yml"
+- name: "main/compose/vars.compose.yml"
   params: 
-    data_dir: "{{ params_aux.data_dir }}"
-    volumes: {{ params.volumes | default([]) | to_json }}
-    compose:
-      networks: {{ params.compose.networks | default({}) | to_json }}
-      mainlog:
-        driver: "{{ params.compose.mainlog.driver | default('') }}"
-        options: {{ params.compose.mainlog.options | default({}) | to_json }}
-      fluentd:
-        volumes: {{ params.fluentd.volumes | default([]) | to_json }}
-        environments: {{ params.fluentd.environments | default([]) | to_json }}
-        networks: {{ params.fluentd.networks | default([]) | to_json }}
-        ports: {{ params.fluentd.ports | default([]) | to_json }}
-        ulimits: {{ params.fluentd.ulimits | default({}) | to_json }}
-        mem_limit: "{{ params.fluentd.mem_limit | default('') }}"
-      elasticsearch:
-        volumes: {{ params.elasticsearch.volumes | default([]) | to_json }}
-        environments: {{ params.elasticsearch.environments | default([]) | to_json }}
-        networks: {{ params.elasticsearch.networks | default([]) | to_json }}
-        ports: {{ params.elasticsearch.ports | default([]) | to_json }}
-        ulimits: {{ params.elasticsearch.ulimits | default({}) | to_json }}
-        mem_limit: "{{ params.elasticsearch.mem_limit | default('') }}"
-      kibana:
-        volumes: {{ params.kibana.volumes | default([]) | to_json }}
-        environments: {{ params.kibana.environments | default([]) | to_json }}
-        networks: {{ params.kibana.networks | default([]) | to_json }}
-        ports: {{ params.kibana.ports | default([]) | to_json }}
-        ulimits: {{ params.kibana.ulimits | default({}) | to_json }}
-        mem_limit: "{{ params.kibana.mem_limit | default('') }}"
+    compose: {{ params.compose | to_json }}
     env:  
-      ctx_name: "{{ params_aux.pod_id }}"
-      pod_repo: "{{ params_aux.pod.repo }}"
-      pod_repo_version: "{{ params_aux.pod.repo_version }}"
-      git_commit: "{{ params_aux.git_commit }}"
-      pod_env_dir: "{{ params_aux.pod_env_dir }}"
-      data_dir: "{{ params_aux.data_dir }}"
-      fluentd_image: "{{ params.fluentd.image }}"
-      fluentd_version: "{{ params.fluentd.version }}"
-      elasticsearch_image: "{{ params.elasticsearch.image }}"
-      elasticsearch_version: "{{ params.elasticsearch.version }}"
-      kibana_image: "{{ params.kibana.image }}"
-      kibana_version: "{{ params.kibana.version }}"
+      base_params: "{{ params_aux }}"
+      env_params: ""

@@ -1,8 +1,15 @@
-files:
+{% if params.volumes | default([]) | list | length > 0 %}volumes:
+{% for item in params.volumes | list -%}
+- path: "{{ params.data_dir + '/' + item.rel_path }}"
+  {% if (item.mode | default('')) != '' 
+  %}mode: "{{ item.mode }}"
+  {% endif %}
+{% endfor %}
+{% endif %}
 
-- dir_base: "containers/fluentd/files"
-  src: "Dockerfile"
-  dest: "fluentd/Dockerfile"
+env_files: {{ params.env_files | default([]) | to_json }}
+
+files:
 
 - dir_base: "containers/fluentd/files"
   src: "Dockerfile"

@@ -4,6 +4,7 @@ params:
   params:
     data_dir: "{{ params_aux.data_dir }}"
     volumes: {{ params.volumes | default([]) | to_json }}
+    services: {{ params.volumes | default([]) | to_json }}
     fluentd:
       elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
       flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"

@@ -23,7 +23,7 @@ services:
   %}{{ item }}:
     hostname: "{{ item }}"
     container_name: "${CTX_NAME}-{{ item }}"
-    image: "${CTX_NAME}-{{ item }}"
+    #image: "${CTX_NAME}-{{ item }}"
     build: 
       context: ./
       dockerfile: "${POD_ENV_DIR}/{{ item }}/Dockerfile"

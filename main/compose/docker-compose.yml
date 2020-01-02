@@ -49,10 +49,10 @@ services:
     {% endfor %}
     {% endif %}
 
-    {% if params.services[item].environment | default([]) | list | length > 0 %}environment:
-    {% for subitem in params.services[item].environment | list %}- "{{ subitem }}"
-    {% endfor %}
-    {% endif %}
+    # {% if params.services[item].environment | default([]) | list | length > 0 %}environment:
+    # {% for subitem in params.services[item].environment | list %}- "{{ subitem }}"
+    # {% endfor %}
+    # {% endif %}
 
     {% if params.services[item].networks | default([]) | list | length > 0 %}networks:
     {% for subitem in params.services[item].networks | list %}- "{{ subitem }}"
@@ -62,6 +62,11 @@ services:
     {% if params.services[item].ports | default([]) | list | length > 0 %}ports:
     {% for subitem in params.services[item].ports | list %}- "{{ subitem }}"
     {% endfor %}
+    {% endif %}
+
+    {% if params.services[item].environment | default({})
+    | dict2items | default([]) | list | length > 0 
+    %}environment: {{ params.services[item].environment | to_json }}
     {% endif %}
 
     {% if params.services[item].ulimits | default({})

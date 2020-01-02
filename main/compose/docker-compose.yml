@@ -23,7 +23,6 @@ services:
   %}{{ item }}:
     hostname: "{{ item }}"
     container_name: "${CTX_NAME}-{{ item }}"
-    #image: "${CTX_NAME}-{{ item }}"
     build: 
       context: ./
       dockerfile: "${POD_ENV_DIR}/{{ item }}/Dockerfile"
@@ -48,11 +47,6 @@ services:
     {% for subitem in params.services[item].volumes | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
-
-    # {% if params.services[item].environment | default([]) | list | length > 0 %}environment:
-    # {% for subitem in params.services[item].environment | list %}- "{{ subitem }}"
-    # {% endfor %}
-    # {% endif %}
 
     {% if params.services[item].networks | default([]) | list | length > 0 %}networks:
     {% for subitem in params.services[item].networks | list %}- "{{ subitem }}"

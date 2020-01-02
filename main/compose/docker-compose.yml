@@ -49,8 +49,8 @@ services:
     {% endfor %}
     {% endif %}
 
-    {% if params.services[item].environments | default([]) | list | length > 0 %}environment:
-    {% for subitem in params.services[item].environments | list %}- "{{ subitem }}"
+    {% if params.services[item].environment | default([]) | list | length > 0 %}environment:
+    {% for subitem in params.services[item].environment | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 

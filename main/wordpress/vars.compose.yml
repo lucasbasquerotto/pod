@@ -39,12 +39,12 @@ templates:
   params: {{ params.compose | to_json }}
 
 - dir_base: "main/wordpress/templates"
-  src: "scripts/compose.vars.app.sh"
+  src: "compose.vars.app.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'
   params: 
-    scripts_dir: "main/wordpress/files/scripts"
+    scripts_dir: "main/wordpress/scripts"
     script_run_file: "compose.sh"
     script_env_file: >-
       {{ 

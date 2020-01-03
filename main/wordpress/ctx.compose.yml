@@ -1,6 +1,6 @@
 params:
 
-- name: "main/wordpress/vars/main.app.yml"
+- name: "main/wordpress/vars.main.app.yml"
   params:
     local: "{{ params.local }}"
     volumes:
@@ -32,7 +32,7 @@ params:
         access_key: "{{ credentials.bucket.access_key | default('') }}"
         secret_key: "{{ credentials.bucket.secret_key | default('') }}"
 
-- name: "main/wordpress/vars/compose.yml"
+- name: "main/wordpress/vars.compose.yml"
   params: 
     local: "{{ params.local }}"
     compose: {{ params.compose | to_json }}

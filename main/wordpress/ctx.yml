@@ -1,0 +1,114 @@
+{% if params.main.local | default(false) | bool
+%}files:
+
+- dir_base: "containers/composer/files"
+  src: "Dockerfile"
+  dest: "composer/Dockerfile"
+
+{% endif %}
+
+templates:
+
+- dir_base: "main/wordpress/templates"
+  src: "compose.vars.app.sh"
+  root: true  
+  dest: "vars.sh"
+  mode: '0755'
+  params: 
+    scripts_dir: "main/wordpress/scripts"
+    script_run_file: "compose.sh"
+    script_env_file: >-
+      {{ 
+      params.local | default(false) | bool 
+      | ternary('compose.env.local.sh', 'compose.env.app.sh') 
+      }}
+    script_upgrade_file: "compose.upgrade.app.sh"
+    wordpress_dev_repo_dir:  >-
+      {{ 
+      params.main.local | default(false) | bool | 
+      ternary(params.pod.app.wordpress.dir_rel, '') 
+      }}  
+    repo_name: "{{ params.pod.repo_name }}"
+    pod_env_dir: "{{ params.pod.pod_env_dir }}"
+    setup_url: "{{ params.main.setup.url }}"
+    setup_title: "{{ params.main.setup.title }}"
+    setup_admin_user: "{{ params.credentials.wordpress.setup.admin_user }}"
+    setup_admin_password: "{{ params.credentials.wordpress.setup.admin_password }}"
+    setup_admin_email: "{{ params.credentials.wordpress.setup.admin_email }}"
+    setup_local_db_file: "{{ params.main.run.local_db_file | default('') }}"
+    setup_local_uploads_zip_file: "{{ params.main.run.local_uploads_zip_file | default('') }}"
+    setup_remote_db_file: "{{ params.main.run.remote_db_file | default('') }}"
+    setup_remote_uploads_zip_file: "{{ params.main.run.remote_uploads_zip_file | default('') }}"
+    setup_remote_bucket_path_db_dir: "{{ params.main.run.remote_bucket_path_db_dir | default('') }}"
+    setup_remote_bucket_path_uploads_dir: "{{ params.main.run.remote_bucket_path_uploads_dir | default('') }}"
+    setup_remote_bucket_path_db_file: "{{ params.main.run.remote_bucket_path_db_file | default('') }}"
+    setup_remote_bucket_path_uploads_file: "{{ params.main.run.remote_bucket_path_uploads_file | default('') }}"
+    setup_local_seed_data: "{{ params.main.run.local_seed_data | default('') }}"
+    setup_remote_seed_data: "{{ params.main.run.remote_seed_data | default('') }}"
+    s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
+    use_aws_s3: "{{ params.main.toolbox.use_aws_s3_cli | default(false) }}"
+    use_s3cmd: "{{ params.main.toolbox.use_s3cmd | default(false) }}"
+    backup_bucket_name: "{{ params.main.run.backup_bucket_name | default('') }}"
+    backup_bucket_path: "{{ params.main.run.backup_bucket_path | default('') }}"
+    backup_bucket_db_sync_dir: "{{ params.main.run.backup_bucket_db_sync_dir | default('') }}"
+    backup_bucket_uploads_sync_dir: "{{ params.main.run.backup_bucket_uploads_sync_dir | default('') }}"
+    backup_delete_old_days: "{{ params.main.run.backup_delete_old_days }}"
+    old_domain_host: "{{ params.main.run.old_domain_host | default('') }}"
+    new_domain_host: "{{ params.main.run.new_domain_host | default('') }}"   
+    db_user: "{{ params.credentials.wordpress.db.user }}"
+    db_pass: "{{ params.credentials.wordpress.db.password }}"
+    db_name: "{{ params.credentials.wordpress.db.name }}"
+
+children:
+
+- name: "main/wordpress/vars.main.app.yml"
+  params:
+    local: "{{ params.main.local }}"
+    volumes:
+      data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
+    env_files: {{ params.main.env_files | default([]) | to_json }}
+    wordpress:
+      env: "{{ params.main.wordpress.env }}"
+      domain: "{{ params.main.wordpress.domain }}"
+      ssl: "{{ params.main.wordpress.ssl }}"
+      db_password: "{{ params.credentials.wordpress.db.password }}"
+      config:
+        auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
+        secure_auth_key: "{{ params.credentials.wordpress.config.secure_auth_key }}"
+        logged_in_key: "{{ params.credentials.wordpress.config.logged_in_key }}"
+        nonce_key: "{{ params.credentials.wordpress.config.nonce_key }}"
+        auth_salt: "{{ params.credentials.wordpress.config.auth_salt }}"
+        secure_auth_salt: "{{ params.credentials.wordpress.config.secure_auth_salt }}"
+        logged_in_salt: "{{ params.credentials.wordpress.config.logged_in_salt }}"
+        nonce_salt: "{{ params.credentials.wordpress.config.nonce_salt }}"
+    phpmyadmin:
+      domain: "{{ params.main.phpmyadmin.domain }}"
+      port: "{{ params.main.phpmyadmin.port }}"
+      ssl: "{{ params.main.phpmyadmin.ssl }}"
+    mysql: 
+      root_password: "{{ params.credentials.mysql.root_password }}"
+    toolbox:
+      s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
+      bucket:
+        access_key: "{{ params.credentials.bucket.access_key | default('') }}"
+        secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
+
+- name: "main/compose/vars.compose.yml"
+  params: 
+    compose: {{ params.main.compose | to_json }}
+    env:  
+      base_params: {{ params.pod | to_json }}
+      env_list: 
+      - "DB_HOST={{ params.main.mysql.host }}"
+      - "DB_PORT={{ params.main.mysql.port }}"
+      - "DB_NAME={{ params.credentials.wordpress.db.name }}"
+      - "DB_USER={{ params.credentials.wordpress.db.user }}"
+      - "DB_PASSWORD={{ params.credentials.wordpress.db.password }}"
+      - "MYSQL_ROOT_PASSWORD={{ params.credentials.mysql.root_password }}"
+      - >-
+        {{ 
+        params.main.local | default(false) | bool 
+        | ternary(params.pod.app.wordpress.dir_rel, '') 
+        | ternary('WP_APP_REPO_DIR=../../app/' + params.pod.app.wordpress.dir_rel, '') 
+        }}
+      env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}

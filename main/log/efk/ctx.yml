@@ -1,19 +1,19 @@
-params:
+children:
 
 - name: "main/log/efk/vars.main.yml"
   params:
-    data_dir: "{{ params_aux.local_data_dir_inside | default(params_aux.data_dir, true) }}"
-    volumes: {{ params.volumes | default([]) | to_json }}
-    services: {{ params.services | default([]) | to_json }}
-    compose: "{{ params.compose is defined }}"
+    data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
+    volumes: {{ params.main.volumes | default([]) | to_json }}
+    services: {{ params.main.services | default([]) | to_json }}
+    compose: "{{ params.main.compose is defined }}"
     fluentd:
-      elasticsearch_port: "{{ params.elasticsearch.port | default('9200') }}"
-      flush_interval: "{{ params.fluentd.flush_interval | default('1s') }}"
+      elasticsearch_port: "{{ params.main.elasticsearch.port | default('9200') }}"
+      flush_interval: "{{ params.main.fluentd.flush_interval | default('1s') }}"
 
 - name: "main/compose/vars.compose.yml"
   params: 
-    compose: {{ params.compose | to_json }}
+    compose: {{ params.main.compose | to_json }}
     env:  
-      base_params: {{ params_aux | to_json }}
-      env_params: "{{ params.env_params | default('') }}"
-      env_encoded_list: {{ params.env_encoded_list | default([]) | to_json }}
+      base_params: {{ params.pod | to_json }}
+      env_list: "{{ params.main.env_params | default('') }}"
+      env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}

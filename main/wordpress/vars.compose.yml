@@ -31,6 +31,7 @@ templates:
       params.env.wordpress_dev_repo_dir
       | ternary('WP_APP_REPO_DIR=../../app/' + params.env.wordpress_dev_repo_dir, '') 
       }}
+    env_encoded_list: {{ params.env.env_encoded_list | to_json }}
 
 - dir_base: "main/compose"
   src: "docker-compose.yml"

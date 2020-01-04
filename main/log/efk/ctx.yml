@@ -15,4 +15,5 @@ params:
     compose: {{ params.compose | to_json }}
     env:  
       base_params: {{ params_aux | to_json }}
-      env_params: ""
+      env_params: "{{ params.env_params | default('') }}"
+      env_encoded_list: {{ params.env_encoded_list | default([]) | to_json }}

@@ -54,6 +54,7 @@ params:
       db_port: "{{ params.mysql.db_port | default('3306', true) }}"
       db_name: "{{ params.mysql.db_name | default('wordpress', true) }}"
       db_user: "{{ params.mysql.db_user | default('wp_user', true) }}"
+      env_encoded_list: {{ params.env_encoded_list | default([]) | to_json }}
     run:
       repo_name: "{{ params_aux.repo_name }}"
       pod_env_dir: "{{ params_aux.pod_env_dir }}"

@@ -18,3 +18,4 @@ templates:
     pod_env_dir: "{{ params.env.base_params.pod_env_dir }}"
     data_dir: "{{ params.env.base_params.data_dir }}"
     env_params: "{{ params.env.env_params }}"
+    env_encoded_list: {{ params.env.env_encoded_list | to_json }}

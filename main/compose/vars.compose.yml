@@ -12,8 +12,8 @@ templates:
   root: true
   params: 
     ctx_name: "{{ params.env.base_params.pod_id }}"
-    pod_repo: "{{ params.env.base_params.pod.repo }}"
-    pod_repo_version: "{{ params.env.base_params.pod.repo_version }}"
+    pod_repo: "{{ params.env.base_params.repo.src }}"
+    pod_repo_version: "{{ params.env.base_params.repo.version }}"
     git_commit: "{{ params.env.base_params.git_commit }}"
     pod_env_dir: "{{ params.env.base_params.pod_env_dir }}"
     data_dir: "{{ params.env.base_params.data_dir }}"

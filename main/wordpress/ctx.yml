@@ -107,6 +107,6 @@ children:
         {{ 
         params.main.local | default(false) | bool 
         | ternary(params.pod.app.wordpress.dir_rel, '') 
-        | ternary('WP_APP_REPO_DIR=../../app/' + params.pod.app.wordpress.dir_rel, '') 
+        | ternary('WP_APP_REPO_DIR=../../apps/' + params.pod.app.wordpress.dir_rel, '') 
         }}
       env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}

@@ -6,28 +6,22 @@ env_files: {{ params.env_files | default([]) | to_json }}
 
 files:
 
-- dir_base: "containers/nginx/files"
-  src: "Dockerfile"
+- src: "containers/nginx/files/Dockerfile"
   dest: "nginx/Dockerfile"
 
-- dir_base: "containers/wordpress/files"
-  src: "Dockerfile"
+- src: "containers/wordpress/files/Dockerfile"
   dest: "wordpress/Dockerfile"
 
-- dir_base: "containers/phpmyadmin/files"
-  src: "Dockerfile"
+- src: "containers/phpmyadmin/files/Dockerfile"
   dest: "phpmyadmin/Dockerfile"
 
-- dir_base: "containers/mysql/files"
-  src: "Dockerfile"
+- src: "containers/mysql/files/Dockerfile"
   dest: "mysql/Dockerfile"
 
-- dir_base: "containers/toolbox/files"
-  src: "Dockerfile"
+- src: "containers/toolbox/files/Dockerfile"
   dest: "toolbox/Dockerfile"
 
-- dir_base: "containers/toolbox/files"
-  src: "aws/config.cfg"
+- src: "containers/toolbox/files/aws/config.cfg"
   dest: "toolbox/aws/config"
 
 templates:
@@ -36,8 +30,7 @@ templates:
 ### Nginx ###
 #############
 
-- dir_base: "containers/nginx/templates"
-  src: "nginx.conf"
+- src: "containers/nginx/templates/nginx.conf"
   dest: "nginx/nginx.conf"
   params:
     worker_processes: 1
@@ -81,8 +74,7 @@ templates:
       locations:
       - path: "/"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/log.conf"
+- src: "containers/nginx/templates/includes/log.conf"
   dest: "nginx/includes/log.conf"
   params: 
     format: >-
@@ -90,30 +82,26 @@ templates:
       $remote_user [$time_local] "$host" "$request"
       $body_bytes_sent "$http_referer" "$http_user_agent" $request_time
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/limit_req_zone.conf"
+- src: "containers/nginx/templates/includes/limit_req_zone.conf"
   dest: "nginx/includes/limit_req_zone.conf"
   params: 
     zone: "mainlimit"
     size: "10m"
     rate: "2r/s"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/limit_conn_zone.conf"
+- src: "containers/nginx/templates/includes/limit_conn_zone.conf"
   dest: "nginx/includes/limit_conn_zone.conf"
   params:
     zone: "connlimit"
     size: "10m"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/limit_conn_zone.conf"
+- src: "containers/nginx/templates/includes/limit_conn_zone.conf"
   dest: "nginx/includes/limit_conn_zone_file_upload.conf"
   params: 
     zone: "uploadconnlimit"
     size: "10m"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/proxy_cache.conf"
+- src: "containers/nginx/templates/includes/proxy_cache.conf"
   dest: "nginx/includes/proxy_cache.conf"
   params:
     proxy_cache_path: "/var/cache/nginx"
@@ -123,8 +111,7 @@ templates:
     max_size: "200m"
     inactive: "30m"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/timeouts.conf"
+- src: "containers/nginx/templates/includes/timeouts.conf"
   dest: "nginx/includes/timeouts.conf"
   params:
     proxy_connect_timeout: "30"
@@ -134,15 +121,13 @@ templates:
     client_body_timeout: "5s"
     client_header_timeout: "5s"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/file_upload.conf"
+- src: "containers/nginx/templates/includes/file_upload.conf"
   dest: "nginx/includes/file_upload.conf"
   params: 
     proxy_read_timeout: "240"
     client_max_body_size: "10M"
 
-- dir_base: "containers/nginx/templates"
-  src: "includes/ratelimit.conf"
+- src: "containers/nginx/templates/includes/ratelimit.conf"
   dest: "nginx/includes/file_upload_ratelimit.conf"
   params:
     limit_req:
@@ -157,8 +142,7 @@ templates:
 ### Wordpress ###
 #################
 
-- dir_base: "containers/wordpress/templates"
-  src: ".env"
+- src: "containers/wordpress/templates/.env"
   dest: "wordpress/.env"
   params: 
     env: "{{ params.wordpress.env }}"
@@ -187,8 +171,7 @@ templates:
 ### PHPMyAdmin ###
 ##################
 
-- dir_base: "containers/phpmyadmin/templates"
-  src: "config.user.inc.php"
+- src: "containers/phpmyadmin/templates/config.user.inc.php"
   dest: "phpmyadmin/config.user.inc.php"
   params:
     login_cookie_validity: 36000
@@ -197,8 +180,7 @@ templates:
 ### MySQL ###
 #############
 
-- dir_base: "containers/mysql/templates"
-  src: "mysqld.cnf"
+- src: "containers/mysql/templates/mysqld.cnf"
   dest: "mysql/mysqld.cnf"
   mode: "0644"
   params:
@@ -215,16 +197,14 @@ templates:
 ## Toolbox ##
 #############
 
-- dir_base: "containers/toolbox/templates"
-  src: "s3cmd.cfg"
+- src: "containers/toolbox/templates/s3cmd.cfg"
   dest: "toolbox/s3cmd.cfg"
   params:
     access_key: "{{ params.toolbox.bucket.access_key }}"
     secret_key: "{{ params.toolbox.bucket.secret_key }}"
     host_base: "{{ params.toolbox.s3_endpoint }}"
 
-- dir_base: "containers/toolbox/templates"
-  src: "aws/credentials.cfg"
+- src: "containers/toolbox/templates/aws/credentials.cfg"
   dest: "toolbox/aws/credentials"
   params:
     access_key: "{{ params.toolbox.bucket.access_key }}"

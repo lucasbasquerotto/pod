@@ -1,13 +1,11 @@
 templates:
 
-- dir_base: "main/compose"
-  src: "docker-compose.yml"
+- src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
   root: true
   params: {{ params.compose | to_json }}
 
-- dir_base: "main/compose"
-  src: ".env"
+- src: "main/compose/.env"
   dest: ".env"
   root: true
   params: 

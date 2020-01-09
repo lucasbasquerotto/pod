@@ -1,16 +1,14 @@
 {% if params.main.local | default(false) | bool
 %}files:
 
-- dir_base: "containers/composer/files"
-  src: "Dockerfile"
+- src: "containers/composer/files/Dockerfile"
   dest: "composer/Dockerfile"
 
 {% endif %}
 
 templates:
 
-- dir_base: "main/wordpress/templates"
-  src: "compose.vars.app.sh"
+- src: "main/wordpress/templates/compose.vars.app.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'

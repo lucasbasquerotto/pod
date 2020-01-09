@@ -18,8 +18,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
 {% for item in ['fluentd', 'elasticsearch', 'kibana'] | list %}
 
 {% if item in (params.services | default([]))
-%}- dir_base: "containers/{{ item }}/files"
-  src: "Dockerfile"
+%}- src: "containers/{{ item }}/files/Dockerfile"
   dest: "{{ item }}/Dockerfile"
 {% endif %}
 {% endfor %}
@@ -30,8 +29,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
 %}templates:
   
 {% if 'fluentd' in (params.services | default([]))
-%}- dir_base: "containers/fluentd/templates"
-  src: "elasticsearch.conf"
+%}- src: "containers/fluentd/templates/elasticsearch.conf"
   dest: "fluentd/fluent.conf"
   params:
     elasticsearch_port: "{{ params.fluentd.elasticsearch_port }}"

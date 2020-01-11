@@ -21,11 +21,11 @@ templates:
       | ternary('compose.env.local.sh', 'compose.env.app.sh') 
       }}
     script_upgrade_file: "compose.upgrade.app.sh"
-    wordpress_dev_repo_dir:  >-
+    wordpress_dev_repo_dir: >-
       {{ 
       params.main.local | default(false) | bool | 
       ternary(params.pod.app.wordpress.dir_rel, '') 
-      }}  
+      }}
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: "{{ params.main.setup.url }}"

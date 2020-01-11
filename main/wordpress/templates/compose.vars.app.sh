@@ -37,4 +37,4 @@ db_name={{ params.db_name | quote }}
 old_domain_host={{ params.old_domain_host | quote }}
 new_domain_host={{ params.new_domain_host | quote }}
 
-wordpress_dev_repo_dir={{ params.wordpress_dev_repo_dir | default('') | quote }}
+wordpress_dev_repo_dir={{ params.wordpress_dev_repo_dir | quote }}

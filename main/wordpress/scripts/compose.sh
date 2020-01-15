@@ -379,8 +379,12 @@ case "$command" in
 	"deploy")
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-deploy
 
-		echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
-		"$pod_layer_dir/$scripts_dir/$script_upgrade_file"
+		if [ ! -z "$script_upgrade_file" ]; then
+			echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
+			"$pod_layer_dir/$scripts_dir/$script_upgrade_file"
+		else
+			echo -e "${CYAN}$(date '+%F %X') - env - $command - no upgrade defined${NC}"
+		fi
 
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-deploy
 		;;

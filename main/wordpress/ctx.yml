@@ -8,7 +8,7 @@
 
 templates:
 
-- src: "main/wordpress/templates/compose.vars.app.sh"
+- src: "main/scripts/vars.tpl.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'
@@ -18,9 +18,10 @@ templates:
     script_env_file: >-
       {{ 
       params.local | default(false) | bool 
-      | ternary('compose.env.local.sh', 'compose.env.app.sh') 
+      | ternary('compose.env.local.sh', 'compose.env.remote.sh') 
       }}
-    script_upgrade_file: "compose.upgrade.app.sh"
+    script_upgrade_file: >-
+      {{ params.type in ['app', 'web'] | ternary('compose.upgrade.app.sh', '') }}
     wordpress_dev_repo_dir: >-
       {{ 
       params.main.local | default(false) | bool | 
@@ -28,11 +29,25 @@ templates:
       }}
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
-    setup_url: "{{ params.main.setup.url }}"
-    setup_title: "{{ params.main.setup.title }}"
-    setup_admin_user: "{{ params.credentials.wordpress.setup.admin_user }}"
-    setup_admin_password: "{{ params.credentials.wordpress.setup.admin_password }}"
-    setup_admin_email: "{{ params.credentials.wordpress.setup.admin_email }}"
+    setup_url: >-
+      {{ params.type in ['app', 'web'] | ternary(params.main.setup.url, '') }}
+    setup_title: >-
+      {{ params.type in ['app', 'web'] | ternary(params.main.setup.title, '') }}
+    setup_admin_user: >-
+      {{ 
+      params.type in ['app', 'web'] | 
+      ternary(params.credentials.wordpress.setup.admin_user, '') 
+      }}
+    setup_admin_password: >-
+      {{ 
+      params.type in ['app', 'web'] | 
+      ternary(params.credentials.wordpress.setup.admin_password, '') 
+      }}
+    setup_admin_email: >-
+      {{ 
+      params.type in ['app', 'web'] | 
+      ternary(params.credentials.wordpress.setup.admin_email, '') 
+      }}
     setup_local_db_file: "{{ params.main.run.local_db_file | default('') }}"
     setup_local_uploads_zip_file: "{{ params.main.run.local_uploads_zip_file | default('') }}"
     setup_remote_db_file: "{{ params.main.run.remote_db_file | default('') }}"

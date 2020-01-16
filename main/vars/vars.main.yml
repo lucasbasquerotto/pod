@@ -1,0 +1,256 @@
+{% if params.volumes | default([]) | list | length > 0 %}volumes:
+{% for item in params.volumes | list -%}
+- path: "{{ params.data_dir + '/' + item.rel_path }}"
+  {% if (item.mode | default('')) != '' 
+  %}mode: "{{ item.mode }}"
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+env_files: {{ params.env_files | default([]) | to_json }}
+
+{% if params.services | default([]) | list | length > 0 
+%}files:
+
+{% if params.compose | default(false) | bool %}
+{% for item in (params.services | default([])) | list %}
+{% set item_full_src = 
+  (item.base_dir | default(params.default_base_dir)) + 
+  '/' + 
+  (item.src_name | default(item.name)) %}
+{% set item_dest = item.name %}
+{% set item_root = item.root | default(false) %}
+{% set item_params = params.services_dict[item.name] | default({}) %}
+### file start - {{ item_dest }} ({{ item.src }})
+
+- src: "{{ item_full_src }}/files/Dockerfile"
+  dest: "{{ item_dest }}/Dockerfile"
+  root: "{{ item_root }}"
+
+{% if item.src == 'toolbox'
+%}- src: "{{ item_full_src }}/files/aws/config.cfg"
+  dest: "{{ item_dest }}/aws/config"
+  root: "{{ item_root }}"
+{% endif %}
+
+### file end - {{ item_dest }} ({{ item.src }})
+{% endfor %}
+{% endif %}
+### end - files
+{% endif %}
+
+{% if params.services | default([]) | list | length > 0 
+%}templates:
+  
+{% for item in (params.services | default([])) | list %}
+{% set item_full_src = 
+  (item.base_dir | default(params.default_base_dir)) + 
+  '/' + 
+  (item.src_name | default(item.name)) %}
+{% set item_dest = item.name %}
+{% set item_root = item.root | default(false) %}
+{% set item_params = params.services_dict[item.name] | default({}) %}
+### template start - {{ item_dest }} ({{ item_full_src }})
+
+{% if item.src == 'mysql'
+%}- src: "{{ item_full_src }}/templates/mysqld.cnf"
+  dest: "{{ item_dest }}/mysqld.cnf"
+  root: "{{ item_root }}"
+  mode: "0644"
+  params:
+    bind_address: "0.0.0.0"
+    default_authentication_plugin: "mysql_native_password"
+    collation_server: "utf8mb4_unicode_ci"
+    character_set_server: "utf8mb4"
+    slow_query_log: "1"
+    slow_query_log_file: "/var/log/mysql/mysql-slow.log"
+    long_query_time: "3"
+    log_error: "/var/log/mysql/error.log"
+{% endif %}
+
+{% if item.src == 'nginx'
+%}- src: "{{ item_full_src }}/templates/nginx.conf"
+  dest: "{{ item_dest }}/nginx.conf"
+  root: "{{ item_root }}"
+  params:
+    worker_processes: 1
+    worker_connections: 512
+    includes:
+    - "includes/log.conf"
+    - "includes/limit_req_zone.conf"
+    - "includes/limit_conn_zone.conf"
+    - "includes/limit_conn_zone_file_upload.conf"
+    - "includes/proxy_cache.conf"
+    - "includes/timeouts.conf"
+    servers: {{ item_params.servers | to_json }}
+    - name: "www"
+      host: "www.{{ params.wordpress.domain }}"
+      port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
+      ssl: "{{ params.wordpress.ssl }}"
+      redirect:
+        protocol: "{{ params.wordpress.ssl | bool | ternary('https', 'http') }}"
+        host: "{{ params.wordpress.domain }}"
+        port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
+    - name: "wordpress"
+      host: "{{ params.wordpress.domain }}"
+      port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
+      ssl: "{{ params.wordpress.ssl }}"
+      upstream:
+        protocol: "http"
+        port: "80"
+      locations:
+      - path: "/wp-admin/"
+        includes:
+        - "includes/file_upload.conf"
+        - "includes/file_upload_ratelimit.conf"
+      - path: "/"
+    - name: "phpmyadmin"
+      host: "{{ params.phpmyadmin.domain }}"
+      port: "{{ params.phpmyadmin.port }}"
+      ssl: "{{ params.phpmyadmin.ssl }}"
+      upstream:
+        protocol: "http"
+        port: "80"
+      locations:
+      - path: "/"
+
+- src: "{{ item_full_src }}/templates/includes/log.conf"
+  dest: "{{ item_dest }}/includes/log.conf"
+  root: "{{ item_root }}"
+  params: 
+    format: >-
+      $remote_addr $sent_http_x_user_id $upstream_response_time $status
+      $remote_user [$time_local] "$host" "$request"
+      $body_bytes_sent "$http_referer" "$http_user_agent" $request_time
+
+- src: "{{ item_full_src }}/templates/includes/limit_req_zone.conf"
+  dest: "{{ item_dest }}/includes/limit_req_zone.conf"
+  root: "{{ item_root }}"
+  params: 
+    zone: "mainlimit"
+    size: "10m"
+    rate: "2r/s"
+
+- src: "{{ item_full_src }}/templates/includes/limit_conn_zone.conf"
+  dest: "{{ item_dest }}/includes/limit_conn_zone.conf"
+  root: "{{ item_root }}"
+  params:
+    zone: "connlimit"
+    size: "10m"
+
+- src: "{{ item_full_src }}/templates/includes/limit_conn_zone.conf"
+  dest: "{{ item_dest }}/includes/limit_conn_zone_file_upload.conf"
+  root: "{{ item_root }}"
+  params: 
+    zone: "uploadconnlimit"
+    size: "10m"
+
+- src: "{{ item_full_src }}/templates/includes/proxy_cache.conf"
+  dest: "{{ item_dest }}/includes/proxy_cache.conf"
+  root: "{{ item_root }}"
+  params:
+    proxy_cache_path: "/var/cache/nginx"
+    levels: "1:2"
+    keys_zone: "web_cache"
+    size: "20m"
+    max_size: "200m"
+    inactive: "30m"
+
+- src: "{{ item_full_src }}/templates/includes/timeouts.conf"
+  dest: "{{ item_dest }}/includes/timeouts.conf"
+  root: "{{ item_root }}"
+  params:
+    proxy_connect_timeout: "30"
+    proxy_send_timeout: "60"
+    proxy_read_timeout: "60"
+    send_timeout: "60"
+    client_body_timeout: "5s"
+    client_header_timeout: "5s"
+
+- src: "{{ item_full_src }}/templates/includes/file_upload.conf"
+  dest: "{{ item_dest }}/includes/file_upload.conf"
+  root: "{{ item_root }}"
+  params: 
+    proxy_read_timeout: "240"
+    client_max_body_size: "10M"
+
+- src: "{{ item_full_src }}/templates/includes/ratelimit.conf"
+  dest: "{{ item_dest }}/includes/file_upload_ratelimit.conf"
+  root: "{{ item_root }}"
+  params:
+    limit_req:
+      zone: "mainlimit"
+      burst: 6
+      nodelay: true
+    limit_conn:
+      name: "uploadconnlimit"
+      value: 5
+{% endif %}
+
+{% if item.src == 'fluentd'
+%}- src: "{{ item_full_src }}/templates/elasticsearch.conf"
+  dest: "{{ item_dest }}/fluent.conf"
+  root: "{{ item_root }}"
+  params:
+    elasticsearch_port: "{{ item_params.elasticsearch_port }}"
+    flush_interval: "{{ item_params.flush_interval }}"
+{% endif %}
+
+{% if item.src == 'phpmyadmin'
+%}- src: "{{ item_full_src }}/templates/config.user.inc.php"
+  dest: "{{ item_dest }}/config.user.inc.php"
+  root: "{{ item_root }}"
+  params:
+    login_cookie_validity: 36000
+{% endif %}
+
+{% if item.src == 'toolbox'
+%}- src: "{{ item_full_src }}/templates/s3cmd.cfg"
+  dest: "{{ item_dest }}/s3cmd.cfg"
+  root: "{{ item_root }}"
+  params:
+    access_key: "{{ item_params.bucket.access_key }}"
+    secret_key: "{{ item_params.bucket.secret_key }}"
+    host_base: "{{ item_params.s3_endpoint }}"
+
+- src: "{{ item_full_src }}/templates/aws/credentials.cfg"
+  dest: "{{ item_dest }}/aws/credentials"
+  root: "{{ item_root }}"
+  params:
+    access_key: "{{ item_params.bucket.access_key }}"
+    secret_key: "{{ item_params.bucket.secret_key }}"
+{% endif %}
+
+{% if item.src == 'wordpress'
+%}- src: "{{ item_full_src }}/templates/.env"
+  dest: "{{ item_dest }}/.env"
+  root: "{{ item_root }}"
+  params: 
+    env: "{{ item_params.env }}"
+    db_host: "mysql"
+    db_port: 3306
+    db_name: "wordpress"
+    db_user: "wp_user"
+    db_password: "{{ item_params.db_password }}"
+    db_charset: "utf8mb4"
+    db_collate: ""
+    home: "{{ item_params.ssl | bool | ternary('https', 'http') }}://{{ item_params.domain }}"
+    siteurl: "{{ item_params.ssl | bool | ternary('https', 'http') }}://{{ item_params.domain }}"
+    auth_key: "{{ item_params.config.auth_key }}"
+    secure_auth_key: "{{ item_params.config.secure_auth_key }}"
+    logged_in_key: "{{ item_params.config.logged_in_key }}"
+    nonce_key: "{{ item_params.config.nonce_key }}"
+    auth_salt: "{{ item_params.config.auth_salt }}"
+    secure_auth_salt: "{{ item_params.config.secure_auth_salt }}"
+    logged_in_salt: "{{ item_params.config.logged_in_salt }}"
+    nonce_salt: "{{ item_params.config.nonce_salt }}"
+    table_prefix: "wp_"
+    wplang: "en_US"
+    wp_debug: "{{ item_params.debug | default(false) | lower }}"
+{% endif %}
+
+### template end - {{ item_dest }} ({{ item_full_src }})
+{% endfor %}
+### end - templates
+{% endif %}
+    

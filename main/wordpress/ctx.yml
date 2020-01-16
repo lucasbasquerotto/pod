@@ -17,35 +17,35 @@ templates:
     script_run_file: "compose.sh"
     script_env_file: >-
       {{ 
-      params.local | default(false) | bool 
+      params.main.local | default(false) | bool 
       | ternary('compose.env.local.sh', 'compose.env.remote.sh') 
       }}
     script_upgrade_file: >-
-      {{ params.type in ['app', 'web'] | ternary('compose.upgrade.app.sh', '') }}
+      {{ params.main.type in ['app', 'web'] | ternary('compose.upgrade.app.sh', '') }}
     wordpress_dev_repo_dir: >-
       {{ 
       params.main.local | default(false) | bool | 
-      ternary(params.pod.app.wordpress.dir_rel, '') 
+      ternary(params.pod.app.wordpress.dir_rel | default(''), '') 
       }}
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
-      {{ params.type in ['app', 'web'] | ternary(params.main.setup.url, '') }}
+      {{ params.main.type in ['app', 'web'] | ternary(params.main.setup.url | default(''), '') }}
     setup_title: >-
-      {{ params.type in ['app', 'web'] | ternary(params.main.setup.title, '') }}
+      {{ params.main.type in ['app', 'web'] | ternary(params.main.setup.title | default(''), '') }}
     setup_admin_user: >-
       {{ 
-      params.type in ['app', 'web'] | 
-      ternary(params.credentials.wordpress.setup.admin_user, '') 
+      params.main.type in ['app', 'web'] | 
+      ternary(params.credentials.wordpress.setup.admin_user | default(''), '') 
       }}
     setup_admin_password: >-
       {{ 
-      params.type in ['app', 'web'] | 
+      params.main.type in ['app', 'web'] | 
       ternary(params.credentials.wordpress.setup.admin_password, '') 
       }}
     setup_admin_email: >-
       {{ 
-      params.type in ['app', 'web'] | 
+      params.main.type in ['app', 'web'] | 
       ternary(params.credentials.wordpress.setup.admin_email, '') 
       }}
     setup_local_db_file: "{{ params.main.run.local_db_file | default('') }}"
@@ -65,7 +65,7 @@ templates:
     backup_bucket_path: "{{ params.main.run.backup_bucket_path | default('') }}"
     backup_bucket_db_sync_dir: "{{ params.main.run.backup_bucket_db_sync_dir | default('') }}"
     backup_bucket_uploads_sync_dir: "{{ params.main.run.backup_bucket_uploads_sync_dir | default('') }}"
-    backup_delete_old_days: "{{ params.main.run.backup_delete_old_days }}"
+    backup_delete_old_days: "{{ params.main.run.backup_delete_old_days | default(30) }}"
     old_domain_host: "{{ params.main.run.old_domain_host | default('') }}"
     new_domain_host: "{{ params.main.run.new_domain_host | default('') }}"   
     db_user: "{{ params.credentials.wordpress.db.user }}"
@@ -73,6 +73,74 @@ templates:
     db_name: "{{ params.credentials.wordpress.db.name }}"
 
 children:
+
+- name: "main/vars/vars.main.yml"
+  params:
+    local: "{{ params.main.local }}"
+    compose: "{{ params.main.compose is defined }}"
+    base_dir: "{{ params.main.services_base_dir | default('containers') }}"
+    data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
+    volumes: {{ params.main.volumes | default([]) | to_json }}
+    env_files: {{ params.main.env_files | default([]) | to_json }}
+    services: {{ params.services | default([]) | to_json }}
+    services_dict: 
+      nginx:
+        servers:
+        - name: "www"
+          host: "www.{{ params.main.wordpress.domain }}"
+          port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
+          ssl: "{{ params.main.wordpress.ssl }}"
+          redirect:
+            protocol: "{{ params.main.wordpress.ssl | bool | ternary('https', 'http') }}"
+            host: "{{ params.main.wordpress.domain }}"
+            port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
+        - name: "wordpress"
+          host: "{{ params.main.wordpress.domain }}"
+          port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
+          ssl: "{{ params.main.wordpress.ssl }}"
+          upstream:
+            protocol: "http"
+            port: "80"
+          locations:
+          - path: "/wp-admin/"
+            includes:
+            - "includes/file_upload.conf"
+            - "includes/file_upload_ratelimit.conf"
+          - path: "/"
+        - name: "phpmyadmin"
+          host: "{{ params.main.phpmyadmin.domain }}"
+          port: "{{ params.main.phpmyadmin.port }}"
+          ssl: "{{ params.main.phpmyadmin.ssl }}"
+          upstream:
+            protocol: "http"
+            port: "80"
+          locations:
+          - path: "/"
+      wordpress:
+        env: "{{ params.main.wordpress.env }}"
+        domain: "{{ params.main.wordpress.domain }}"
+        ssl: "{{ params.main.wordpress.ssl }}"
+        db_password: "{{ params.credentials.wordpress.db.password }}"
+        config:
+          auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
+          secure_auth_key: "{{ params.credentials.wordpress.config.secure_auth_key }}"
+          logged_in_key: "{{ params.credentials.wordpress.config.logged_in_key }}"
+          nonce_key: "{{ params.credentials.wordpress.config.nonce_key }}"
+          auth_salt: "{{ params.credentials.wordpress.config.auth_salt }}"
+          secure_auth_salt: "{{ params.credentials.wordpress.config.secure_auth_salt }}"
+          logged_in_salt: "{{ params.credentials.wordpress.config.logged_in_salt }}"
+          nonce_salt: "{{ params.credentials.wordpress.config.nonce_salt }}"
+      phpmyadmin:
+        domain: "{{ params.main.phpmyadmin.domain }}"
+        port: "{{ params.main.phpmyadmin.port }}"
+        ssl: "{{ params.main.phpmyadmin.ssl }}"
+      mysql: 
+        root_password: "{{ params.credentials.mysql.root_password }}"
+      toolbox:
+        s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
+        bucket:
+          access_key: "{{ params.credentials.bucket.access_key | default('') }}"
+          secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
 
 - name: "main/wordpress/vars.main.app.yml"
   params:

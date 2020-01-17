@@ -1,9 +1,11 @@
 {% if params.volumes | default([]) | list | length > 0 %}volumes:
-{% for item in params.volumes | list -%}
+{% for item in params.volumes | list %}
+
 - path: "{{ params.data_dir + '/' + item.rel_path }}"
   {% if (item.mode | default('')) != '' 
   %}mode: "{{ item.mode }}"
   {% endif %}
+  
 {% endfor %}
 {% endif %}
 
@@ -14,26 +16,24 @@ env_files: {{ params.env_files | default([]) | to_json }}
 
 {% if params.compose | default(false) | bool %}
 {% for item in (params.services | default([])) | list %}
-{% set item_full_src = 
-  (item.base_dir | default(params.default_base_dir)) + 
-  '/' + 
-  (item.src_name | default(item.name)) %}
+{% set item_src = item.src_name | default(item.name) %}
+{% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
 {% set item_root = item.root | default(false) %}
 {% set item_params = params.services_dict[item.name] | default({}) %}
-### file start - {{ item_dest }} ({{ item.src }})
+### file start - {{ item_dest }} ({{ item_full_src }})
 
 - src: "{{ item_full_src }}/files/Dockerfile"
   dest: "{{ item_dest }}/Dockerfile"
   root: "{{ item_root }}"
 
-{% if item.src == 'toolbox'
+{% if item_src == 'toolbox'
 %}- src: "{{ item_full_src }}/files/aws/config.cfg"
   dest: "{{ item_dest }}/aws/config"
   root: "{{ item_root }}"
 {% endif %}
 
-### file end - {{ item_dest }} ({{ item.src }})
+### file end - {{ item_dest }} ({{ item_full_src }})
 {% endfor %}
 {% endif %}
 ### end - files
@@ -43,16 +43,14 @@ env_files: {{ params.env_files | default([]) | to_json }}
 %}templates:
   
 {% for item in (params.services | default([])) | list %}
-{% set item_full_src = 
-  (item.base_dir | default(params.default_base_dir)) + 
-  '/' + 
-  (item.src_name | default(item.name)) %}
+{% set item_src = item.src_name | default(item.name) %}
+{% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
 {% set item_root = item.root | default(false) %}
 {% set item_params = params.services_dict[item.name] | default({}) %}
 ### template start - {{ item_dest }} ({{ item_full_src }})
 
-{% if item.src == 'mysql'
+{% if item_src == 'mysql'
 %}- src: "{{ item_full_src }}/templates/mysqld.cnf"
   dest: "{{ item_dest }}/mysqld.cnf"
   root: "{{ item_root }}"
@@ -68,7 +66,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
     log_error: "/var/log/mysql/error.log"
 {% endif %}
 
-{% if item.src == 'nginx'
+{% if item_src == 'nginx'
 %}- src: "{{ item_full_src }}/templates/nginx.conf"
   dest: "{{ item_dest }}/nginx.conf"
   root: "{{ item_root }}"
@@ -83,36 +81,6 @@ env_files: {{ params.env_files | default([]) | to_json }}
     - "includes/proxy_cache.conf"
     - "includes/timeouts.conf"
     servers: {{ item_params.servers | to_json }}
-    - name: "www"
-      host: "www.{{ params.wordpress.domain }}"
-      port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
-      ssl: "{{ params.wordpress.ssl }}"
-      redirect:
-        protocol: "{{ params.wordpress.ssl | bool | ternary('https', 'http') }}"
-        host: "{{ params.wordpress.domain }}"
-        port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
-    - name: "wordpress"
-      host: "{{ params.wordpress.domain }}"
-      port: "{{ params.wordpress.ssl | bool | ternary('443', '80') }}"
-      ssl: "{{ params.wordpress.ssl }}"
-      upstream:
-        protocol: "http"
-        port: "80"
-      locations:
-      - path: "/wp-admin/"
-        includes:
-        - "includes/file_upload.conf"
-        - "includes/file_upload_ratelimit.conf"
-      - path: "/"
-    - name: "phpmyadmin"
-      host: "{{ params.phpmyadmin.domain }}"
-      port: "{{ params.phpmyadmin.port }}"
-      ssl: "{{ params.phpmyadmin.ssl }}"
-      upstream:
-        protocol: "http"
-        port: "80"
-      locations:
-      - path: "/"
 
 - src: "{{ item_full_src }}/templates/includes/log.conf"
   dest: "{{ item_dest }}/includes/log.conf"
@@ -187,7 +155,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
       value: 5
 {% endif %}
 
-{% if item.src == 'fluentd'
+{% if item_src == 'fluentd'
 %}- src: "{{ item_full_src }}/templates/elasticsearch.conf"
   dest: "{{ item_dest }}/fluent.conf"
   root: "{{ item_root }}"
@@ -196,7 +164,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
     flush_interval: "{{ item_params.flush_interval }}"
 {% endif %}
 
-{% if item.src == 'phpmyadmin'
+{% if item_src == 'phpmyadmin'
 %}- src: "{{ item_full_src }}/templates/config.user.inc.php"
   dest: "{{ item_dest }}/config.user.inc.php"
   root: "{{ item_root }}"
@@ -204,7 +172,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
     login_cookie_validity: 36000
 {% endif %}
 
-{% if item.src == 'toolbox'
+{% if item_src == 'toolbox'
 %}- src: "{{ item_full_src }}/templates/s3cmd.cfg"
   dest: "{{ item_dest }}/s3cmd.cfg"
   root: "{{ item_root }}"
@@ -221,7 +189,7 @@ env_files: {{ params.env_files | default([]) | to_json }}
     secret_key: "{{ item_params.bucket.secret_key }}"
 {% endif %}
 
-{% if item.src == 'wordpress'
+{% if item_src == 'wordpress'
 %}- src: "{{ item_full_src }}/templates/.env"
   dest: "{{ item_dest }}/.env"
   root: "{{ item_root }}"

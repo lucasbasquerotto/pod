@@ -1,14 +1,6 @@
-{% if params.main.local | default(false) | bool
-%}files:
-
-- src: "containers/composer/files/Dockerfile"
-  dest: "composer/Dockerfile"
-
-{% endif %}
-
 templates:
 
-- src: "main/scripts/vars.tpl.sh"
+- src: "main/vars/vars.tpl.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'
@@ -82,7 +74,7 @@ children:
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
     env_files: {{ params.main.env_files | default([]) | to_json }}
-    services: {{ params.services | default([]) | to_json }}
+    services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       nginx:
         servers:
@@ -141,38 +133,6 @@ children:
         bucket:
           access_key: "{{ params.credentials.bucket.access_key | default('') }}"
           secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
-
-- name: "main/wordpress/vars.main.app.yml"
-  params:
-    local: "{{ params.main.local }}"
-    volumes:
-      data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
-    env_files: {{ params.main.env_files | default([]) | to_json }}
-    wordpress:
-      env: "{{ params.main.wordpress.env }}"
-      domain: "{{ params.main.wordpress.domain }}"
-      ssl: "{{ params.main.wordpress.ssl }}"
-      db_password: "{{ params.credentials.wordpress.db.password }}"
-      config:
-        auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
-        secure_auth_key: "{{ params.credentials.wordpress.config.secure_auth_key }}"
-        logged_in_key: "{{ params.credentials.wordpress.config.logged_in_key }}"
-        nonce_key: "{{ params.credentials.wordpress.config.nonce_key }}"
-        auth_salt: "{{ params.credentials.wordpress.config.auth_salt }}"
-        secure_auth_salt: "{{ params.credentials.wordpress.config.secure_auth_salt }}"
-        logged_in_salt: "{{ params.credentials.wordpress.config.logged_in_salt }}"
-        nonce_salt: "{{ params.credentials.wordpress.config.nonce_salt }}"
-    phpmyadmin:
-      domain: "{{ params.main.phpmyadmin.domain }}"
-      port: "{{ params.main.phpmyadmin.port }}"
-      ssl: "{{ params.main.phpmyadmin.ssl }}"
-    mysql: 
-      root_password: "{{ params.credentials.mysql.root_password }}"
-    toolbox:
-      s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
-      bucket:
-        access_key: "{{ params.credentials.bucket.access_key | default('') }}"
-        secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
 
 - name: "main/compose/vars.compose.yml"
   params: 

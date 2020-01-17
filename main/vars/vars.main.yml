@@ -1,4 +1,7 @@
-{% if params.volumes | default([]) | list | length > 0 %}volumes:
+volumes:
+
+- when: false
+
 {% for item in params.volumes | list %}
 
 - path: "{{ params.data_dir + '/' + item.rel_path }}"
@@ -7,12 +10,12 @@
   {% endif %}
   
 {% endfor %}
-{% endif %}
 
 env_files: {{ params.env_files | default([]) | to_json }}
 
-{% if params.services | default([]) | list | length > 0 
-%}files:
+files:
+
+- when: false
 
 {% if params.compose | default(false) | bool %}
 {% for item in (params.services | default([])) | list %}
@@ -35,12 +38,12 @@ env_files: {{ params.env_files | default([]) | to_json }}
 
 ### file end - {{ item_dest }} ({{ item_full_src }})
 {% endfor %}
-{% endif %}
-### end - files
+### end - compose
 {% endif %}
 
-{% if params.services | default([]) | list | length > 0 
-%}templates:
+templates:
+
+- when: false
   
 {% for item in (params.services | default([])) | list %}
 {% set item_src = item.src_name | default(item.name) %}
@@ -219,6 +222,3 @@ env_files: {{ params.env_files | default([]) | to_json }}
 
 ### template end - {{ item_dest }} ({{ item_full_src }})
 {% endfor %}
-### end - templates
-{% endif %}
-    

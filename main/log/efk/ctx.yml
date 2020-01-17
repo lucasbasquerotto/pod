@@ -1,14 +1,18 @@
 children:
 
-- name: "main/log/efk/vars.main.yml"
+- name: "main/vars/vars.main.yml"
   params:
+    local: "{{ params.main.local }}"
+    compose: "{{ params.main.compose is defined }}"
+    base_dir: "{{ params.main.services_base_dir | default('containers') }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
+    env_files: {{ params.main.env_files | default([]) | to_json }}
     services: {{ params.main.services | default([]) | to_json }}
-    compose: "{{ params.main.compose is defined }}"
-    fluentd:
-      elasticsearch_port: "{{ params.main.elasticsearch.port | default('9200') }}"
-      flush_interval: "{{ params.main.fluentd.flush_interval | default('1s') }}"
+    services_dict: 
+      fluentd:
+        elasticsearch_port: "{{ params.main.elasticsearch.port | default('9200') }}"
+        flush_interval: "{{ params.main.fluentd.flush_interval | default('1s') }}"
 
 - name: "main/compose/vars.compose.yml"
   params: 

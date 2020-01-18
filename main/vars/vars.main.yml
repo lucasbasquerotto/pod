@@ -17,8 +17,9 @@ files:
 
 - when: false
 
-{% if params.compose | default(false) | bool %}
 {% for item in (params.services | default([])) | list %}
+{% if item.when | default(true) | bool %}
+
 {% set item_src = item.src_name | default(item.name) %}
 {% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
@@ -37,15 +38,16 @@ files:
 {% endif %}
 
 ### file end - {{ item_dest }} ({{ item_full_src }})
-{% endfor %}
-### end - compose
 {% endif %}
+{% endfor %}
 
 templates:
 
 - when: false
   
 {% for item in (params.services | default([])) | list %}
+{% if item.when | default(true) | bool %}
+
 {% set item_src = item.src_name | default(item.name) %}
 {% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
@@ -221,4 +223,5 @@ templates:
 {% endif %}
 
 ### template end - {{ item_dest }} ({{ item_full_src }})
+{% endif %}
 {% endfor %}

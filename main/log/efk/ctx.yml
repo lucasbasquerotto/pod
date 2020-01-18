@@ -22,19 +22,19 @@ children:
       when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     env_templates:
     - src: "test/template.yml"
-      dest: "test/template.efk3.local.yml"
+      dest: "test/template.local.efk3.yml"
       params: {{ params | to_json }}
       when: "{{ params.main.local }}"
     - src: "test/template.yml"
-      dest: "test/template.efk4.local.yml"
+      dest: "test/template.local.efk4.yml"
       params: {{ params | to_json }}
       when: "{{ params.main.local }}"
     - src: "test/template.yml"
-      dest: "test/template.efk3.remote.yml"
+      dest: "test/template.remote.efk3.yml"
       params: {{ params | to_json }}
       when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     - src: "test/template.yml"
-      dest: "test/template.efk4.remote.yml"
+      dest: "test/template.remote.efk4.yml"
       params: {{ params | to_json }}
       when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     services: {{ params.main.services | default([]) | to_json }}

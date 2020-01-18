@@ -7,7 +7,16 @@ children:
     base_dir: "{{ params.main.services_base_dir | default('containers') }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
-    env_files: {{ params.main.env_files | default([]) | to_json }}
+    env_files:
+    - { src: "test/test.txt", dest: "test/test.efk3.txt" }
+    - { src: "test/test.txt", dest: "test/test.efk4.txt" }
+    env_templates:
+    - src: "test/template.yml"
+      dest: "test/template.efk3.yml"
+      params: {{ params | to_json }}
+    - src: "test/template.yml"
+      dest: "test/template.efk4.yml"
+      params: {{ params | to_json }}
     services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       fluentd:

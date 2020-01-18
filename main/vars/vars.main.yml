@@ -13,6 +13,8 @@ volumes:
 
 env_files: {{ params.env_files | default([]) | to_json }}
 
+env_templates: {{ params.env_templates | default([]) | to_json }}
+
 files:
 
 - when: false

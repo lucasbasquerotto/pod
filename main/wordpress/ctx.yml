@@ -74,7 +74,6 @@ children:
     base_dir: "{{ params.main.services_base_dir | default('containers') }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
-    env_files: {{ params.main.env_files | default([]) | to_json }}
     services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       nginx:

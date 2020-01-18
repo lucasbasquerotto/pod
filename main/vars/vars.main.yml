@@ -5,8 +5,13 @@ volumes:
 {% for item in params.volumes | list %}
 
 - path: "{{ params.data_dir + '/' + item.rel_path }}"
+
   {% if (item.mode | default('')) != '' 
   %}mode: "{{ item.mode }}"
+  {% endif %}
+
+  {% if (item.when | default('')) != '' 
+  %}when: "{{ item.when }}"
   {% endif %}
   
 {% endfor %}

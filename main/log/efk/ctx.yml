@@ -8,15 +8,35 @@ children:
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
     env_files:
-    - { src: "test/test.txt", dest: "test/test.efk3.txt" }
-    - { src: "test/test.txt", dest: "test/test.efk4.txt" }
+    - src: "test/test.txt"
+      dest: "test/test.local.efk3.txt"
+      when: "{{ params.main.local }}"
+    - src: "test/test.txt"
+      dest: "test/test.local.efk4.txt"
+      when: "{{ params.main.local }}"
+    - src: "test/test.txt"
+      dest: "test/test.remote.efk3.txt"
+      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+    - src: "test/test.txt"
+      dest: "test/test.remote.efk4.txt"
+      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     env_templates:
     - src: "test/template.yml"
-      dest: "test/template.efk3.yml"
+      dest: "test/template.efk3.local.yml"
       params: {{ params | to_json }}
+      when: "{{ params.main.local }}"
     - src: "test/template.yml"
-      dest: "test/template.efk4.yml"
+      dest: "test/template.efk4.local.yml"
       params: {{ params | to_json }}
+      when: "{{ params.main.local }}"
+    - src: "test/template.yml"
+      dest: "test/template.efk3.remote.yml"
+      params: {{ params | to_json }}
+      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+    - src: "test/template.yml"
+      dest: "test/template.efk4.remote.yml"
+      params: {{ params | to_json }}
+      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       fluentd:

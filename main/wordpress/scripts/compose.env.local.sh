@@ -23,7 +23,7 @@ shift
 
 ctl_layer_dir="$base_dir/ctl"
 pod_layer_dir="$DIR"
-app_layer_dir="$base_dir/app/$wordpress_dev_repo_dir"
+app_layer_dir="$base_dir/apps/$wordpress_dev_repo_dir"
 
 start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"

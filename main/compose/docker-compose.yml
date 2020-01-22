@@ -23,7 +23,7 @@ services:
       args:
         IMAGE: "{{ item_params.image }}"
         VERSION: "{{ item_params.version }}"
-        ENV_DIR: "${POD_ENV_DIR}/{{ item }}"
+        ENV_DIR: "${POD_ENV_DIR}/{{ name_dest }}"
         {% if item_params.args | default([]) | list | length > 0 
         %}{% for subitem in item_params.args | list 
         %}{{ subitem.name }}: {{ subitem.value }}

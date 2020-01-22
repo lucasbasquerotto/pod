@@ -16,7 +16,7 @@ templates:
     script_upgrade_file: >-
       {{ var_web | ternary('compose.upgrade.app.sh', '') }}
     wordpress_dev_repo_dir: >-
-      {{ var_local | ternary(params.pod.app.wordpress.dir_rel | default(''), '') }}
+      {{ var_local | ternary(params.pod.app.wp_local.dir_rel | default(''), '') }}
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
@@ -77,6 +77,15 @@ children:
     services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       nginx:
+        includes:
+        - "log"
+        - "limit_req_zone"
+        - "limit_conn_zone"
+        - "limit_conn_zone_file_upload"
+        - "proxy_cache"
+        - "timeouts"
+        worker_processes: 1
+        worker_connections: 512
         servers:
         - name: "www"
           host: "www.{{ params.main.wordpress.domain }}"
@@ -96,8 +105,8 @@ children:
           locations:
           - path: "/wp-admin/"
             includes:
-            - "includes/file_upload.conf"
-            - "includes/file_upload_ratelimit.conf"
+            - "file_upload"
+            - "file_upload_ratelimit"
           - path: "/"
         - name: "phpmyadmin"
           host: "{{ params.main.phpmyadmin.domain }}"
@@ -108,6 +117,63 @@ children:
             port: "80"
           locations:
           - path: "/"
+        includes_dict:
+          file_upload:
+            type: "file_upload"
+            params: 
+              proxy_read_timeout: "240"
+              client_max_body_size: "10M"
+          limit_conn_zone:
+            type: "limit_conn_zone"
+            params: 
+              zone: "connlimit"
+              size: "10m"
+          limit_conn_zone_file_upload:
+            type: "limit_conn_zone"
+            params: 
+              zone: "uploadconnlimit"
+              size: "10m"
+          limit_req_zone:
+            type: "limit_req_zone"
+            params: 
+              zone: "mainlimit"
+              size: "10m"
+              rate: "2r/s"
+          log:
+            type: "log"
+            params:
+              format: >-
+                $remote_addr $sent_http_x_user_id $upstream_response_time $status
+                $remote_user [$time_local] "$host" "$request"
+                $body_bytes_sent "$http_referer" "$http_user_agent" $request_time
+          proxy_cache:
+            type: "proxy_cache"
+            params: 
+              proxy_cache_path: "/var/cache/nginx"
+              levels: "1:2"
+              keys_zone: "web_cache"
+              size: "20m"
+              max_size: "200m"
+              inactive: "30m"
+          file_upload_ratelimit:
+            type: "ratelimit"
+            params:
+              limit_req:
+                zone: "mainlimit"
+                burst: 6
+                nodelay: true
+              limit_conn:
+                name: "uploadconnlimit"
+                value: 5 
+          timeouts:
+            type: "timeouts"
+            params:
+              proxy_connect_timeout: "30"
+              proxy_send_timeout: "60"
+              proxy_read_timeout: "60"
+              send_timeout: "60"
+              client_body_timeout: "5s"
+              client_header_timeout: "5s"
       wordpress:
         env: "{{ params.main.wordpress.env }}"
         domain: "{{ params.main.wordpress.domain }}"
@@ -149,8 +215,7 @@ children:
       - >-
         {{ 
         params.main.local | default(false) | bool 
-        | ternary(params.pod.app.wordpress.dir_rel | default(''), '') 
         | ternary('WP_APP_REPO_DIR=../../apps/' + 
-        params.pod.app.wordpress.dir_rel | default(''), '') 
+        params.pod.app.wp_local.dir_rel | default(''), '') 
         }}
       env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}

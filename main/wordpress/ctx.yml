@@ -6,73 +6,63 @@ templates:
 {% set var_run = params.main.run %}
 
 {% if var_web %}
-  {% set setup_uploads = var_run.setup_uploads_dict[var_run.setup_restore_uploads] 
+  {% set setup_uploads_name = var_run.setup_restore_uploads | default('') %}
+  {% set setup_uploads = var_run.setup_uploads_dict[setup_uploads_name] 
     | default({}) %}
   {% set setup_uploads_type = setup_uploads.type | default('') %}
 
-  {% if setup_uploads_type == 'local_file' %}
-    {% set setup_local_uploads_file = setup_uploads.src %}
-  {% elif setup_uploads_type == 'web_file' %}
-    {% set setup_remote_uploads_file = setup_uploads.src %}
-  {% elif setup_uploads_type == 'bucket_file' %}
-    {% set setup_remote_bucket_path_uploads_file = setup_uploads.src %}
-  {% elif setup_uploads_type == 'bucket_dir' %}
-    {% set setup_remote_bucket_path_uploads_dir = setup_uploads.src %}
-  {% else %}
-    {% set setup_uploads_type = '' %}
+  {% if setup_uploads_name != '' %}
+    {% if setup_uploads_type == 'local_file' %}
+      {% set setup_local_uploads_file = setup_uploads.src %}
+    {% elif setup_uploads_type == 'web_file' %}
+      {% set setup_remote_uploads_file = setup_uploads.src %}
+    {% elif setup_uploads_type == 'bucket_file' %}
+      {% set setup_remote_bucket_path_uploads_file = setup_uploads.src %}
+    {% elif setup_uploads_type == 'bucket_dir' %}
+      {% set setup_remote_bucket_path_uploads_dir = setup_uploads.src %}
+    {% elif setup_uploads_type == '' %}
+      {% set error = {} %}
+      {{ error['error.setup_uploads_type.not_defined'] }}
+    {% else %}
+      {% set error = {} %}
+      {{ error['error.setup_uploads_type.invalid.' + setup_uploads_type] }}
+    {% endif %}
   {% endif %}
-
-  {% if setup_uploads_type == '' %}
-    {% set error = {} %}
-    {% set setup_uploads_type = error[var_run.setup_restore_uploads + '-raise_error'] %}
-  {% endif %}
-
-  {% if setup_uploads_type != '' %}
-    {% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
-    {% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
-    {% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
-    {% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
-  {% endif %}
-{% else %}
-  {% set setup_local_db_file = setup_local_db_file | default('') %}
-  {% set setup_remote_db_file = setup_remote_db_file | default('') %}
-  {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
-  {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
 {% endif %}
+
+{% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
+{% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
+{% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
+{% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
 
 {% if var_db %}
-  {% set setup_db = var_run.setup_db_dict[var_run.setup_restore_db] | default({}) %}
+  {% set setup_db_name = var_run.setup_restore_db | default('') %}
+  {% set setup_db = var_run.setup_db_dict[setup_db_name] | default({}) %}
   {% set setup_db_type = setup_db.type | default('') %}
 
-  {% if setup_db_type == 'local_file' %}
-    {% set setup_local_db_file = setup_db.src %}
-  {% elif setup_db_type == 'web_file' %}
-    {% set setup_remote_db_file = setup_db.src %}
-  {% elif setup_db_type == 'bucket_file' %}
-    {% set setup_remote_bucket_path_db_file = setup_db.src %}
-  {% elif setup_db_type == 'bucket_dir' %}
-    {% set setup_remote_bucket_path_db_dir = setup_db.src %}
-  {% else %}
-    {% set setup_db_type = '' %}
+  {% if setup_db_name != '' %}
+    {% if setup_db_type == 'local_file' %}
+      {% set setup_local_db_file = setup_db.src %}
+    {% elif setup_db_type == 'web_file' %}
+      {% set setup_remote_db_file = setup_db.src %}
+    {% elif setup_db_type == 'bucket_file' %}
+      {% set setup_remote_bucket_path_db_file = setup_db.src %}
+    {% elif setup_db_type == 'bucket_dir' %}
+      {% set setup_remote_bucket_path_db_dir = setup_db.src %}
+    {% elif setup_db_type == '' %}
+      {% set error = {} %}
+      {{ error['error.setup_db_type.not_defined'] }}
+    {% else %}
+      {% set error = {} %}
+      {{ error['error.setup_db_type.invalid.' + setup_db_type] }}
+    {% endif %}
   {% endif %}
-
-  {% if setup_db_type == '' %}
-    {% set error = {} %}
-    {% set setup_db_type = error[var_run.setup_restore_db + '-raise_error'] %}
-  {% endif %}
-
-  {% if setup_db_type != '' %}
-    {% set setup_local_db_file = setup_local_db_file | default('') %}
-    {% set setup_remote_db_file = setup_remote_db_file | default('') %}
-    {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
-    {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
-  {% endif %}
-{% else %}
-  {% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
-  {% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
-  {% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
-  {% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
 {% endif %}
+
+{% set setup_local_db_file = setup_local_db_file | default('') %}
+{% set setup_remote_db_file = setup_remote_db_file | default('') %}
+{% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
+{% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
 
 - src: "main/vars/vars.tpl.sh"
   root: true  
@@ -145,6 +135,7 @@ children:
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
     services: {{ params.main.services | default([]) | to_json }}
+    custom_services_dict: {{ params.main.services_dict | default({}) | to_json }}
     services_dict: 
       nginx:
         includes:

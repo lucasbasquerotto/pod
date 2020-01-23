@@ -31,7 +31,9 @@ files:
 {% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
 {% set item_root = item.root | default(false) %}
-{% set item_params = params.services_dict[item.name] | default({}) %}
+{% set item_params = params.custom_services_dict[item.name] 
+| default(params.services_dict[item.name] | default({})) 
+%}
 ### file start - {{ item_dest }} ({{ item_full_src }})
 
 - src: "{{ item_full_src }}/files/Dockerfile"
@@ -59,7 +61,9 @@ templates:
 {% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
 {% set item_root = item.root | default(false) %}
-{% set item_params = params.services_dict[item.name] | default({}) %}
+{% set item_params = params.custom_services_dict[item.name] 
+| default(params.services_dict[item.name] | default({}))
+%}
 ### template start - {{ item_dest }} ({{ item_full_src }})
 
 {% if item_src == 'mysql'

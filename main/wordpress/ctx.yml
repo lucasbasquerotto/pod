@@ -3,12 +3,84 @@ templates:
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_web = (params.main.type in ['app', 'web']) | bool %}
 {% set var_db = (params.main.type in ['app', 'db']) | bool %}
+{% set var_run = params.main.run %}
+
+{% if var_web %}
+  {% set setup_uploads = var_run.setup_uploads_dict[var_run.setup_restore_uploads] 
+    | default({}) %}
+  {% set setup_uploads_type = setup_uploads.type | default('') %}
+
+  {% if setup_uploads_type == 'local_file' %}
+    {% set setup_local_uploads_file = setup_uploads.src %}
+  {% elif setup_uploads_type == 'web_file' %}
+    {% set setup_remote_uploads_file = setup_uploads.src %}
+  {% elif setup_uploads_type == 'bucket_file' %}
+    {% set setup_remote_bucket_path_uploads_file = setup_uploads.src %}
+  {% elif setup_uploads_type == 'bucket_dir' %}
+    {% set setup_remote_bucket_path_uploads_dir = setup_uploads.src %}
+  {% else %}
+    {% set setup_uploads_type = '' %}
+  {% endif %}
+
+  {% if setup_uploads_type == '' %}
+    {% set error = {} %}
+    {% set setup_uploads_type = error[var_run.setup_restore_uploads + '-raise_error'] %}
+  {% endif %}
+
+  {% if setup_uploads_type != '' %}
+    {% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
+    {% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
+    {% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
+    {% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
+  {% endif %}
+{% else %}
+  {% set setup_local_db_file = setup_local_db_file | default('') %}
+  {% set setup_remote_db_file = setup_remote_db_file | default('') %}
+  {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
+  {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
+{% endif %}
+
+{% if var_db %}
+  {% set setup_db = var_run.setup_db_dict[var_run.setup_restore_db] | default({}) %}
+  {% set setup_db_type = setup_db.type | default('') %}
+
+  {% if setup_db_type == 'local_file' %}
+    {% set setup_local_db_file = setup_db.src %}
+  {% elif setup_db_type == 'web_file' %}
+    {% set setup_remote_db_file = setup_db.src %}
+  {% elif setup_db_type == 'bucket_file' %}
+    {% set setup_remote_bucket_path_db_file = setup_db.src %}
+  {% elif setup_db_type == 'bucket_dir' %}
+    {% set setup_remote_bucket_path_db_dir = setup_db.src %}
+  {% else %}
+    {% set setup_db_type = '' %}
+  {% endif %}
+
+  {% if setup_db_type == '' %}
+    {% set error = {} %}
+    {% set setup_db_type = error[var_run.setup_restore_db + '-raise_error'] %}
+  {% endif %}
+
+  {% if setup_db_type != '' %}
+    {% set setup_local_db_file = setup_local_db_file | default('') %}
+    {% set setup_remote_db_file = setup_remote_db_file | default('') %}
+    {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
+    {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
+  {% endif %}
+{% else %}
+  {% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
+  {% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
+  {% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
+  {% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
+{% endif %}
 
 - src: "main/vars/vars.tpl.sh"
   root: true  
   dest: "vars.sh"
   mode: '0755'
   params: 
+    test: >-
+      {{ test | default('') | ternary(params.main.test_error_2, 'empty') }}
     scripts_dir: "main/wordpress/scripts"
     script_run_file: "compose.sh"
     script_env_file: >-
@@ -16,48 +88,46 @@ templates:
     script_upgrade_file: >-
       {{ var_web | ternary('compose.upgrade.app.sh', '') }}
     wordpress_dev_repo_dir: >-
-      {{ var_local | ternary(params.pod.app.wp_local.dir_rel | default(''), '') }}
+      {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
-      {{ var_web | ternary(params.main.setup.url | default(''), '') }}
+      {{ var_web | ternary(params.main.setup.url, '') }}
     setup_title: >-
-      {{ var_web | ternary(params.main.setup.title | default(''), '') }}
+      {{ var_web | ternary(params.main.setup.title, '') }}
     setup_admin_user: >-
-      {{ var_web | ternary(params.credentials.wordpress.setup.admin_user | default(''), '') }}
+      {{ var_web | ternary(params.credentials.wordpress.setup.admin_user, '') }}
     setup_admin_password: >-
       {{ var_web | ternary(params.credentials.wordpress.setup.admin_password, '') }}
     setup_admin_email: >-
       {{ var_web | ternary(params.credentials.wordpress.setup.admin_email, '') }}
-    setup_local_db_file: >-
-      {{ var_db | ternary(params.main.run.local_db_file | default(''), '') }}
-    setup_local_uploads_zip_file: >-
-      {{ var_web | ternary(params.main.run.local_uploads_zip_file | default(''), '') }}
-    setup_remote_db_file: >-
-      {{ var_db | ternary(params.main.run.remote_db_file | default(''), '') }}
-    setup_remote_uploads_zip_file: >-
-      {{ var_web | ternary(params.main.run.remote_uploads_zip_file | default(''), '') }}
-    setup_remote_bucket_path_db_dir: >-
-      {{ var_db | ternary(params.main.run.remote_bucket_path_db_dir | default(''), '') }}
-    setup_remote_bucket_path_uploads_dir: >-
-      {{ var_web | ternary(params.main.run.remote_bucket_path_uploads_dir | default(''), '') }}
-    setup_remote_bucket_path_db_file: >-
-      {{ var_db | ternary(params.main.run.remote_bucket_path_db_file | default(''), '') }}
-    setup_remote_bucket_path_uploads_file: >-
-      {{ var_web | ternary(params.main.run.remote_bucket_path_uploads_file | default(''), '') }}
+    setup_local_db_file: "{{ setup_local_db_file }}"
+    setup_local_uploads_zip_file: "{{ setup_local_uploads_file }}"
+    setup_remote_db_file: "{{ setup_remote_db_file }}"
+    setup_remote_uploads_zip_file: "{{ setup_remote_uploads_file }}"
+    setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
+    setup_remote_bucket_path_uploads_dir: "{{ setup_remote_bucket_path_uploads_dir }}"
+    setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
+    setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
     setup_local_seed_data: >-
-      {{ var_web | ternary(params.main.run.local_seed_data | default(''), '') }}
+      {{ 
+      (var_web and (params.main.run.setup_restore_seed | default(false) | bool)) 
+      | ternary(params.main.run.local_seed_data | default(''), '') 
+      }}
     setup_remote_seed_data: >-
-      {{ var_web | ternary(params.main.run.remote_seed_data | default(''), '') }}
+      {{ 
+      (var_web and (params.main.run.setup_restore_seed | default(false) | bool)) 
+      | ternary(params.main.run.remote_seed_data | default(''), '') 
+      }}
     s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
     use_aws_s3: "{{ params.main.toolbox.use_aws_s3_cli | default(false) | lower }}"
     use_s3cmd: "{{ params.main.toolbox.use_s3cmd | default(false) | lower }}"
     backup_bucket_name: "{{ params.main.run.backup_bucket_name | default('') }}"
     backup_bucket_path: "{{ params.main.run.backup_bucket_path | default('') }}"
     backup_bucket_db_sync_dir: >-
-      {{ var_db | ternary(params.main.run.backup_bucket_db_sync_dir | default(''), '') }}
+      {{ var_db | ternary(params.main.run.backup_bucket_db_sync_dir, '') }}
     backup_bucket_uploads_sync_dir: >-
-      {{ var_web | ternary(params.main.run.backup_bucket_uploads_sync_dir | default(''), '') }}
+      {{ var_web | ternary(params.main.run.backup_bucket_uploads_sync_dir, '') }}
     backup_delete_old_days: "{{ params.main.run.backup_delete_old_days | default(30) }}"
     old_domain_host: "{{ params.main.run.old_domain_host | default('') }}"
     new_domain_host: "{{ params.main.run.new_domain_host | default('') }}"   
@@ -215,7 +285,9 @@ children:
       - >-
         {{ 
         params.main.local | default(false) | bool 
-        | ternary('WP_APP_REPO_DIR=../../apps/' + 
-        params.pod.app.wp_local.dir_rel | default(''), '') 
+        | ternary('WP_APP_REPO_DIR=../../apps/', '') 
+        }}{{ 
+        params.main.local | default(false) | bool 
+        | ternary(params.pod.app.wp_local.dir_rel, '') 
         }}
       env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}

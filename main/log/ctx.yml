@@ -1,12 +1,19 @@
+{% set var_compose = params.main.compose | default(params.other.compose) %}
+
 children:
 
 - name: "main/vars/vars.main.yml"
   params:
     local: "{{ params.main.local }}"
-    compose: "{{ params.main.compose is defined }}"
+    compose: "{{ params.pod.pod.orchestration in ['compose', 'none'] }}"
     base_dir: "{{ params.main.services_base_dir | default('containers') }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
+    custom_volumes_dict: {{ params.main.volumes_dict | default({}) | to_json }}
+    volumes_dict: 
+      elasticsearch:
+        rel_path: "elasticsearch"
+        mode: "0777"
     env_files:
     - src: "test/test.txt"
       dest: "test/test.local.efk3.txt"
@@ -43,10 +50,17 @@ children:
         elasticsearch_port: "{{ params.main.elasticsearch.port | default('9200') }}"
         flush_interval: "{{ params.main.fluentd.flush_interval | default('1s') }}"
 
+{% if params.pod.pod.orchestration in ['compose', 'none'] %}
+
 - name: "main/compose/vars.compose.yml"
   params: 
-    compose: {{ params.main.compose | to_json }}
+    compose: {{ var_compose | to_json }}
     env:  
       base_params: {{ params.pod | to_json }}
       env_list: "{{ params.main.env_params | default('') }}"
       env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}
+
+{% else %}
+  {% set error = {} %}
+  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
+{% endif %}

@@ -1,12 +1,14 @@
-templates:
-
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_web = (params.main.type in ['app', 'web']) | bool %}
 {% set var_db = (params.main.type in ['app', 'db']) | bool %}
-{% set var_run = params.main.run %}
+{% set var_containers = params.main.containers | default(params.other.containers) %}
+{% set var_compose = params.main.compose | default(params.other.compose) %}
+{% set var_run = params.main.run | default(params.other.run) %}
+
+templates:
 
 {% if var_web %}
-  {% set setup_uploads_name = var_run.setup_restore_uploads | default('') %}
+  {% set setup_uploads_name = var_run.setup.restore_uploads | default('') %}
   {% set setup_uploads = var_run.setup_uploads_dict[setup_uploads_name] 
     | default({}) %}
   {% set setup_uploads_type = setup_uploads.type | default('') %}
@@ -36,7 +38,7 @@ templates:
 {% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
 
 {% if var_db %}
-  {% set setup_db_name = var_run.setup_restore_db | default('') %}
+  {% set setup_db_name = var_run.setup.restore_db | default('') %}
   {% set setup_db = var_run.setup_db_dict[setup_db_name] | default({}) %}
   {% set setup_db_type = setup_db.type | default('') %}
 
@@ -69,8 +71,6 @@ templates:
   dest: "vars.sh"
   mode: '0755'
   params: 
-    test: >-
-      {{ test | default('') | ternary(params.main.test_error_2, 'empty') }}
     scripts_dir: "main/wordpress/scripts"
     script_run_file: "compose.sh"
     script_env_file: >-
@@ -82,9 +82,9 @@ templates:
     repo_name: "{{ params.pod.repo_name }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
-      {{ var_web | ternary(params.main.setup.url, '') }}
+      {{ var_web | ternary(var_run.setup.url, '') }}
     setup_title: >-
-      {{ var_web | ternary(params.main.setup.title, '') }}
+      {{ var_web | ternary(var_run.setup.title, '') }}
     setup_admin_user: >-
       {{ var_web | ternary(params.credentials.wordpress.setup.admin_user, '') }}
     setup_admin_password: >-
@@ -101,26 +101,26 @@ templates:
     setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
     setup_local_seed_data: >-
       {{ 
-      (var_web and (params.main.run.setup_restore_seed | default(false) | bool)) 
-      | ternary(params.main.run.local_seed_data | default(''), '') 
+      (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
+      | ternary(var_run.setup.local_seed_data | default(''), '') 
       }}
     setup_remote_seed_data: >-
       {{ 
-      (var_web and (params.main.run.setup_restore_seed | default(false) | bool)) 
-      | ternary(params.main.run.remote_seed_data | default(''), '') 
+      (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
+      | ternary(var_run.setup.remote_seed_data | default(''), '') 
       }}
-    s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
-    use_aws_s3: "{{ params.main.toolbox.use_aws_s3_cli | default(false) | lower }}"
-    use_s3cmd: "{{ params.main.toolbox.use_s3cmd | default(false) | lower }}"
-    backup_bucket_name: "{{ params.main.run.backup_bucket_name | default('') }}"
-    backup_bucket_path: "{{ params.main.run.backup_bucket_path | default('') }}"
+    s3_endpoint: "{{ var_containers.toolbox.s3_endpoint | default('') }}"
+    use_aws_s3: "{{ var_containers.toolbox.use_aws_s3_cli | default(false) | lower }}"
+    use_s3cmd: "{{ var_containers.toolbox.use_s3cmd | default(false) | lower }}"
+    backup_bucket_name: "{{ var_run.backup.bucket_name | default('') }}"
+    backup_bucket_path: "{{ var_run.backup.bucket_path | default('') }}"
     backup_bucket_db_sync_dir: >-
-      {{ var_db | ternary(params.main.run.backup_bucket_db_sync_dir, '') }}
+      {{ var_db | ternary(var_run.backup.bucket_db_sync_dir, '') }}
     backup_bucket_uploads_sync_dir: >-
-      {{ var_web | ternary(params.main.run.backup_bucket_uploads_sync_dir, '') }}
-    backup_delete_old_days: "{{ params.main.run.backup_delete_old_days | default(30) }}"
-    old_domain_host: "{{ params.main.run.old_domain_host | default('') }}"
-    new_domain_host: "{{ params.main.run.new_domain_host | default('') }}"   
+      {{ var_web | ternary(var_run.backup.bucket_uploads_sync_dir, '') }}
+    backup_delete_old_days: "{{ var_run.backup.delete_old_days | default(30) }}"
+    old_domain_host: "{{ var_run.setup.old_domain_host | default('') }}"
+    new_domain_host: "{{ var_run.setup.new_domain_host | default('') }}"   
     db_user: "{{ params.credentials.wordpress.db.user }}"
     db_pass: "{{ params.credentials.wordpress.db.password }}"
     db_name: "{{ params.credentials.wordpress.db.name }}"
@@ -130,13 +130,33 @@ children:
 - name: "main/vars/vars.main.yml"
   params:
     local: "{{ params.main.local }}"
-    compose: "{{ params.main.compose is defined }}"
+    compose: "{{ params.pod.pod.orchestration in ['compose', 'none'] }}"
     base_dir: "{{ params.main.services_base_dir | default('containers') }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
     volumes: {{ params.main.volumes | default([]) | to_json }}
+    custom_volumes_dict: {{ params.main.volumes_dict | default({}) | to_json }}
+    volumes_dict: 
+      mysql:
+        rel_path: "mysql"
+        mode: "0755"
+      wordpress:
+        rel_path: "wordpress/uploads"
+        mode: "0777"
     services: {{ params.main.services | default([]) | to_json }}
     custom_services_dict: {{ params.main.services_dict | default({}) | to_json }}
     services_dict: 
+      {% if var_web %}
+
+      {% set var_wp_domain = var_containers.wordpress.domain %}
+      {% set var_wp_ssl = var_containers.wordpress.ssl %}
+      {% set var_wp_port = var_wp_ssl | bool | ternary('443', '80') %}
+      {% set var_wp_protocol = var_wp_ssl | bool | ternary('https', 'http') %}
+
+      {% set var_pma_domain = var_containers.phpmyadmin.domain %}
+      {% set var_pma_ssl = var_containers.phpmyadmin.ssl %}
+      {% set var_pma_port = var_containers.phpmyadmin.port %}
+      {% set var_pma_protocol = var_pma_ssl | bool | ternary('https', 'http') %}
+
       nginx:
         includes:
         - "log"
@@ -149,17 +169,17 @@ children:
         worker_connections: 512
         servers:
         - name: "www"
-          host: "www.{{ params.main.wordpress.domain }}"
-          port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
-          ssl: "{{ params.main.wordpress.ssl }}"
+          host: "www.{{ var_wp_domain }}"
+          port: "{{ var_wp_port }}"
+          ssl: "{{ var_wp_ssl }}"
           redirect:
-            protocol: "{{ params.main.wordpress.ssl | bool | ternary('https', 'http') }}"
-            host: "{{ params.main.wordpress.domain }}"
-            port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
+            protocol: "{{ var_wp_protocol }}"
+            host: "{{ var_wp_domain }}"
+            port: "{{ var_wp_port }}"
         - name: "wordpress"
-          host: "{{ params.main.wordpress.domain }}"
-          port: "{{ params.main.wordpress.ssl | bool | ternary('443', '80') }}"
-          ssl: "{{ params.main.wordpress.ssl }}"
+          host: "{{ var_wp_domain }}"
+          port: "{{ var_wp_port }}"
+          ssl: "{{ var_wp_ssl }}"
           upstream:
             protocol: "http"
             port: "80"
@@ -170,9 +190,9 @@ children:
             - "file_upload_ratelimit"
           - path: "/"
         - name: "phpmyadmin"
-          host: "{{ params.main.phpmyadmin.domain }}"
-          port: "{{ params.main.phpmyadmin.port }}"
-          ssl: "{{ params.main.phpmyadmin.ssl }}"
+          host: "{{ var_pma_domain }}"
+          port: "{{ var_pma_port }}"
+          ssl: "{{ var_pma_ssl }}"
           upstream:
             protocol: "http"
             port: "80"
@@ -236,9 +256,9 @@ children:
               client_body_timeout: "5s"
               client_header_timeout: "5s"
       wordpress:
-        env: "{{ params.main.wordpress.env }}"
-        domain: "{{ params.main.wordpress.domain }}"
-        ssl: "{{ params.main.wordpress.ssl }}"
+        env: "{{ var_containers.wordpress.env }}"
+        domain: "{{ var_wp_domain }}"
+        ssl: "{{ var_wp_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
         config:
           auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
@@ -250,25 +270,34 @@ children:
           logged_in_salt: "{{ params.credentials.wordpress.config.logged_in_salt }}"
           nonce_salt: "{{ params.credentials.wordpress.config.nonce_salt }}"
       phpmyadmin:
-        domain: "{{ params.main.phpmyadmin.domain }}"
-        port: "{{ params.main.phpmyadmin.port }}"
-        ssl: "{{ params.main.phpmyadmin.ssl }}"
+        domain: "{{ var_pma_domain }}"
+        port: "{{ var_pma_port }}"
+        ssl: "{{ var_pma_ssl }}"
+
+      {% endif %}
+      {% if var_db %}
+
       mysql: 
         root_password: "{{ params.credentials.mysql.root_password }}"
+
+      {% endif %}
+
       toolbox:
-        s3_endpoint: "{{ params.main.toolbox.s3_endpoint | default('') }}"
+        s3_endpoint: "{{ var_containers.toolbox.s3_endpoint | default('') }}"
         bucket:
           access_key: "{{ params.credentials.bucket.access_key | default('') }}"
           secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
 
+{% if params.pod.pod.orchestration in ['compose', 'none'] %}
+
 - name: "main/compose/vars.compose.yml"
   params: 
-    compose: {{ params.main.compose | to_json }}
+    compose: {{ var_compose | to_json }}
     env:  
       base_params: {{ params.pod | to_json }}
       env_list: 
-      - "DB_HOST={{ params.main.mysql.host }}"
-      - "DB_PORT={{ params.main.mysql.port }}"
+      - "DB_HOST={{ var_containers.mysql.host }}"
+      - "DB_PORT={{ var_containers.mysql.port }}"
       - "DB_NAME={{ params.credentials.wordpress.db.name }}"
       - "DB_USER={{ params.credentials.wordpress.db.user }}"
       - "DB_PASSWORD={{ params.credentials.wordpress.db.password }}"
@@ -282,3 +311,8 @@ children:
         | ternary(params.pod.app.wp_local.dir_rel, '') 
         }}
       env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}
+
+{% else %}
+  {% set error = {} %}
+  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
+{% endif %}

@@ -1,60 +1,56 @@
+{% set var_local = params.local %}
+{% set var_compose = params.compose %}
+{% set var_base_dir = params.base_dir %}
+{% set var_data_dir = params.data_dir %}
+{% set var_volumes = params.volumes %}
+{% set var_custom_volumes_dict = params.custom_volumes_dict %}
+{% set var_volumes_dict = params.volumes_dict %}
+{% set var_services = params.services %}
+{% set var_map_ignore_container_dict = params.map_ignore_container_dict %}
+{% set var_map_src_path_dict = params.map_src_path_dict %}
+{% set var_custom_services_data_dict = params.custom_services_data_dict %}
+{% set var_services_data_dict = params.services_data_dict %}
+
 volumes:
 
 - when: false
 
-{% for item in params.volumes | list %}
-{% if item.when | default(true) | bool %}
+{% for name in var_volumes | list %}
+{% set item = var_custom_volumes_dict[name] | default(var_volumes_dict[name]) %}
 
-{% set item_params = params.custom_volumes_dict[item.name] 
-| default(params.volumes_dict[item.name]) 
-%}
+### volume start - {{ name }} ({{ item.rel_path }})
 
-### volume start - {{ item.name }} ({{ item_params.rel_path }})
+- path: "{{ var_data_dir + '/' + item.rel_path }}"
 
-- path: "{{ params.data_dir + '/' + item_params.rel_path }}"
+  {% if (item.mode | default('')) != ''%}mode: "{{ item.mode }}"{% endif %}
 
-  {% if (item_params.mode | default('')) != '' 
-  %}mode: "{{ item_params.mode }}"
-  {% endif %}
-
-  {% if (item_params.when | default('')) != '' 
-  %}when: "{{ item_params.when }}"
-  {% endif %}
+  {% if (item.when | default('')) != '' %}when: "{{ item.when }}"{% endif %}
   
-### volume end - {{ item.name }} ({{ item_params.rel_path }})
-{% endif %}
+### volume end - {{ name }} ({{ item.rel_path }})
 {% endfor %}
-
-env_files: {{ params.env_files | default([]) | to_json }}
-
-env_templates: {{ params.env_templates | default([]) | to_json }}
 
 files:
 
 - when: false
 
-{% for item in (params.services | default([])) | list %}
-{% if item.when | default(true) | bool %}
+{% for name in var_services | list %}
+{% if not (var_map_ignore_container_dict[name] | default(false) | bool) %}
 
-{% set item_src = item.name_src | default(item.name) %}
-{% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
-{% set item_dest = item.name_dest | default(item.name) %}
-{% set item_root = item.dest_root | default(false) %}
-{% set item_service_src = item.name_service_src | default(item.name) %}
-{% set item_params = params.custom_services_data_dict[item_service_src] 
-| default(params.services_data_dict[item_service_src]) 
+{% set item_src = var_map_src_path_dict[name] | default(name) %}
+{% set item_full_src = var_base_dir + '/' + item_src %}
+{% set item_dest = name %}
+{% set item_params = var_custom_services_data_dict[name] 
+| default(var_services_data_dict[name]) | default({}) 
 %}
-{% set item_service_dest = item.name_service_dest | default(item.name) %}
+
 ### file start - {{ item_dest }} ({{ item_full_src }})
 
 - src: "{{ item_full_src }}/files/Dockerfile"
   dest: "{{ item_dest }}/Dockerfile"
-  root: "{{ item_root }}"
 
 {% if item_src == 'toolbox'
 %}- src: "{{ item_full_src }}/files/aws/config.cfg"
   dest: "{{ item_dest }}/aws/config"
-  root: "{{ item_root }}"
 {% endif %}
 
 ### file end - {{ item_dest }} ({{ item_full_src }})
@@ -65,22 +61,21 @@ templates:
 
 - when: false
   
-{% for item in (params.services | default([])) | list %}
-{% if item.when | default(true) | bool %}
+{% for name in var_services | list %}
+{% if not (var_map_ignore_container_dict[name] | default(false) | bool) %}
 
-{% set item_src = item.src_name | default(item.name) %}
-{% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
-{% set item_dest = item.name %}
-{% set item_root = item.root | default(false) %}
-{% set item_params = params.custom_services_data_dict[item.name] 
-| default(params.services_data_dict[item.name])
+{% set item_src = var_map_src_path_dict[name] | default(name) %}
+{% set item_full_src = var_base_dir + '/' + item_src %}
+{% set item_dest = name %}
+{% set item_params = var_custom_services_data_dict[name] 
+| default(var_services_data_dict[name]) | default({}) 
 %}
+
 ### template start - {{ item_dest }} ({{ item_full_src }})
 
 {% if item_src == 'mysql'
 %}- src: "{{ item_full_src }}/templates/mysqld.cnf"
   dest: "{{ item_dest }}/mysqld.cnf"
-  root: "{{ item_root }}"
   mode: "0644"
   params:
     bind_address: "0.0.0.0"
@@ -96,14 +91,12 @@ templates:
 {% if item_src == 'nginx'
 %}- src: "{{ item_full_src }}/templates/nginx.conf"
   dest: "{{ item_dest }}/nginx.conf"
-  root: "{{ item_root }}"
   params: {{ item_params | to_json }}
 {% endif %}
 
 {% if item_src == 'fluentd'
 %}- src: "{{ item_full_src }}/templates/elasticsearch.conf"
   dest: "{{ item_dest }}/fluent.conf"
-  root: "{{ item_root }}"
   params:
     elasticsearch_port: "{{ item_params.elasticsearch_port }}"
     flush_interval: "{{ item_params.flush_interval }}"
@@ -112,7 +105,6 @@ templates:
 {% if item_src == 'phpmyadmin'
 %}- src: "{{ item_full_src }}/templates/config.user.inc.php"
   dest: "{{ item_dest }}/config.user.inc.php"
-  root: "{{ item_root }}"
   params:
     login_cookie_validity: 36000
 {% endif %}
@@ -120,7 +112,6 @@ templates:
 {% if item_src == 'toolbox'
 %}- src: "{{ item_full_src }}/templates/s3cmd.cfg"
   dest: "{{ item_dest }}/s3cmd.cfg"
-  root: "{{ item_root }}"
   params:
     access_key: "{{ item_params.bucket.access_key }}"
     secret_key: "{{ item_params.bucket.secret_key }}"
@@ -128,7 +119,6 @@ templates:
 
 - src: "{{ item_full_src }}/templates/aws/credentials.cfg"
   dest: "{{ item_dest }}/aws/credentials"
-  root: "{{ item_root }}"
   params:
     access_key: "{{ item_params.bucket.access_key }}"
     secret_key: "{{ item_params.bucket.secret_key }}"
@@ -137,7 +127,6 @@ templates:
 {% if item_src == 'wordpress'
 %}- src: "{{ item_full_src }}/templates/.env"
   dest: "{{ item_dest }}/.env"
-  root: "{{ item_root }}"
   params: 
     env: "{{ item_params.env }}"
     db_host: "mysql"

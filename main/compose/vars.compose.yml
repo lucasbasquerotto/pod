@@ -15,5 +15,5 @@ templates:
     git_commit: "{{ params.env.base_params.git_commit }}"
     pod_env_dir: "{{ params.env.base_params.pod_env_dir }}"
     data_dir: "{{ params.env.base_params.data_dir }}"
-    env_list: {{ params.env.env_list | to_json }}
+    env_list: {{ (params.env.env_list + params.env.custom_env_list) | to_json }}
     env_encoded_list: {{ params.env.env_encoded_list | to_json }}

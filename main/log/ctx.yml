@@ -1,5 +1,36 @@
 {% set var_compose = params.main.compose | default(params.other.compose) %}
 
+env_files:
+- src: "test/test.txt"
+  dest: "test/test.local.efk3.txt"
+  when: "{{ params.main.local }}"
+- src: "test/test.txt"
+  dest: "test/test.local.efk4.txt"
+  when: "{{ params.main.local }}"
+- src: "test/test.txt"
+  dest: "test/test.remote.efk3.txt"
+  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+- src: "test/test.txt"
+  dest: "test/test.remote.efk4.txt"
+  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+env_templates:
+- src: "test/template.yml"
+  dest: "test/template.local.efk3.yml"
+  params: {{ params | to_json }}
+  when: "{{ params.main.local }}"
+- src: "test/template.yml"
+  dest: "test/template.local.efk4.yml"
+  params: {{ params | to_json }}
+  when: "{{ params.main.local }}"
+- src: "test/template.yml"
+  dest: "test/template.remote.efk3.yml"
+  params: {{ params | to_json }}
+  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+- src: "test/template.yml"
+  dest: "test/template.remote.efk4.yml"
+  params: {{ params | to_json }}
+  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+
 children:
 
 - name: "main/vars/vars.main.yml"
@@ -14,36 +45,6 @@ children:
       elasticsearch:
         rel_path: "elasticsearch"
         mode: "0777"
-    env_files:
-    - src: "test/test.txt"
-      dest: "test/test.local.efk3.txt"
-      when: "{{ params.main.local }}"
-    - src: "test/test.txt"
-      dest: "test/test.local.efk4.txt"
-      when: "{{ params.main.local }}"
-    - src: "test/test.txt"
-      dest: "test/test.remote.efk3.txt"
-      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
-    - src: "test/test.txt"
-      dest: "test/test.remote.efk4.txt"
-      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
-    env_templates:
-    - src: "test/template.yml"
-      dest: "test/template.local.efk3.yml"
-      params: {{ params | to_json }}
-      when: "{{ params.main.local }}"
-    - src: "test/template.yml"
-      dest: "test/template.local.efk4.yml"
-      params: {{ params | to_json }}
-      when: "{{ params.main.local }}"
-    - src: "test/template.yml"
-      dest: "test/template.remote.efk3.yml"
-      params: {{ params | to_json }}
-      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
-    - src: "test/template.yml"
-      dest: "test/template.remote.efk4.yml"
-      params: {{ params | to_json }}
-      when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
     services: {{ params.main.services | default([]) | to_json }}
     services_dict: 
       fluentd:

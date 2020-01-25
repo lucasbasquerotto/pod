@@ -1,65 +1,140 @@
-{% set var_compose = params.main.compose | default(params.other.compose) %}
+## general vars - start ###
+
+{% set var_local = params.main.local | default(false) | bool %}
+{% set var_remote = params.main.local | default(false) | bool | ternary('false', 'true') %}
+{% set var_volumes = params.main.volumes | default([]) %}
+{% set var_services = params.main.services %}
+{% set var_run_services = params.main.run_services | default([]) %}
+{% set var_compose_version = params.main.compose_version | default('') %}
+{% set var_run = params.main.run | default({}) %}
+
+{% set var_volumes_dict = params.main.volumes_dict | default({}) %}
+{% set var_containers_dict = params.main.containers_dict | default({}) %}
+{% set var_map_ignore_container_dict = params.main.map_ignore_container_dict | default({}) %}
+{% set var_map_src_path_dict = params.main.map_src_path_dict | default({}) %}
+        
+{% set var_logging_dict = params.main.logging_dict | default({}) %}
+{% set var_networks_dict = params.main.networks_dict | default({}) %}
+
+{% set var_services_dict = params.main.services_dict | default({}) %}
+{% set var_map_services_dict = params.main.map_services_dict | default({}) %}
+
+{% set var_services_dependencies_dict = params.main.services_dependencies_dict | default({}) %}
+{% set var_map_services_dependencies_dict = params.main.map_services_dependencies_dict | default({}) %}
+
+{% set var_services_ports_dict = params.main.services_ports_dict | default({}) %}
+{% set var_map_services_ports_dict = params.main.map_services_ports_dict | default({}) %}
+
+{% set var_services_networks_dict = params.main.services_networks_dict | default({}) %}
+{% set var_map_services_networks_dict = params.main.map_services_networks_dict | default({}) %}
+
+{% set var_services_volumes_dict = params.main.services_volumes_dict | default({}) %}
+{% set var_map_services_volumes_dict = params.main.map_services_volumes_dict | default({}) %}
+
+{% set var_services_ulimits_dict = params.main.services_ulimits_dict | default({}) %}
+{% set var_map_services_ulimits_dict = params.main.map_services_ulimits_dict | default({}) %}
+
+{% set var_services_mem_limit_dict = params.main.services_mem_limit_dict | default({}) %}
+{% set var_map_services_mem_limit_dict = params.main.map_services_mem_limit_dict | default({}) %}
+
+{% set var_services_data_dict = params.main.services_data_dict | default({}) %}
+
+{% set var_compose_env_list = params.main.compose_env_list | default([]) %}
+{% set var_compose_env_encoded_list = params.main.compose_env_encoded_list | default([]) %}
+
+{% set var_containers_base_dir = params.main.containers_base_dir | default('containers') %}
+
+{% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
+{% set var_data_dir = params.pod.local_data_dir_inside | default(params.pod.data_dir, true) %}
+
+## general vars - end ###
 
 env_files:
 - src: "test/test.txt"
   dest: "test/test.local.efk3.txt"
-  when: "{{ params.main.local }}"
+  when: "{{ var_local }}"
 - src: "test/test.txt"
   dest: "test/test.local.efk4.txt"
-  when: "{{ params.main.local }}"
+  when: "{{ var_local }}"
 - src: "test/test.txt"
   dest: "test/test.remote.efk3.txt"
-  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+  when: "{{ var_remote }}"
 - src: "test/test.txt"
   dest: "test/test.remote.efk4.txt"
-  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+  when: "{{ var_remote }}"
+
 env_templates:
 - src: "test/template.yml"
   dest: "test/template.local.efk3.yml"
   params: {{ params | to_json }}
-  when: "{{ params.main.local }}"
+  when: "{{ var_local }}"
 - src: "test/template.yml"
   dest: "test/template.local.efk4.yml"
   params: {{ params | to_json }}
-  when: "{{ params.main.local }}"
+  when: "{{ var_local }}"
 - src: "test/template.yml"
   dest: "test/template.remote.efk3.yml"
   params: {{ params | to_json }}
-  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+  when: "{{ var_remote }}"
 - src: "test/template.yml"
   dest: "test/template.remote.efk4.yml"
   params: {{ params | to_json }}
-  when: "{{ (params.main.local | default(false) | bool) | ternary('false', 'true') }}"
+  when: "{{ var_remote }}"
 
 children:
 
 - name: "main/vars/vars.main.yml"
   params:
-    local: "{{ params.main.local }}"
-    compose: "{{ params.pod.pod.orchestration in ['compose', 'none'] }}"
-    base_dir: "{{ params.main.services_base_dir | default('containers') }}"
-    data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
-    volumes: {{ params.main.volumes | default([]) | to_json }}
-    custom_volumes_dict: {{ params.main.volumes_dict | default({}) | to_json }}
+    env:
+      local: "{{ var_local }}"
+      compose: "{{ var_compose_orchestration }}"
+      base_dir: "{{ var_containers_base_dir }}"
+      data_dir: "{{ var_data_dir }}"
+      volumes: {{ var_volumes | to_json }}
+      services: {{ var_services | to_json }}
+      run_services: {{ var_run_services | to_json }}
+      map_ignore_container_dict: {{ var_map_ignore_container_dict | to_json }}
+      map_src_path_dict: {{ var_map_src_path_dict | to_json }}
+      volumes_dict: {{ var_volumes_dict | to_json }}
+      services_data_dict: {{ var_services_data_dict | to_json }}
     volumes_dict: 
       elasticsearch:
         rel_path: "elasticsearch"
         mode: "0777"
-    services: {{ params.main.services | default([]) | to_json }}
-    services_dict: 
+    services_data_dict: 
       fluentd:
-        elasticsearch_port: "{{ params.main.elasticsearch.port | default('9200') }}"
-        flush_interval: "{{ params.main.fluentd.flush_interval | default('1s') }}"
+        elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
+        flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"
 
-{% if params.pod.pod.orchestration in ['compose', 'none'] %}
+{% if var_compose_orchestration %}
 
 - name: "main/compose/vars.compose.yml"
   params: 
-    compose: {{ var_compose | to_json }}
+    compose:
+      version: "{{ var_compose_version }}"
+      services: {{ var_services | to_json }}
+      run_services: {{ var_run_services | to_json }}
+      logging_dict: {{ var_logging_dict | to_json }}
+      networks_dict: {{ var_networks_dict | to_json }}
+      services_dict: {{ var_services_dict | to_json }}
+      map_services_dict: {{ var_map_services_dict | to_json }}
+      services_dependencies_dict: {{ var_services_dependencies_dict | to_json }}
+      map_services_dependencies_dict: {{ var_map_services_dependencies_dict | to_json }}
+      services_ports_dict: {{ var_services_ports_dict | to_json }}
+      map_services_ports_dict: {{ var_map_services_ports_dict | to_json }}
+      services_networks_dict: {{ var_services_networks_dict | to_json }}
+      map_services_networks_dict: {{ var_map_services_networks_dict | to_json }}
+      services_volumes_dict: {{ var_services_volumes_dict | to_json }}
+      map_services_volumes_dict: {{ var_map_services_volumes_dict | to_json }}
+      services_ulimits_dict: {{ var_services_ulimits_dict | to_json }}
+      map_services_ulimits_dict: {{ var_map_services_ulimits_dict | to_json }}
+      services_mem_limit_dict: {{ var_services_mem_limit_dict | to_json }}
+      map_services_mem_limit_dict: {{ var_map_services_mem_limit_dict | to_json }}
     env:  
       base_params: {{ params.pod | to_json }}
-      env_list: "{{ params.main.env_params | default('') }}"
-      env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}
+      env_params_list: {{ var_compose_env_list | to_json }}
+      env_encoded_params_list: {{ var_compose_env_encoded_list | to_json }}
+      params_list: []
 
 {% else %}
   {% set error = {} %}

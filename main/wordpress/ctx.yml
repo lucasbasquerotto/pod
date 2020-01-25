@@ -1,10 +1,11 @@
+## general vars - start ###
+
 {% set var_local = params.main.local | default(false) | bool %}
+{% set var_remote = params.main.local | default(false) | bool | ternary('false', 'true') %}
 {% set var_volumes = params.main.volumes | default([]) %}
 {% set var_services = params.main.services %}
+{% set var_run_services = params.main.run_services | default([]) %}
 {% set var_compose_version = params.main.compose_version | default('') %}
-
-{% set var_web = 'wordpress' in var_services %}
-{% set var_db = 'mysql' in var_services %}
 {% set var_run = params.main.run | default({}) %}
 
 {% set var_volumes_dict = params.main.volumes_dict | default({}) %}
@@ -42,6 +43,14 @@
 {% set var_compose_env_encoded_list = params.main.compose_env_encoded_list | default([]) %}
 
 {% set var_containers_base_dir = params.main.containers_base_dir | default('containers') %}
+
+{% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
+{% set var_data_dir = params.pod.local_data_dir_inside | default(params.pod.data_dir, true) %}
+
+## general vars - end ###
+
+{% set var_web = 'wordpress' in var_services %}
+{% set var_db = 'mysql' in var_services %}
 
 templates:
 
@@ -167,12 +176,18 @@ children:
 
 - name: "main/vars/vars.main.yml"
   params:
-    local: "{{ var_local }}"
-    compose: "{{ params.pod.pod.orchestration in ['compose', 'none'] }}"
-    base_dir: "{{ var_containers_base_dir }}"
-    data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
-    volumes: {{ var_volumes | to_json }}
-    custom_volumes_dict: {{ var_volumes_dict | to_json }}
+    env:
+      local: "{{ var_local }}"
+      compose: "{{ var_compose_orchestration }}"
+      base_dir: "{{ var_containers_base_dir }}"
+      data_dir: "{{ var_data_dir }}"
+      volumes: {{ var_volumes | to_json }}
+      services: {{ var_services | to_json }}
+      run_services: {{ var_run_services | to_json }}
+      map_ignore_container_dict: {{ var_map_ignore_container_dict | to_json }}
+      map_src_path_dict: {{ var_map_src_path_dict | to_json }}
+      volumes_dict: {{ var_volumes_dict | to_json }}
+      services_data_dict: {{ var_services_data_dict | to_json }}
     volumes_dict: 
       mysql:
         rel_path: "mysql"
@@ -180,10 +195,6 @@ children:
       wordpress:
         rel_path: "wordpress/uploads"
         mode: "0777"
-    services: {{ var_services | to_json }}
-    map_ignore_container_dict: {{ var_map_ignore_container_dict | to_json }}
-    map_src_path_dict: {{ var_map_src_path_dict | to_json }}
-    custom_services_data_dict: {{ var_services_data_dict | to_json }}
     services_data_dict: 
       toolbox:
         s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
@@ -336,13 +347,14 @@ children:
 
       {% endif %}
 
-{% if params.pod.pod.orchestration in ['compose', 'none'] %}
+{% if var_compose_orchestration %}
 
 - name: "main/compose/vars.compose.yml"
   params: 
     compose:
       version: "{{ var_compose_version }}"
       services: {{ var_services | to_json }}
+      run_services: {{ var_run_services | to_json }}
       logging_dict: {{ var_logging_dict | to_json }}
       networks_dict: {{ var_networks_dict | to_json }}
       services_dict: {{ var_services_dict | to_json }}
@@ -361,7 +373,9 @@ children:
       map_services_mem_limit_dict: {{ var_map_services_mem_limit_dict | to_json }}
     env:  
       base_params: {{ params.pod | to_json }}
-      env_list: 
+      env_params_list: {{ var_compose_env_list | to_json }}
+      env_encoded_params_list: {{ var_compose_env_encoded_list | to_json }}
+      params_list: 
       - "DB_HOST={{ var_containers_dict.mysql.host }}"
       - "DB_PORT={{ var_containers_dict.mysql.port }}"
       - "DB_NAME={{ params.credentials.wordpress.db.name }}"
@@ -376,8 +390,6 @@ children:
         var_local | default(false) | bool 
         | ternary(params.pod.app.wp_local.dir_rel, '') 
         }}
-      custom_env_list: {{ var_compose_env_list | to_json }}
-      env_encoded_list: {{ var_compose_env_encoded_list | to_json }}
 
 {% else %}
   {% set error = {} %}

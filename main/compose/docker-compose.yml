@@ -1,5 +1,7 @@
+{% set var_services_dir_base = params.services_dir_base %}
 {% set var_version = params.version %}
 {% set var_services = params.services %}
+{% set var_run_services = params.run_services %}
 {% set var_logging_dict = params.logging_dict %}
 {% set var_networks_dict = params.networks_dict %}
 
@@ -48,14 +50,14 @@ services:
 
   {{ name }}:
     hostname: "{{ name }}"
-    container_name: "${CTX_NAME}-{{ name }}"
+    container_name: "${CTX_NAME}-{{ var_services_dir_base }}-{{ name }}"
     build: 
       context: ./
-      dockerfile: "${POD_ENV_DIR}/{{ name }}/Dockerfile"
+      dockerfile: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}/Dockerfile"
       args:
         IMAGE: "{{ item.image }}"
         VERSION: "{{ item.version }}"
-        ENV_DIR: "${POD_ENV_DIR}/{{ name }}"
+        ENV_DIR: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}"
         {% if item.args | default([]) | list | length > 0 
         %}{% for subitem in item.args | list 
         %}{{ subitem.name }}: {{ subitem.value }}

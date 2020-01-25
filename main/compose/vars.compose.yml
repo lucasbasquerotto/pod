@@ -3,7 +3,17 @@ templates:
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
   root: true
-  params: {{ params.compose | to_json }}
+  params: {{ params.compose | combine({ 'services_dir_base': 'main' }) | to_json }}
+
+- src: "main/compose/docker-compose.yml"
+  dest: "docker-compose.run.yml"
+  root: true
+  params: >- 
+    {{ 
+    params.compose | combine({ 
+    'services_dir_base': 'run',
+    'services': params.compose.run_services 
+    }) | to_json }}
 
 - src: "main/compose/.env"
   dest: ".env"
@@ -15,5 +25,5 @@ templates:
     git_commit: "{{ params.env.base_params.git_commit }}"
     pod_env_dir: "{{ params.env.base_params.pod_env_dir }}"
     data_dir: "{{ params.env.base_params.data_dir }}"
-    env_list: {{ (params.env.env_list + params.env.custom_env_list) | to_json }}
-    env_encoded_list: {{ params.env.env_encoded_list | to_json }}
+    env_list: {{ (params.env.params_list + params.env.env_params_list) | to_json }}
+    env_encoded_list: {{ params.env.env_encoded_params_list | to_json }}

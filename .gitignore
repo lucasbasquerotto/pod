@@ -2,5 +2,6 @@
 /env/
 /env-*/
 /docker-compose.yml
+/docker-compose.run.yml
 /vars.sh
 /tmp/

@@ -41,8 +41,8 @@ files:
 {% set item_dest = item.name_dest | default(item.name) %}
 {% set item_root = item.dest_root | default(false) %}
 {% set item_service_src = item.name_service_src | default(item.name) %}
-{% set item_params = params.custom_services_dict[item_service_src] 
-| default(params.services_dict[item_service_src]) 
+{% set item_params = params.custom_services_data_dict[item_service_src] 
+| default(params.services_data_dict[item_service_src]) 
 %}
 {% set item_service_dest = item.name_service_dest | default(item.name) %}
 ### file start - {{ item_dest }} ({{ item_full_src }})
@@ -72,8 +72,8 @@ templates:
 {% set item_full_src = (item.base_dir | default(params.base_dir)) + '/' + item_src %}
 {% set item_dest = item.name %}
 {% set item_root = item.root | default(false) %}
-{% set item_params = params.custom_services_dict[item.name] 
-| default(params.services_dict[item.name])
+{% set item_params = params.custom_services_data_dict[item.name] 
+| default(params.services_data_dict[item.name])
 %}
 ### template start - {{ item_dest }} ({{ item_full_src }})
 

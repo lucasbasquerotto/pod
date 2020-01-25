@@ -1,9 +1,40 @@
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_web = (params.main.type in ['app', 'web']) | bool %}
 {% set var_db = (params.main.type in ['app', 'db']) | bool %}
-{% set var_containers = params.main.containers | default(params.other.containers) %}
-{% set var_compose = params.main.compose | default(params.other.compose) %}
-{% set var_run = params.main.run | default(params.other.run) %}
+{% set var_run = params.main.run | default({}) %}
+
+{% set var_volumes = params.main.volumes | default([]) %}
+{% set var_services = params.main.services %}
+
+{% set var_compose_version = params.main.compose_version | default('') %}
+
+{% set var_volumes_dict = params.main.volumes_dict | default({}) %}
+{% set var_containers_dict = params.main.containers_dict | default({}) %}
+{% set var_logging_dict = params.main.logging_dict | default({}) %}
+{% set var_networks_dict = params.main.networks_dict | default({}) %}
+
+{% set var_services_dict = params.main.services_dict | default({}) %}
+{% set var_map_services_dict = params.main.map_services_dict | default({}) %}
+
+{% set var_services_dependencies_dict = params.main.services_dependencies_dict | default({}) %}
+{% set var_map_services_dependencies_dict = params.main.map_services_dependencies_dict | default({}) %}
+
+{% set var_services_ports_dict = params.main.services_ports_dict | default({}) %}
+{% set var_map_services_ports_dict = params.main.map_services_ports_dict | default({}) %}
+
+{% set var_services_networks_dict = params.main.services_networks_dict | default({}) %}
+{% set var_map_services_networks_dict = params.main.map_services_networks_dict | default({}) %}
+
+{% set var_services_volumes_dict = params.main.services_volumes_dict | default({}) %}
+{% set var_map_services_volumes_dict = params.main.map_services_volumes_dict | default({}) %}
+
+{% set var_services_ulimits_dict = params.main.services_ulimits_dict | default({}) %}
+{% set var_map_services_ulimits_dict = params.main.map_services_ulimits_dict | default({}) %}
+
+{% set var_services_mem_limit_dict = params.main.services_mem_limit_dict | default({}) %}
+{% set var_map_services_mem_limit_dict = params.main.map_services_mem_limit_dict | default({}) %}
+
+{% set var_containers_base_dir = params.main.containers_base_dir | default('containers') %}
 
 templates:
 
@@ -109,9 +140,9 @@ templates:
       (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
       | ternary(var_run.setup.remote_seed_data | default(''), '') 
       }}
-    s3_endpoint: "{{ var_containers.toolbox.s3_endpoint | default('') }}"
-    use_aws_s3: "{{ var_containers.toolbox.use_aws_s3_cli | default(false) | lower }}"
-    use_s3cmd: "{{ var_containers.toolbox.use_s3cmd | default(false) | lower }}"
+    s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
+    use_aws_s3: "{{ var_containers_dict.toolbox.use_aws_s3_cli | default(false) | lower }}"
+    use_s3cmd: "{{ var_containers_dict.toolbox.use_s3cmd | default(false) | lower }}"
     backup_bucket_name: "{{ var_run.backup.bucket_name | default('') }}"
     backup_bucket_path: "{{ var_run.backup.bucket_path | default('') }}"
     backup_bucket_db_sync_dir: >-
@@ -129,12 +160,12 @@ children:
 
 - name: "main/vars/vars.main.yml"
   params:
-    local: "{{ params.main.local }}"
+    local: "{{ var_local }}"
     compose: "{{ params.pod.pod.orchestration in ['compose', 'none'] }}"
-    base_dir: "{{ params.main.services_base_dir | default('containers') }}"
+    base_dir: "{{ var_containers_base_dir }}"
     data_dir: "{{ params.pod.local_data_dir_inside | default(params.pod.data_dir, true) }}"
-    volumes: {{ params.main.volumes | default([]) | to_json }}
-    custom_volumes_dict: {{ params.main.volumes_dict | default({}) | to_json }}
+    volumes: {{ var_volumes | default([]) | to_json }}
+    custom_volumes_dict: {{ var_volumes_dict | to_json }}
     volumes_dict: 
       mysql:
         rel_path: "mysql"
@@ -142,19 +173,25 @@ children:
       wordpress:
         rel_path: "wordpress/uploads"
         mode: "0777"
-    services: {{ params.main.services | default([]) | to_json }}
-    custom_services_dict: {{ params.main.services_dict | default({}) | to_json }}
-    services_dict: 
-      {% if var_web %}
+    services: {{ var_services | default([]) | to_json }}
+    custom_services_data_dict: {{ var_services_data_dict | to_json }}
+    services_data_dict: 
+      toolbox:
+        s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
+        bucket:
+          access_key: "{{ params.credentials.bucket.access_key | default('') }}"
+          secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
 
-      {% set var_wp_domain = var_containers.wordpress.domain %}
-      {% set var_wp_ssl = var_containers.wordpress.ssl %}
+      {% if 'nginx' in var_services %}
+
+      {% set var_wp_domain = var_containers_dict.wordpress.domain %}
+      {% set var_wp_ssl = var_containers_dict.wordpress.ssl %}
       {% set var_wp_port = var_wp_ssl | bool | ternary('443', '80') %}
       {% set var_wp_protocol = var_wp_ssl | bool | ternary('https', 'http') %}
 
-      {% set var_pma_domain = var_containers.phpmyadmin.domain %}
-      {% set var_pma_ssl = var_containers.phpmyadmin.ssl %}
-      {% set var_pma_port = var_containers.phpmyadmin.port %}
+      {% set var_pma_domain = var_containers_dict.phpmyadmin.domain %}
+      {% set var_pma_ssl = var_containers_dict.phpmyadmin.ssl %}
+      {% set var_pma_port = var_containers_dict.phpmyadmin.port %}
       {% set var_pma_protocol = var_pma_ssl | bool | ternary('https', 'http') %}
 
       nginx:
@@ -255,8 +292,12 @@ children:
               send_timeout: "60"
               client_body_timeout: "5s"
               client_header_timeout: "5s"
+
+      {% endif %}
+      {% if 'wordpress' in var_services %}
+
       wordpress:
-        env: "{{ var_containers.wordpress.env }}"
+        env: "{{ var_containers_dict.wordpress.env }}"
         domain: "{{ var_wp_domain }}"
         ssl: "{{ var_wp_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
@@ -269,6 +310,10 @@ children:
           secure_auth_salt: "{{ params.credentials.wordpress.config.secure_auth_salt }}"
           logged_in_salt: "{{ params.credentials.wordpress.config.logged_in_salt }}"
           nonce_salt: "{{ params.credentials.wordpress.config.nonce_salt }}"
+
+      {% endif %}
+      {% if 'phpmyadmin' in var_services %}
+
       phpmyadmin:
         domain: "{{ var_pma_domain }}"
         port: "{{ var_pma_port }}"
@@ -282,35 +327,46 @@ children:
 
       {% endif %}
 
-      toolbox:
-        s3_endpoint: "{{ var_containers.toolbox.s3_endpoint | default('') }}"
-        bucket:
-          access_key: "{{ params.credentials.bucket.access_key | default('') }}"
-          secret_key: "{{ params.credentials.bucket.secret_key | default('') }}"
-
 {% if params.pod.pod.orchestration in ['compose', 'none'] %}
 
 - name: "main/compose/vars.compose.yml"
   params: 
-    compose: {{ var_compose | to_json }}
+    compose:
+      version: "{{ compose_version }}"
+      services: "{{ var_services }}"
+      logging_dict: "{{ var_logging_dict }}"
+      networks_dict: "{{ var_networks_dict }}"
+      services_dict: "{{ var_services_dict }}"
+      map_services_dict: "{{ var_map_services_dict }}"
+      services_dependencies_dict: "{{ var_services_dependencies_dict }}"
+      map_services_dependencies_dict: "{{ var_map_services_dependencies_dict }}"
+      services_ports_dict: "{{ var_services_ports_dict }}"
+      map_services_ports_dict: "{{ var_map_services_ports_dict }}"
+      services_networks_dict: "{{ var_services_networks_dict }}"
+      map_services_networks_dict: "{{ var_map_services_networks_dict }}"
+      services_volumes_dict: "{{ var_services_volumes_dict }}"
+      map_services_volumes_dict: "{{ var_map_services_volumes_dict }}"
+      services_ulimits_dict: "{{ var_services_ulimits_dict }}"
+      map_services_ulimits_dict: "{{ var_map_services_ulimits_dict }}"
+      services_mem_limit_dict: "{{ var_services_mem_limit_dict }}"
+      map_services_mem_limit_dict: "{{ var_map_services_mem_limit_dict }}"
     env:  
       base_params: {{ params.pod | to_json }}
       env_list: 
-      - "DB_HOST={{ var_containers.mysql.host }}"
-      - "DB_PORT={{ var_containers.mysql.port }}"
+      - "DB_HOST={{ var_containers_dict.mysql.host }}"
+      - "DB_PORT={{ var_containers_dict.mysql.port }}"
       - "DB_NAME={{ params.credentials.wordpress.db.name }}"
       - "DB_USER={{ params.credentials.wordpress.db.user }}"
       - "DB_PASSWORD={{ params.credentials.wordpress.db.password }}"
       - "MYSQL_ROOT_PASSWORD={{ params.credentials.mysql.root_password }}"
       - >-
         {{ 
-        params.main.local | default(false) | bool 
+        var_local | default(false) | bool 
         | ternary('WP_APP_REPO_DIR=../../apps/', '') 
         }}{{ 
-        params.main.local | default(false) | bool 
+        var_local | default(false) | bool 
         | ternary(params.pod.app.wp_local.dir_rel, '') 
         }}
-      env_encoded_list: {{ params.main.env_encoded_list | default([]) | to_json }}
 
 {% else %}
   {% set error = {} %}

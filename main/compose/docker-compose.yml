@@ -1,82 +1,109 @@
-version: '{{ params.version }}'
+{% set var_version = params.version %}
+{% set var_services = params.services %}
+{% set var_logging_dict = params.logging_dict %}
+{% set var_networks_dict = params.networks_dict %}
 
-{% if params.networks | default({})
-| dict2items | default([]) | list | length > 0 
-%}networks: {{ params.networks | to_json }}
+{% set var_services_dict = params.services_dict %}
+{% set var_map_services_dict = params.map_services_dict %}
+
+{% set var_services_dependencies_dict = params.services_dependencies_dict %}
+{% set var_map_services_dependencies_dict = params.map_services_dependencies_dict %}
+
+{% set var_services_ports_dict = params.services_ports_dict %}
+{% set var_map_services_ports_dict = params.map_services_ports_dict %}
+
+{% set var_services_networks_dict = params.services_networks_dict %}
+{% set var_map_services_networks_dict = params.map_services_networks_dict %}
+
+{% set var_services_volumes_dict = params.services_volumes_dict %}
+{% set var_map_services_volumes_dict = params.map_services_volumes_dict %}
+
+{% set var_services_ulimits_dict = params.services_ulimits_dict %}
+{% set var_map_services_ulimits_dict = params.map_services_ulimits_dict %}
+
+{% set var_services_mem_limit_dict = params.services_mem_limit_dict %}
+{% set var_map_services_mem_limit_dict = params.map_services_mem_limit_dict %}
+
+version: '{{ var_version }}'
+
+{% if var_networks_dict | dict2items | list | length > 0 
+%}networks: {{ var_networks_dict | to_json }}
 {% endif %}
       
 services:
 
-  {% for item in params.services | default({}) | dict2items 
-  | sort(attribute='key') | map(attribute='key') | list 
-  %}
-  {% set item_params = params.services[item] %}  
-  {% if item_params.when | default('true') | bool %}
-  {% set name_dest = item_params.name_dest | default(item) %}
+  {% for name in var_services %}
 
-  {{ name_dest }}:
-    hostname: "{{ name_dest }}"
-    container_name: "${CTX_NAME}-{{ name_dest }}"
+  {% set name_src = var_map_services_dict[name] | default(name) %}
+  {% set item = var_services_dict[name_src] %}
+
+  {% set item_dependencies = item.dependencies | default(var_services_dependencies_dict[var_map_services_dependencies_dict[name] | default(name)]) | default([]) %}
+  {% set item_ports = item.ports | default(var_services_ports_dict[var_map_services_ports_dict[name] | default(name)]) | default([]) %}
+  {% set item_networks = item.networks | default(var_services_networks_dict[var_map_services_networks_dict[name] | default(name)]) | default([]) %}
+  {% set item_volumes = item.volumes | default(var_services_volumes_dict[var_map_services_volumes_dict[name] | default(name)]) | default([]) %}
+
+  {% set item_ulimits = item.ulimits | default(var_services_ulimits_dict[var_map_services_ulimits_dict[name] | default(name)]) | default({}) %}
+
+  {% set item_mem_limit = item.mem_limit | default(var_services_mem_limit_dict[var_map_services_mem_limit_dict[name] | default(name)]) | default('') %}
+
+  {{ name }}:
+    hostname: "{{ name }}"
+    container_name: "${CTX_NAME}-{{ name }}"
     build: 
       context: ./
-      dockerfile: "${POD_ENV_DIR}/{{ name_dest }}/Dockerfile"
+      dockerfile: "${POD_ENV_DIR}/{{ name }}/Dockerfile"
       args:
-        IMAGE: "{{ item_params.image }}"
-        VERSION: "{{ item_params.version }}"
-        ENV_DIR: "${POD_ENV_DIR}/{{ name_dest }}"
-        {% if item_params.args | default([]) | list | length > 0 
-        %}{% for subitem in item_params.args | list 
+        IMAGE: "{{ item.image }}"
+        VERSION: "{{ item.version }}"
+        ENV_DIR: "${POD_ENV_DIR}/{{ name }}"
+        {% if item.args | default([]) | list | length > 0 
+        %}{% for subitem in item.args | list 
         %}{{ subitem.name }}: {{ subitem.value }}
         {% endfor %}
         {% endif %}        
-    restart: "{{ item_params.restart | default('unless-stopped') }}"
+    restart: "{{ item.restart | default('unless-stopped') }}"
 
-    {% if item_params.depends_on | default([]) | list | length > 0 %}depends_on:
-    {% for subitem in item_params.depends_on | list %}- "{{ subitem }}"
+    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
+    %}environment: {{ item.environment | to_json }}
+    {% endif %}
+
+    {% if item_dependencies | list | length > 0 %}depends_on:
+    {% for subitem in item_dependencies | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 
-    {% if item_params.volumes | default([]) | list | length > 0 %}volumes:
-    {% for subitem in item_params.volumes | list %}- "{{ subitem }}"
+    {% if item_ports | list | length > 0 %}ports:
+    {% for subitem in item_ports | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 
-    {% if item_params.networks | default([]) | list | length > 0 %}networks:
-    {% for subitem in item_params.networks | list %}- "{{ subitem }}"
+    {% if item_networks | list | length > 0 %}networks:
+    {% for subitem in item_networks | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 
-    {% if item_params.ports | default([]) | list | length > 0 %}ports:
-    {% for subitem in item_params.ports | list %}- "{{ subitem }}"
+    {% if item_volumes | list | length > 0 %}volumes:
+    {% for subitem in item_volumes | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 
-    {% if item_params.environment | default({})
-    | dict2items | default([]) | list | length > 0 
-    %}environment: {{ item_params.environment | to_json }}
+    {% if item_ulimits | dict2items | list | length > 0 
+    %}ulimits: {{ item_ulimits | to_json }}
     {% endif %}
 
-    {% if item_params.ulimits | default({})
-    | dict2items | default([]) | list | length > 0 
-    %}ulimits: {{ item_params.ulimits | to_json }}
+    {% if item_mem_limit != '' %}mem_limit: "{{ item_mem_limit }}"{% endif %}
+
+    {% if (item.working_dir | default('')) != '' 
+    %}working_dir: "{{ item.working_dir }}"
     {% endif %}
 
-    {% if (item_params.mem_limit | default('')) != '' 
-    %}mem_limit: "{{ item_params.mem_limit }}"
+    {% if (item.command | default('')) != '' 
+    %}command: "{{ item.command }}"
     {% endif %}
 
-    {% if (item_params.working_dir | default('')) != '' 
-    %}working_dir: "{{ item_params.working_dir }}"
+    {% if (item.logging | default('')) != '' 
+    %}logging: {{ var_logging_dict[item.logging] | to_json }}
     {% endif %}
 
-    {% if (item_params.command | default('')) != '' 
-    %}command: "{{ item_params.command }}"
-    {% endif %}
-
-    {% if (item_params.logging | default('')) != '' 
-    %}logging: {{ params.logging[item_params.logging] | to_json }}
-    {% endif %}
-
-  ### {{ name_dest }}{{ (name_dest != item) | ternary(' (' + item + ')', '') }} - end ###
-  {% endif %}
+  ### {{ name }}{{ (name != name_src) | ternary(' (' + name_src + ')', '') }} - end ###
   {% endfor %}

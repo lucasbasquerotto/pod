@@ -1,19 +1,23 @@
 templates:
 
+{% set compose_params = params.compose | combine({ 'services_dir_base': 'main' }) %}
+
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
   root: true
-  params: {{ params.compose | combine({ 'services_dir_base': 'main' }) | to_json }}
+  params: {{ compose_params | to_json }}
+
+{% set compose_params = params.compose | combine({ 
+    'services_dir_base': 'run',
+    'services': params.compose.run_services | default([]) 
+  })
+%}
 
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.run.yml"
   root: true
-  params: >- 
-    {{ 
-    params.compose | combine({ 
-    'services_dir_base': 'run',
-    'services': params.compose.run_services 
-    }) | to_json }}
+  params: {{ compose_params | to_json }}
+  when: (params.compose.run_services | default([]) | length) > 0
 
 - src: "main/compose/.env"
   dest: ".env"

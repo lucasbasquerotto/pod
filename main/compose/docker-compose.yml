@@ -79,9 +79,8 @@ services:
     {% endfor %}
     {% endif %}
 
-    {% if item_networks | list | length > 0 %}networks:
-    {% for subitem in item_networks | list %}- "{{ subitem }}"
-    {% endfor %}
+    {% if item_networks | list | length > 0
+    %}networks: {{ item_networks | to_json }}
     {% endif %}
 
     {% if item_volumes | list | length > 0 %}volumes:

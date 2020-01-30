@@ -62,12 +62,8 @@ services:
         %}{% for subitem in item.args | list 
         %}{{ subitem.name }}: {{ subitem.value }}
         {% endfor %}
-        {% endif %}        
+        {% endif %}
     restart: "{{ item.restart | default('unless-stopped') }}"
-
-    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
-    %}environment: {{ item.environment | to_json }}
-    {% endif %}
 
     {% if item_dependencies | list | length > 0 %}depends_on:
     {% for subitem in item_dependencies | list %}- "{{ subitem }}"
@@ -83,9 +79,8 @@ services:
     %}networks: {{ item_networks | to_json }}
     {% endif %}
 
-    {% if item_volumes | list | length > 0 %}volumes:
-    {% for subitem in item_volumes | list %}- "{{ subitem }}"
-    {% endfor %}
+    {% if item_volumes | list | length > 0
+    %}volumes: {{ item_volumes | to_json }}
     {% endif %}
 
     {% if item_ulimits | dict2items | list | length > 0 
@@ -93,17 +88,248 @@ services:
     {% endif %}
 
     {% if item_mem_limit != '' %}mem_limit: "{{ item_mem_limit }}"{% endif %}
+    
+    {% if (item.memswap_limit | default('')) != '' 
+    %}memswap_limit: {{ item.memswap_limit }}
+    {% endif %}
+    
+    {% if (item.mem_reservation | default('')) != '' 
+    %}mem_reservation: {{ item.mem_reservation }}
+    {% endif %}
 
-    {% if (item.working_dir | default('')) != '' 
-    %}working_dir: "{{ item.working_dir }}"
+
+    {% if (item.cpu_count | default('')) != '' 
+    %}cpu_count: {{ item.cpu_count }}
+    {% endif %}
+    
+    {% if (item.cpu_percent | default('')) != '' 
+    %}cpu_percent: {{ item.cpu_percent }}
+    {% endif %}
+    
+    {% if (item.cpus | default('')) != '' 
+    %}cpus: {{ item.cpus }}
+    {% endif %}
+    
+    {% if (item.cpu_shares | default('')) != '' 
+    %}cpu_shares: {{ item.cpu_shares }}
+    {% endif %}
+    
+    {% if (item.cpu_quota | default('')) != '' 
+    %}cpu_quota: {{ item.cpu_quota }}
+    {% endif %}
+    
+    {% if (item.cpu_period | default('')) != '' 
+    %}cpu_period: {{ item.cpu_period }}
+    {% endif %}
+    
+    {% if (item.cpuset | default('')) != '' 
+    %}cpuset: {{ item.cpuset }}
+    {% endif %}
+
+
+    {% if item.blkio_config | default({}) | dict2items | list | length > 0 
+    %}blkio_config: {{ item.blkio_config | to_json }}
+    {% endif %}
+    
+    {% if item.cap_add | default([]) | list | length > 0
+    %}cap_add: {{ item.cap_add | to_json }}
+    {% endif %}
+    
+    {% if item.cap_drop | default([]) | list | length > 0
+    %}cap_drop: {{ item.cap_drop | to_json }}
+    {% endif %}
+    
+    {% if (item.cgroup_parent | default('')) != '' 
+    %}cgroup_parent: "{{ item.cgroup_parent }}"
     {% endif %}
 
     {% if (item.command | default('')) != '' 
     %}command: "{{ item.command }}"
     {% endif %}
+    
+    {% if (item.cpu_rt_runtime | default('')) != '' 
+    %}cpu_rt_runtime: "{{ item.cpu_rt_runtime }}"
+    {% endif %}
+    
+    {% if (item.cpu_rt_period | default('')) != '' 
+    %}cpu_rt_period: "{{ item.cpu_rt_runtime }}"
+    {% endif %}
+    
+    {% if item.device_cgroup_rules | default([]) | list | length > 0
+    %}device_cgroup_rules: {{ item.device_cgroup_rules | to_json }}
+    {% endif %}
+    
+    {% if item.devices | default([]) | list | length > 0
+    %}devices: {{ item.devices | to_json }}
+    {% endif %}
+    
+    {% if item.dns | default([]) | list | length > 0
+    %}dns: {{ item.dns | to_json }}
+    {% endif %}
+    
+    {% if item.dns_opt | default([]) | list | length > 0
+    %}dns_opt: {{ item.dns_opt | to_json }}
+    {% endif %}
+    
+    {% if item.dns_search | default([]) | list | length > 0
+    %}dns_search: {{ item.dns_search | to_json }}
+    {% endif %}
+    
+    {% if item.tmpfs | default([]) | list | length > 0
+    %}tmpfs: {{ item.tmpfs | to_json }}
+    {% endif %}
+
+    {% if (item.entrypoint | default('')) != '' 
+    %}entrypoint: "{{ item.entrypoint }}"
+    {% endif %}
+
+    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
+    %}environment: {{ item.environment | to_json }}
+    {% endif %}
+    
+    {% if item.env_file | default([]) | list | length > 0
+    %}env_file: {{ item.env_file | to_json }}
+    {% endif %}
+    
+    {% if item.expose | default([]) | list | length > 0
+    %}expose: {{ item.expose | to_json }}
+    {% endif %}
+    
+    {% if item.external_links | default([]) | list | length > 0
+    %}external_links: {{ item.external_links | to_json }}
+    {% endif %}
+
+    {% if item.extra_hosts | default([]) | list | length > 0
+    %}extra_hosts: {{ item.extra_hosts | to_json }}
+    {% endif %}
+    
+    {% if item.group_add | default([]) | list | length > 0
+    %}group_add: {{ item.group_add | to_json }}
+    {% endif %}
+
+    {% if item.healthcheck | default({}) | dict2items | list | length > 0 
+    %}healthcheck: {{ item.healthcheck | to_json }}
+    {% endif %}
+
+    {% if (item.init | default('')) != '' 
+    %}init: "{{ item.init | lower }}"
+    {% endif %}
+
+    {% if (item.isolation | default('')) != '' 
+    %}isolation: "{{ item.isolation }}"
+    {% endif %}
+    
+    {% if item.labels | default({}) | dict2items | list | length > 0 
+    %}labels: {{ item.labels | to_json }}
+    {% endif %}
 
     {% if (item.logging | default('')) != '' 
     %}logging: {{ var_logging_dict[item.logging] | to_json }}
+    {% endif %}
+
+    {% if (item.network_mode | default('')) != '' 
+    %}network_mode: "{{ item.network_mode }}"
+    {% endif %}
+
+    {% if (item.pid | default('')) != '' 
+    %}pid: "{{ item.pid }}"
+    {% endif %}
+
+    {% if (item.pids_limit | default('')) != '' 
+    %}pids_limit: {{ item.pids_limit }}
+    {% endif %}
+
+    {% if (item.platform | default('')) != '' 
+    %}platform: "{{ item.platform }}"
+    {% endif %}
+
+    {% if (item.runtime | default('')) != '' 
+    %}runtime: "{{ item.runtime }}"
+    {% endif %}
+
+    {% if (item.scale | default('')) != '' 
+    %}scale: {{ item.scale }}
+    {% endif %}
+    
+    {% if item.security_opt | default([]) | list | length > 0
+    %}security_opt: {{ item.security_opt | to_json }}
+    {% endif %}
+
+    {% if (item.stop_grace_period | default('')) != '' 
+    %}stop_grace_period: {{ item.stop_grace_period }}
+    {% endif %}
+
+    {% if (item.stop_signal | default('')) != '' 
+    %}stop_signal: {{ item.stop_signal }}
+    {% endif %}
+
+    {% if item.storage_opt | default({}) | dict2items | list | length > 0 
+    %}storage_opt: {{ item.storage_opt | to_json }}
+    {% endif %}
+
+    {% if item.sysctls | default({}) | dict2items | list | length > 0 
+    %}sysctls: {{ item.sysctls | to_json }}
+    {% endif %}
+
+    {% if (item.userns_mode | default('')) != '' 
+    %}userns_mode: {{ item.userns_mode }}
+    {% endif %}
+
+    {% if (item.volume_driver | default('')) != '' 
+    %}volume_driver: {{ item.volume_driver }}
+    {% endif %}
+
+    {% if item.volumes_from | default([]) | list | length > 0
+    %}volumes_from: {{ item.volumes_from | to_json }}
+    {% endif %}
+
+    {% if (item.working_dir | default('')) != '' 
+    %}working_dir: "{{ item.working_dir }}"
+    {% endif %}
+        
+    
+    {% if (item.user | default('')) != '' 
+    %}user: {{ item.user }}
+    {% endif %}
+    
+    {% if (item.domainname | default('')) != '' 
+    %}domainname: {{ item.domainname }}
+    {% endif %}
+    
+    {% if (item.ipc | default('')) != '' 
+    %}ipc: {{ item.ipc }}
+    {% endif %}
+    
+    {% if (item.mac_address | default('')) != '' 
+    %}mac_address: {{ item.mac_address }}
+    {% endif %}
+    
+    {% if (item.privileged | default('')) != '' 
+    %}privileged: {{ item.privileged | lower }}
+    {% endif %}
+    
+    {% if (item.oom_score_adj | default('')) != '' 
+    %}oom_score_adj: {{ item.oom_score_adj }}
+    {% endif %}
+    
+    {% if (item.oom_kill_disable | default('')) != '' 
+    %}oom_kill_disable: {{ item.oom_kill_disable | lower }}
+    {% endif %}
+    
+    {% if (item.read_only | default('')) != '' 
+    %}read_only: {{ item.read_only | lower }}
+    {% endif %}
+    
+    {% if (item.shm_size | default('')) != '' 
+    %}shm_size: {{ item.shm_size }}
+    {% endif %}
+    
+    {% if (item.stdin_open | default('')) != '' 
+    %}stdin_open: {{ item.stdin_open | lower }}
+    {% endif %}
+    
+    {% if (item.tty | default('')) != '' 
+    %}tty: {{ item.tty | lower }}
     {% endif %}
 
   ### {{ name }}{{ (name != name_src) | ternary(' (' + name_src + ')', '') }} - end ###

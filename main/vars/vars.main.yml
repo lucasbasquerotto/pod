@@ -55,6 +55,14 @@
 
 ### template start - {{ item_dest }} ({{ item_full_src }})
 
+{% if item_src == 'fluentd'
+%}- src: "{{ item_full_src }}/templates/elasticsearch.conf"
+  dest: "{{ item_dest }}/fluent.conf"
+  params:
+    elasticsearch_port: "{{ item_params.elasticsearch_port }}"
+    flush_interval: "{{ item_params.flush_interval }}"
+{% endif %}
+
 {% if item_src == 'mysql'
 %}- src: "{{ item_full_src }}/templates/mysqld.cnf"
   dest: "{{ item_dest }}/mysqld.cnf"
@@ -76,19 +84,18 @@
   params: {{ item_params | to_json }}
 {% endif %}
 
-{% if item_src == 'fluentd'
-%}- src: "{{ item_full_src }}/templates/elasticsearch.conf"
-  dest: "{{ item_dest }}/fluent.conf"
-  params:
-    elasticsearch_port: "{{ item_params.elasticsearch_port }}"
-    flush_interval: "{{ item_params.flush_interval }}"
-{% endif %}
-
 {% if item_src == 'phpmyadmin'
 %}- src: "{{ item_full_src }}/templates/config.user.inc.php"
   dest: "{{ item_dest }}/config.user.inc.php"
   params:
     login_cookie_validity: 36000
+{% endif %}
+
+{% if item_src == 'test'
+%}- src: "{{ item_full_src }}/templates/test.yml"
+  dest: "{{ item_dest }}/test.dest.yml"
+  mode: "0644"
+  params: {{ item_params | to_json }}
 {% endif %}
 
 {% if item_src == 'toolbox'

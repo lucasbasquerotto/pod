@@ -134,6 +134,32 @@ templates:
 
 children:
 
+{% if var_compose_orchestration %}
+
+- name: "main/compose/vars.compose.yml"
+  params: 
+    env_params: {{ params | to_json }}
+    env_params_list: 
+      - "DB_HOST={{ var_containers_dict.mysql.host }}"
+      - "DB_PORT={{ var_containers_dict.mysql.port }}"
+      - "DB_NAME={{ params.credentials.wordpress.db.name }}"
+      - "DB_USER={{ params.credentials.wordpress.db.user }}"
+      - "DB_PASSWORD={{ params.credentials.wordpress.db.password }}"
+      - "MYSQL_ROOT_PASSWORD={{ params.credentials.mysql.root_password }}"
+      - >-
+        {{ 
+        var_local | default(false) | bool 
+        | ternary('WP_APP_REPO_DIR=../../apps/', '') 
+        }}{{ 
+        var_local | default(false) | bool 
+        | ternary(params.pod.app.wp_local.dir_rel, '') 
+        }}
+
+{% else %}
+  {% set error = {} %}
+  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
+{% endif %}
+
 - name: "main/vars/vars.main.yml"
   params:
     env_params: {{ params | to_json }}
@@ -295,29 +321,3 @@ children:
         root_password: "{{ params.credentials.mysql.root_password }}"
 
       {% endif %}
-
-{% if var_compose_orchestration %}
-
-- name: "main/compose/vars.compose.yml"
-  params: 
-    env_params: {{ params | to_json }}
-    env_params_list: 
-      - "DB_HOST={{ var_containers_dict.mysql.host }}"
-      - "DB_PORT={{ var_containers_dict.mysql.port }}"
-      - "DB_NAME={{ params.credentials.wordpress.db.name }}"
-      - "DB_USER={{ params.credentials.wordpress.db.user }}"
-      - "DB_PASSWORD={{ params.credentials.wordpress.db.password }}"
-      - "MYSQL_ROOT_PASSWORD={{ params.credentials.mysql.root_password }}"
-      - >-
-        {{ 
-        var_local | default(false) | bool 
-        | ternary('WP_APP_REPO_DIR=../../apps/', '') 
-        }}{{ 
-        var_local | default(false) | bool 
-        | ternary(params.pod.app.wp_local.dir_rel, '') 
-        }}
-
-{% else %}
-  {% set error = {} %}
-  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
-{% endif %}

@@ -5,51 +5,7 @@
 {% set var_containers_dict = params.main.containers_dict | default({}) %}
 {% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
 
-env_files:
-- src: "test/test.txt"
-  dest: "test/test.local.efk3.txt"
-  when: "{{ var_local }}"
-- src: "test/test.txt"
-  dest: "test/test.local.efk4.txt"
-  when: "{{ var_local }}"
-- src: "test/test.txt"
-  dest: "test/test.remote.efk3.txt"
-  when: "{{ var_remote }}"
-- src: "test/test.txt"
-  dest: "test/test.remote.efk4.txt"
-  when: "{{ var_remote }}"
-
-env_templates:
-- src: "test/template.yml"
-  dest: "test/template.local.efk3.yml"
-  params: {{ params | to_json }}
-  when: "{{ var_local }}"
-- src: "test/template.yml"
-  dest: "test/template.local.efk4.yml"
-  params: {{ params | to_json }}
-  when: "{{ var_local }}"
-- src: "test/template.yml"
-  dest: "test/template.remote.efk3.yml"
-  params: {{ params | to_json }}
-  when: "{{ var_remote }}"
-- src: "test/template.yml"
-  dest: "test/template.remote.efk4.yml"
-  params: {{ params | to_json }}
-  when: "{{ var_remote }}"
-
 children:
-
-- name: "main/vars/vars.main.yml"
-  params:
-    env_params: {{ params | to_json }}
-    volumes_dict: 
-      elasticsearch:
-        rel_path: "elasticsearch"
-        mode: "0777"
-    services_data_dict: 
-      fluentd:
-        elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
-        flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"
 
 {% if var_compose_orchestration %}
 
@@ -62,3 +18,15 @@ children:
   {% set error = {} %}
   {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
 {% endif %}
+
+- name: "main/vars/vars.main.yml"
+  params:
+    env_params: {{ params | to_json }}
+    volumes_dict: 
+      elasticsearch:
+        rel_path: "elasticsearch"
+        mode: "0777"
+    services_data_dict: 
+      fluentd:
+        elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
+        flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"

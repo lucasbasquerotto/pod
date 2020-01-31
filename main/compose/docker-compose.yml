@@ -57,15 +57,15 @@ services:
   {% set item_ulimits = item.ulimits | default(var_services_ulimits_dict[var_map_services_ulimits_dict[name] | default(name)]) | default({}) %}
 
   {% set item_memory_data = var_services_memory_dict[var_map_services_memory_dict[name] | default(name)] | default({}) %}
-  {% set item_memory_data = item_memory_data | combine(item) %}
-
   {% set item_cpu_data = var_services_cpu_dict[var_map_services_cpu_dict[name] | default(name)] | default({}) %}
-  {% set item_cpu_data = item_cpu_data | combine(item) %}
-
+  
   {% set item_environment = item.environment | default({}) 
     | combine(item_memory_data.environment | default({})) 
     | combine(item_cpu_data.environment | default({})) 
   %}
+
+  {% set item_memory_data = item_memory_data | combine(item) %}
+  {% set item_cpu_data = item_cpu_data | combine(item) %}
 
   {{ name }}:
     hostname: "{{ name }}"
@@ -82,6 +82,7 @@ services:
         %}{{ subitem.name }}: {{ subitem.value }}
         {% endfor %}
         {% endif %}
+
     restart: "{{ item.restart | default('unless-stopped') }}"
 
     {% if item_environment | dict2items | list | length > 0 

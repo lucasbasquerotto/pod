@@ -24,15 +24,17 @@
 {% set var_services_ulimits_dict = params.services_ulimits_dict | default({}) %}
 {% set var_map_services_ulimits_dict = params.map_services_ulimits_dict | default({}) %}
 
-{% set var_services_memory_dict = params.services_memory_dict | default({}) %}
-{% set var_map_services_memory_dict = params.map_services_memory_dict | default({}) %}
-
-{% set var_services_cpu_dict = params.services_cpu_dict | default({}) %}
-{% set var_map_services_cpu_dict = params.map_services_cpu_dict | default({}) %}
-
 {% set var_node_size = params.node_size | default({}) %}
 {% set var_node_memory = var_node_size.memory | default('') %}
-{% set var_node_cpus = var_node_size.cpus | default('') %}
+{% set var_node_cpu = var_node_size.cpu | default('') %}
+
+{% set var_memory_dict = params.memory_dict | default({}) %}
+{% set var_services_memory_dict = var_memory_dict[var_node_memory] | default({}) %}
+{% set var_map_services_memory_dict = params.map_services_memory_dict | default({}) %}
+
+{% set var_cpu_dict = params.cpu_dict | default({}) %}
+{% set var_services_cpu_dict = var_cpu_dict[var_node_cpu] | default({}) %}
+{% set var_map_services_cpu_dict = params.map_services_cpu_dict | default({}) %}
 
 version: '{{ var_version }}'
 
@@ -54,14 +56,10 @@ services:
 
   {% set item_ulimits = item.ulimits | default(var_services_ulimits_dict[var_map_services_ulimits_dict[name] | default(name)]) | default({}) %}
 
-  {% set item_memory_data = var_services_memory_dict[
-    var_node_memory][var_map_services_memory_dict[name] | default(name)] | default({}) 
-  %}
+  {% set item_memory_data = var_services_memory_dict[var_map_services_memory_dict[name] | default(name)] | default({}) %}
   {% set item_memory_data = item_memory_data | combine(item) %}
 
-  {% set item_cpu_data = var_services_cpu_dict[
-    var_node_cpus][var_map_services_cpu_dict[name] | default(name)] | default({}) 
-  %}
+  {% set item_cpu_data = var_services_cpu_dict[var_map_services_cpu_dict[name] | default(name)] | default({}) %}
   {% set item_cpu_data = item_cpu_data | combine(item) %}
 
   {% set item_environment = item.environment | default({}) 
@@ -86,8 +84,8 @@ services:
         {% endif %}
     restart: "{{ item.restart | default('unless-stopped') }}"
 
-    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
-    %}environment: {{ item.environment | to_json }}
+    {% if item_environment | dict2items | list | length > 0 
+    %}environment: {{ item_environment | to_json }}
     {% endif %}
 
     {% if item_depends_on | list | length > 0 %}depends_on:
@@ -111,6 +109,7 @@ services:
     {% if item_ulimits | dict2items | list | length > 0 
     %}ulimits: {{ item_ulimits | to_json }}
     {% endif %}
+
 
     {% if (item_memory_data.mem_limit | default('')) != '' 
     %}mem_limit: "{{ item_memory_data.mem_limit }}"
@@ -148,8 +147,8 @@ services:
     %}cpu_period: {{ item_cpu_data.cpu_period }}
     {% endif %}
     
-    {% if (item.cpuset | default('')) != '' 
-    %}cpuset: {{ item.cpuset }}
+    {% if (item_cpu_data.cpuset | default('')) != '' 
+    %}cpuset: {{ item_cpu_data.cpuset }}
     {% endif %}
 
 

@@ -1,20 +1,26 @@
 {% set var_params = params.env_params %}
 {% set var_main_params = var_params.main %}
 {% set var_pod_params = var_params.pod %}
+{% set var_node_params = var_params.node %}
 {% set var_ctx_env_list = params.env_params_list | default([]) %}
 {% set var_env_list = var_main_params.compose_env_list | default([]) %}
 {% set var_env_encoded_list = params.main.compose_env_encoded_list | default([]) %}
 
+{% set compose_params = var_main_params | combine({ 
+    'node_size': var_node_params.size | default({}) 
+  })
+%}
+
 templates:
 
-{% set compose_params = var_main_params | combine({ 'services_dir_base': 'main' }) %}
+{% set compose_params = compose_params | combine({ 'services_dir_base': 'main' }) %}
 
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
   root: true
   params: {{ compose_params | to_json }}
 
-{% set compose_params = var_main_params | combine({ 
+{% set compose_params = compose_params | combine({ 
     'services_dir_base': 'run',
     'services': var_main_params.run_services | default([]) 
   })

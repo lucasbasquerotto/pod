@@ -24,8 +24,15 @@
 {% set var_services_ulimits_dict = params.services_ulimits_dict | default({}) %}
 {% set var_map_services_ulimits_dict = params.map_services_ulimits_dict | default({}) %}
 
-{% set var_services_mem_limit_dict = params.services_mem_limit_dict | default({}) %}
-{% set var_map_services_mem_limit_dict = params.map_services_mem_limit_dict | default({}) %}
+{% set var_services_memory_dict = params.services_memory_dict | default({}) %}
+{% set var_map_services_memory_dict = params.map_services_memory_dict | default({}) %}
+
+{% set var_services_cpu_dict = params.services_cpu_dict | default({}) %}
+{% set var_map_services_cpu_dict = params.map_services_cpu_dict | default({}) %}
+
+{% set var_node_size = params.node_size | default({}) %}
+{% set var_node_memory = var_node_size.memory | default('') %}
+{% set var_node_cpus = var_node_size.cpus | default('') %}
 
 version: '{{ var_version }}'
 
@@ -47,7 +54,20 @@ services:
 
   {% set item_ulimits = item.ulimits | default(var_services_ulimits_dict[var_map_services_ulimits_dict[name] | default(name)]) | default({}) %}
 
-  {% set item_mem_limit = item.mem_limit | default(var_services_mem_limit_dict[var_map_services_mem_limit_dict[name] | default(name)]) | default('') %}
+  {% set item_memory_data = var_services_memory_dict[
+    var_node_memory][var_map_services_memory_dict[name] | default(name)] | default({}) 
+  %}
+  {% set item_memory_data = item_memory_data | combine(item) %}
+
+  {% set item_cpu_data = var_services_cpu_dict[
+    var_node_cpus][var_map_services_cpu_dict[name] | default(name)] | default({}) 
+  %}
+  {% set item_cpu_data = item_cpu_data | combine(item) %}
+
+  {% set item_environment = item.environment | default({}) 
+    | combine(item_memory_data.environment | default({})) 
+    | combine(item_cpu_data.environment | default({})) 
+  %}
 
   {{ name }}:
     hostname: "{{ name }}"
@@ -65,6 +85,10 @@ services:
         {% endfor %}
         {% endif %}
     restart: "{{ item.restart | default('unless-stopped') }}"
+
+    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
+    %}environment: {{ item.environment | to_json }}
+    {% endif %}
 
     {% if item_depends_on | list | length > 0 %}depends_on:
     {% for subitem in item_depends_on | list %}- "{{ subitem }}"
@@ -88,39 +112,40 @@ services:
     %}ulimits: {{ item_ulimits | to_json }}
     {% endif %}
 
-    {% if item_mem_limit != '' %}mem_limit: "{{ item_mem_limit }}"{% endif %}
-    
-    {% if (item.memswap_limit | default('')) != '' 
-    %}memswap_limit: {{ item.memswap_limit }}
+    {% if (item_memory_data.mem_limit | default('')) != '' 
+    %}mem_limit: "{{ item_memory_data.mem_limit }}"
     {% endif %}
     
-    {% if (item.mem_reservation | default('')) != '' 
-    %}mem_reservation: {{ item.mem_reservation }}
+    {% if (item_memory_data.memswap_limit | default('')) != '' 
+    %}memswap_limit: {{ item_memory_data.memswap_limit }}
+    {% endif %}
+    
+    {% if (item_memory_data.mem_reservation | default('')) != '' 
+    %}mem_reservation: {{ item_memory_data.mem_reservation }}
     {% endif %}
 
-
-    {% if (item.cpu_count | default('')) != '' 
-    %}cpu_count: {{ item.cpu_count }}
+    {% if (item_cpu_data.cpu_count | default('')) != '' 
+    %}cpu_count: {{ item_cpu_data.cpu_count }}
     {% endif %}
     
-    {% if (item.cpu_percent | default('')) != '' 
-    %}cpu_percent: {{ item.cpu_percent }}
+    {% if (item_cpu_data.cpu_percent | default('')) != '' 
+    %}cpu_percent: {{ item_cpu_data.cpu_percent }}
     {% endif %}
     
-    {% if (item.cpus | default('')) != '' 
-    %}cpus: {{ item.cpus }}
+    {% if (item_cpu_data.cpus | default('')) != '' 
+    %}cpus: {{ item_cpu_data.cpus }}
     {% endif %}
     
-    {% if (item.cpu_shares | default('')) != '' 
-    %}cpu_shares: {{ item.cpu_shares }}
+    {% if (item_cpu_data.cpu_shares | default('')) != '' 
+    %}cpu_shares: {{ item_cpu_data.cpu_shares }}
     {% endif %}
     
-    {% if (item.cpu_quota | default('')) != '' 
-    %}cpu_quota: {{ item.cpu_quota }}
+    {% if (item_cpu_data.cpu_quota | default('')) != '' 
+    %}cpu_quota: {{ item_cpu_data.cpu_quota }}
     {% endif %}
     
-    {% if (item.cpu_period | default('')) != '' 
-    %}cpu_period: {{ item.cpu_period }}
+    {% if (item_cpu_data.cpu_period | default('')) != '' 
+    %}cpu_period: {{ item_cpu_data.cpu_period }}
     {% endif %}
     
     {% if (item.cpuset | default('')) != '' 
@@ -182,10 +207,6 @@ services:
 
     {% if (item.entrypoint | default('')) != '' 
     %}entrypoint: "{{ item.entrypoint }}"
-    {% endif %}
-
-    {% if item.environment | default({}) | dict2items | default([]) | list | length > 0 
-    %}environment: {{ item.environment | to_json }}
     {% endif %}
     
     {% if item.env_file | default([]) | list | length > 0

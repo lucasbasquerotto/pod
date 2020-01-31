@@ -1,30 +1,31 @@
 {% set var_services_dir_base = params.services_dir_base %}
-{% set var_version = params.version %}
+{% set var_version = params.compose_version %}
 {% set var_services = params.services %}
-{% set var_run_services = params.run_services %}
-{% set var_logging_dict = params.logging_dict %}
-{% set var_networks_dict = params.networks_dict %}
+{% set var_run_services = params.run_services | default([]) %}
 
-{% set var_services_dict = params.services_dict %}
-{% set var_map_services_dict = params.map_services_dict %}
+{% set var_logging_dict = params.logging_dict | default({}) %}
+{% set var_networks_dict = params.networks_dict | default({}) %}
 
-{% set var_services_dependencies_dict = params.services_dependencies_dict %}
-{% set var_map_services_dependencies_dict = params.map_services_dependencies_dict %}
+{% set var_services_dict = params.services_dict | default({}) %}
+{% set var_map_services_dict = params.map_services_dict | default({}) %}
 
-{% set var_services_ports_dict = params.services_ports_dict %}
-{% set var_map_services_ports_dict = params.map_services_ports_dict %}
+{% set var_services_depends_on_dict = params.services_depends_on_dict | default({}) %}
+{% set var_map_services_depends_on_dict = params.map_services_depends_on_dict | default({}) %}
 
-{% set var_services_networks_dict = params.services_networks_dict %}
-{% set var_map_services_networks_dict = params.map_services_networks_dict %}
+{% set var_services_ports_dict = params.services_ports_dict | default({}) %}
+{% set var_map_services_ports_dict = params.map_services_ports_dict | default({}) %}
 
-{% set var_services_volumes_dict = params.services_volumes_dict %}
-{% set var_map_services_volumes_dict = params.map_services_volumes_dict %}
+{% set var_services_networks_dict = params.services_networks_dict | default({}) %}
+{% set var_map_services_networks_dict = params.map_services_networks_dict | default({}) %}
 
-{% set var_services_ulimits_dict = params.services_ulimits_dict %}
-{% set var_map_services_ulimits_dict = params.map_services_ulimits_dict %}
+{% set var_services_volumes_dict = params.services_volumes_dict | default({}) %}
+{% set var_map_services_volumes_dict = params.map_services_volumes_dict | default({}) %}
 
-{% set var_services_mem_limit_dict = params.services_mem_limit_dict %}
-{% set var_map_services_mem_limit_dict = params.map_services_mem_limit_dict %}
+{% set var_services_ulimits_dict = params.services_ulimits_dict | default({}) %}
+{% set var_map_services_ulimits_dict = params.map_services_ulimits_dict | default({}) %}
+
+{% set var_services_mem_limit_dict = params.services_mem_limit_dict | default({}) %}
+{% set var_map_services_mem_limit_dict = params.map_services_mem_limit_dict | default({}) %}
 
 version: '{{ var_version }}'
 
@@ -39,7 +40,7 @@ services:
   {% set name_src = var_map_services_dict[name] | default(name) %}
   {% set item = var_services_dict[name_src] %}
 
-  {% set item_dependencies = item.dependencies | default(var_services_dependencies_dict[var_map_services_dependencies_dict[name] | default(name)]) | default([]) %}
+  {% set item_depends_on = item.dependencies | default(var_services_depends_on_dict[var_map_services_depends_on_dict[name] | default(name)]) | default([]) %}
   {% set item_ports = item.ports | default(var_services_ports_dict[var_map_services_ports_dict[name] | default(name)]) | default([]) %}
   {% set item_networks = item.networks | default(var_services_networks_dict[var_map_services_networks_dict[name] | default(name)]) | default([]) %}
   {% set item_volumes = item.volumes | default(var_services_volumes_dict[var_map_services_volumes_dict[name] | default(name)]) | default([]) %}
@@ -65,8 +66,8 @@ services:
         {% endif %}
     restart: "{{ item.restart | default('unless-stopped') }}"
 
-    {% if item_dependencies | list | length > 0 %}depends_on:
-    {% for subitem in item_dependencies | list %}- "{{ subitem }}"
+    {% if item_depends_on | list | length > 0 %}depends_on:
+    {% for subitem in item_depends_on | list %}- "{{ subitem }}"
     {% endfor %}
     {% endif %}
 

@@ -1,17 +1,23 @@
-{% set var_local = params.env.local %}
-{% set var_compose = params.env.compose %}
-{% set var_base_dir = params.env.base_dir %}
-{% set var_data_dir = params.env.data_dir %}
-{% set var_volumes = params.env.volumes %}
-{% set var_services = params.env.services %}
-{% set var_run_services = params.env.run_services %}
-{% set var_map_ignore_container_dict = params.env.map_ignore_container_dict %}
-{% set var_map_src_path_dict = params.env.map_src_path_dict %}
-{% set var_env_volumes_dict = params.env.volumes_dict %}
-{% set var_env_services_data_dict = params.env.services_data_dict %}
+{% set var_params = params.env_params | default({}) %}
+{% set var_volumes_dict = params.volumes_dict | default({}) %}
+{% set var_services_data_dict = params.services_data_dict | default({}) %}
 
-{% set var_volumes_dict = params.volumes_dict %}
-{% set var_services_data_dict = params.services_data_dict %}
+{% set var_main_params = var_params.main | default({}) %}
+{% set var_pod_params = var_params.pod | default({}) %}
+
+{% set var_volumes = var_main_params.volumes | default([]) %}
+{% set var_services = var_main_params.services %}
+{% set var_run_services = var_main_params.run_services | default([]) %}
+
+{% set var_env_volumes_dict = var_main_params.volumes_dict | default({}) %}
+{% set var_map_ignore_container_dict = var_main_params.map_ignore_container_dict | default({}) %}
+{% set var_map_src_path_dict = var_main_params.map_src_path_dict | default({}) %}
+
+{% set var_env_services_data_dict = var_main_params.services_data_dict | default({}) %}
+{% set var_base_dir = var_main_params.containers_base_dir | default('containers') %}
+
+{% set var_compose = var_pod_params.pod.orchestration in ['compose', 'none'] %}
+{% set var_data_dir = var_pod_params.local_data_dir_inside | default(var_pod_params.data_dir, true) %}
 
 {% macro define_files(services, run_type) %}
 

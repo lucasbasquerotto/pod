@@ -1,15 +1,22 @@
+{% set var_params = params.env_params %}
+{% set var_main_params = var_params.main %}
+{% set var_pod_params = var_params.pod %}
+{% set var_ctx_env_list = params.env_params_list | default([]) %}
+{% set var_env_list = var_main_params.compose_env_list | default([]) %}
+{% set var_env_encoded_list = params.main.compose_env_encoded_list | default([]) %}
+
 templates:
 
-{% set compose_params = params.compose | combine({ 'services_dir_base': 'main' }) %}
+{% set compose_params = var_main_params | combine({ 'services_dir_base': 'main' }) %}
 
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
   root: true
   params: {{ compose_params | to_json }}
 
-{% set compose_params = params.compose | combine({ 
+{% set compose_params = var_main_params | combine({ 
     'services_dir_base': 'run',
-    'services': params.compose.run_services | default([]) 
+    'services': var_main_params.run_services | default([]) 
   })
 %}
 
@@ -17,17 +24,17 @@ templates:
   dest: "docker-compose.run.yml"
   root: true
   params: {{ compose_params | to_json }}
-  when: (params.compose.run_services | default([]) | length) > 0
+  when: (var_main_params.run_services | default([]) | length) > 0
 
 - src: "main/compose/.env"
   dest: ".env"
   root: true
   params: 
-    ctx_name: "{{ params.env.base_params.pod_id }}"
-    pod_repo: "{{ params.env.base_params.repo.src }}"
-    pod_repo_version: "{{ params.env.base_params.repo.version }}"
-    git_commit: "{{ params.env.base_params.git_commit }}"
-    pod_env_dir: "{{ params.env.base_params.pod_env_dir }}"
-    data_dir: "{{ params.env.base_params.data_dir }}"
-    env_list: {{ (params.env.params_list + params.env.env_params_list) | to_json }}
-    env_encoded_list: {{ params.env.env_encoded_params_list | to_json }}
+    ctx_name: "{{ var_pod_params.pod_id }}"
+    pod_repo: "{{ var_pod_params.repo.src }}"
+    pod_repo_version: "{{ var_pod_params.repo.version }}"
+    git_commit: "{{ var_pod_params.git_commit }}"
+    pod_env_dir: "{{ var_pod_params.pod_env_dir }}"
+    data_dir: "{{ var_pod_params.data_dir }}"
+    env_list: {{ (var_ctx_env_list + var_env_list) | to_json }}
+    env_encoded_list: {{ var_env_encoded_list | to_json }}

@@ -35,7 +35,7 @@ case "$command" in
 
         "$ctl_layer_dir/run" dev-cmd bash "/root/r/w/$env_local_repo/dev" "${@}"
 
-        chmod +x "$app_layer_dir/"
+        sudo chmod +x "$app_layer_dir/"
         cp "$pod_layer_dir/$pod_env_dir/main/wordpress/.env" "$app_layer_dir/.env"
         chmod +r "$app_layer_dir/.env"
         chmod 777 "$app_layer_dir/web/app/uploads/"

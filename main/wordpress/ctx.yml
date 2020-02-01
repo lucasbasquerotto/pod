@@ -181,7 +181,7 @@ children:
 
       {% set var_wp_domain = var_containers_dict.wordpress.domain %}
       {% set var_wp_ssl = var_containers_dict.wordpress.ssl %}
-      {% set var_wp_port = var_wp_ssl | bool | ternary('443', '80') %}
+      {% set var_wp_port = var_containers_dict.wordpress.port %}
       {% set var_wp_protocol = var_wp_ssl | bool | ternary('https', 'http') %}
 
       {% set var_pma_domain = var_containers_dict.phpmyadmin.domain %}
@@ -294,6 +294,8 @@ children:
       wordpress:
         env: "{{ var_containers_dict.wordpress.env }}"
         domain: "{{ var_wp_domain }}"
+        host: >-
+          {{ var_wp_domain }}{{ var_wp_port in ['80', '443'] | ternary('', ':' + var_wp_port) }}
         ssl: "{{ var_wp_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
         config:

@@ -5,3 +5,6 @@
 /docker-compose.run.yml
 /vars.sh
 /tmp/
+tmp*
+
+!tmp*.*

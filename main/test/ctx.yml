@@ -3,33 +3,33 @@
 {% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
 
 env_files:
-- src: "test/test.txt"
+- src: "files/test/test.txt"
   dest: "test/pod/test.local.test3.txt"
   when: "{{ var_local }}"
-- src: "test/test.txt"
+- src: "files/test/test.txt"
   dest: "test/pod/test.local.test4.txt"
   when: "{{ var_local }}"
-- src: "test/test.txt"
-  dest: "test/pod/test.remote.test3.txt"
+- src: "files/test/test.txt"
+  dest: "files/test/pod/test.remote.test3.txt"
   when: "{{ var_remote }}"
-- src: "test/test.txt"
+- src: "files/test/test.txt"
   dest: "test/pod/test.remote.test4.txt"
   when: "{{ var_remote }}"
 
 env_templates:
-- src: "test/template.yml"
+- src: "files/test/template.yml"
   dest: "test/pod/template.local.test3.yml"
   params: {{ params | to_json }}
   when: "{{ var_local }}"
-- src: "test/template.yml"
+- src: "files/test/template.yml"
   dest: "test/pod/template.local.test4.yml"
   params: {{ params | to_json }}
   when: "{{ var_local }}"
-- src: "test/template.yml"
+- src: "files/test/template.yml"
   dest: "test/pod/template.remote.test3.yml"
   params: {{ params | to_json }}
   when: "{{ var_remote }}"
-- src: "test/template.yml"
+- src: "files/test/template.yml"
   dest: "test/pod/template.remote.test4.yml"
   params: {{ params | to_json }}
   when: "{{ var_remote }}"

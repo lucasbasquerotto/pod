@@ -2,15 +2,26 @@
 {% set var_version = params.compose_version %}
 {% set var_services = params.services %}
 {% set var_run_services = params.run_services | default([]) %}
+{% set var_default_logging = params.default_logging | default('') %}
 
+{% set var_default_logging_dict = params.default_logging_dict | default({}) %}
 {% set var_logging_dict = params.logging_dict | default({}) %}
 {% set var_networks_dict = params.networks_dict | default({}) %}
 
 {% set var_services_dict = params.services_dict | default({}) %}
 {% set var_map_services_dict = params.map_services_dict | default({}) %}
 
+{% set var_services_command_dict = params.services_command_dict | default({}) %}
+{% set var_map_services_command_dict = params.map_services_command_dict | default({}) %}
+
 {% set var_services_depends_on_dict = params.services_depends_on_dict | default({}) %}
 {% set var_map_services_depends_on_dict = params.map_services_depends_on_dict | default({}) %}
+
+{% set var_services_environment_dict = params.services_environment_dict | default({}) %}
+{% set var_map_services_environment_dict = params.map_services_environment_dict | default({}) %}
+
+{% set var_services_logging_dict = params.services_logging_dict | default({}) %}
+{% set var_map_services_logging_dict = params.map_services_logging_dict | default({}) %}
 
 {% set var_services_ports_dict = params.services_ports_dict | default({}) %}
 {% set var_map_services_ports_dict = params.map_services_ports_dict | default({}) %}
@@ -49,23 +60,32 @@ services:
   {% set name_src = var_map_services_dict[name] | default(name) %}
   {% set item = var_services_dict[name_src] %}
 
-  {% set item_depends_on = item.dependencies | default(var_services_depends_on_dict[var_map_services_depends_on_dict[name] | default(name)]) | default([]) %}
+  {% set item_command = item.command | default(var_services_command_dict[var_map_services_command_dict[name] | default(name)]) | default('') %}
+  {% set item_depends_on = item.depends_on | default(var_services_depends_on_dict[var_map_services_depends_on_dict[name] | default(name)]) | default([]) %}
   {% set item_ports = item.ports | default(var_services_ports_dict[var_map_services_ports_dict[name] | default(name)]) | default([]) %}
   {% set item_networks = item.networks | default(var_services_networks_dict[var_map_services_networks_dict[name] | default(name)]) | default([]) %}
   {% set item_volumes = item.volumes | default(var_services_volumes_dict[var_map_services_volumes_dict[name] | default(name)]) | default([]) %}
-
   {% set item_ulimits = item.ulimits | default(var_services_ulimits_dict[var_map_services_ulimits_dict[name] | default(name)]) | default({}) %}
+
+  {% set item_environment_aux = var_services_environment_dict[var_map_services_environment_dict[name] | default(name)] | default({}) %}
+  {% set item_logging_aux = var_services_logging_dict[var_map_services_logging_dict[name] | default(name)] | default('') %}
 
   {% set item_memory_data = var_services_memory_dict[var_map_services_memory_dict[name] | default(name)] | default({}) %}
   {% set item_cpu_data = var_services_cpu_dict[var_map_services_cpu_dict[name] | default(name)] | default({}) %}
   
-  {% set item_environment = item.environment | default({}) 
+  {% set item_environment = item_environment_aux | default({}) 
     | combine(item_memory_data.environment | default({})) 
     | combine(item_cpu_data.environment | default({})) 
+    | combine(item.environment | default({}))
   %}
 
   {% set item_memory_data = item_memory_data | combine(item) %}
   {% set item_cpu_data = item_cpu_data | combine(item) %}
+
+  {% set item_logging = item.logging | default(var_logging_dict[
+    item_logging_aux | default(var_default_logging_dict[var_default_logging], True)
+    ]) | default({})
+  %}
 
   {{ name }}:
     hostname: "{{ name }}"
@@ -77,9 +97,9 @@ services:
         IMAGE: "{{ item.image }}"
         VERSION: "{{ item.version }}"
         ENV_DIR: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}"
-        {% if item.args | default([]) | list | length > 0 
-        %}{% for subitem in item.args | list 
-        %}{{ subitem.name }}: {{ subitem.value }}
+        {% if item.args | default({}) | dict2items | list | length > 0 
+        %}{% for subitem in item.args | dict2items | list 
+        %}{{ subitem.key }}: {{ subitem.value }}
         {% endfor %}
         {% endif %}
 
@@ -110,6 +130,12 @@ services:
     {% if item_ulimits | dict2items | list | length > 0 
     %}ulimits: {{ item_ulimits | to_json }}
     {% endif %}
+
+    {% if item_logging | dict2items | list | length > 0 
+    %}logging: {{ item_logging | to_json }}
+    {% endif %}
+
+    {% if item_command != '' %}command: "{{ item_command }}"{% endif %}
 
 
     {% if (item_memory_data.mem_limit | default('')) != '' 
@@ -151,6 +177,14 @@ services:
     {% if (item_cpu_data.cpuset | default('')) != '' 
     %}cpuset: {{ item_cpu_data.cpuset }}
     {% endif %}
+    
+    {% if (item_cpu_data.cpu_rt_runtime | default('')) != '' 
+    %}cpu_rt_runtime: "{{ item_cpu_data.cpu_rt_runtime }}"
+    {% endif %}
+    
+    {% if (item_cpu_data.cpu_rt_period | default('')) != '' 
+    %}cpu_rt_period: "{{ item_cpu_data.cpu_rt_runtime }}"
+    {% endif %}
 
 
     {% if item.blkio_config | default({}) | dict2items | list | length > 0 
@@ -167,18 +201,6 @@ services:
     
     {% if (item.cgroup_parent | default('')) != '' 
     %}cgroup_parent: "{{ item.cgroup_parent }}"
-    {% endif %}
-
-    {% if (item.command | default('')) != '' 
-    %}command: "{{ item.command }}"
-    {% endif %}
-    
-    {% if (item.cpu_rt_runtime | default('')) != '' 
-    %}cpu_rt_runtime: "{{ item.cpu_rt_runtime }}"
-    {% endif %}
-    
-    {% if (item.cpu_rt_period | default('')) != '' 
-    %}cpu_rt_period: "{{ item.cpu_rt_runtime }}"
     {% endif %}
     
     {% if item.device_cgroup_rules | default([]) | list | length > 0
@@ -243,10 +265,6 @@ services:
     
     {% if item.labels | default({}) | dict2items | list | length > 0 
     %}labels: {{ item.labels | to_json }}
-    {% endif %}
-
-    {% if (item.logging | default('')) != '' 
-    %}logging: {{ var_logging_dict[item.logging] | to_json }}
     {% endif %}
 
     {% if (item.network_mode | default('')) != '' 

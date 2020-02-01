@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
 . "${DIR}/vars.sh"
@@ -7,7 +8,6 @@ layer_dir="$(dirname "$DIR")"
 base_dir="$(dirname "$layer_dir")"
 
 CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -30,13 +30,13 @@ echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
     "prepare")
-        repo_name="$1"
+        env_local_repo="$1"
         shift
 
-        "$ctl_layer_dir/run" dev-cmd "/root/r/w/$repo_name/dev" ${@}
+        "$ctl_layer_dir/run" dev-cmd bash "/root/r/w/$env_local_repo/dev" "${@}"
 
         chmod +x "$app_layer_dir/"
-        cp "$pod_layer_dir/$pod_env_dir/wordpress/.env" "$app_layer_dir/.env"
+        cp "$pod_layer_dir/$pod_env_dir/main/wordpress/.env" "$app_layer_dir/.env"
         chmod +r "$app_layer_dir/.env"
         chmod 777 "$app_layer_dir/web/app/uploads/"
         ;;
@@ -54,7 +54,7 @@ case "$command" in
         sudo docker-compose exec composer composer update --verbose
         ;;
     "after-stop")
-        $ctl_layer_dir/run stop
+        "$ctl_layer_dir/run" stop
         ;;
     *)
         echo -e "env - $command - nothing to run"

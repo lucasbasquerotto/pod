@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
 . "${DIR}/vars.sh"

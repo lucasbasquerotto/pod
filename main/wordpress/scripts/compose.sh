@@ -1,12 +1,11 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2154,SC1117
 set -eou pipefail
 
 . "${DIR}/vars.sh"
 
 scripts_full_dir="${DIR}/${scripts_dir}"
 pod_layer_dir="$DIR"
-layer_dir="$(dirname "$DIR")"
-base_dir="$(dirname "$layer_dir")"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -51,7 +50,7 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"prepare"|"p")
-		"$scripts_full_dir/$script_env_file" prepare "$repo_name" ${@:2}
+		"$scripts_full_dir/$script_env_file" prepare "$env_local_repo" "${@:2}"
 		;;
 	"setup")
 		cd "$pod_layer_dir/"
@@ -67,7 +66,6 @@ case "$command" in
 		cd "$pod_layer_dir/"
 		sudo docker-compose up -d toolbox mysql
 		
-		main_restore_base_dir="tmp/main/restore"
 		db_restore_dir="tmp/main/mysql/backup"
 		uploads_restore_dir="tmp/main/wordpress/uploads"
 		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"
@@ -345,7 +343,7 @@ case "$command" in
 				SHELL
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-				$pod_layer_dir/run deploy 
+				"$pod_layer_dir/run" deploy 
 			else
 				# Deploy a brand-new Wordpress site (with possibly seeded data)
 				echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
@@ -392,7 +390,7 @@ case "$command" in
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-run
 		details="${2:-}"
 		cd "$pod_layer_dir/"
-		sudo docker-compose up -d --remove-orphans $details
+		sudo docker-compose up -d --remove-orphans "$details"
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
 	"stop")
@@ -402,18 +400,18 @@ case "$command" in
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
 		;;
 	"stop-all")
-		sudo docker stop $(sudo docker ps -q)
+		sudo docker stop "$(sudo docker ps -q)"
 		;;
 	"rm-all")
-		sudo docker rm --force $(sudo docker ps -aq)
+		sudo docker rm --force "$(sudo docker ps -aq)"
 		;;
 	"build"|"exec"|"restart"|"logs")
 		cd "$pod_layer_dir/"
-		sudo docker-compose ${@}
+		sudo docker-compose "${@}"
 		;;
 	"sh"|"bash")
 		cd "$pod_layer_dir/"
-		sudo docker-compose exec ${2} /bin/$command
+		sudo docker-compose exec "${2}" /bin/"$command"
 		;;
 	"backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
@@ -425,7 +423,6 @@ case "$command" in
 		uploads_toolbox_dir="tmp/data/wordpress/uploads"
 		uploads_backup_dir="tmp/main/wordpress/uploads"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
-		sql_file_name="$db_name.sql"
 		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"
 		backup_bucket_prefix="$(echo "$backup_bucket_prefix" | tr -s /)"
 		backup_bucket_uploads_sync_dir_full="$backup_bucket_name/$backup_bucket_path/$backup_bucket_uploads_sync_dir"
@@ -437,7 +434,7 @@ case "$command" in
 		sudo docker-compose up -d toolbox wordpress mysql
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean directories${NC}"
-		sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-SHELL
+		sudo docker exec -i "$(sudo docker-compose ps -q toolbox)" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			rm -rf "/$db_backup_dir"
@@ -448,13 +445,13 @@ case "$command" in
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
-		sudo docker exec -i $(sudo docker-compose ps -q mysql) /bin/bash <<-SHELL
+		sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-SHELL
 			set -eou pipefail
 			mysqldump -u "$db_user" -p"$db_pass" "$db_name" > "/$db_backup_dir/$db_name.sql"
 		SHELL
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
-		sudo docker exec -i $(sudo docker-compose ps -q toolbox) /bin/bash <<-SHELL
+		sudo docker exec -i "$(sudo docker-compose ps -q toolbox)" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			mkdir -p "/$main_backup_dir"

@@ -86,7 +86,7 @@ templates:
       {{ var_web | ternary('compose.upgrade.app.sh', '') }}
     wordpress_dev_repo_dir: >-
       {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
-    repo_name: "{{ params.pod.repo_name }}"
+    env_local_repo: "{{ params.pod.env_local_repo }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
       {{ var_web | ternary(var_run.setup.url, '') }}

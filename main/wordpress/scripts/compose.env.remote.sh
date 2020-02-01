@@ -1,15 +1,12 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
 . "${DIR}/vars.sh"
 
-pod_layer_dir="$DIR"
-
 command="${1:-}"
 
 CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 start="$(date '+%F %X')"

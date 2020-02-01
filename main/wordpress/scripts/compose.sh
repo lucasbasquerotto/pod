@@ -390,7 +390,7 @@ case "$command" in
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-run
 		details="${2:-}"
 		cd "$pod_layer_dir/"
-		sudo docker-compose up -d --remove-orphans "$details"
+		sudo docker-compose up -d --remove-orphans $details
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
 	"stop")

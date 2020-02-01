@@ -73,6 +73,8 @@ templates:
 {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
 {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
 
+{% set var_wp_port = var_containers_dict.wordpress.port %}
+
 - src: "main/vars/vars.tpl.sh"
   root: true  
   dest: "vars.sh"
@@ -89,7 +91,7 @@ templates:
     env_local_repo: "{{ params.pod.env_local_repo }}"
     pod_env_dir: "{{ params.pod.pod_env_dir }}"
     setup_url: >-
-      {{ var_web | ternary(var_run.setup.url, '') }}
+      {{ var_web | ternary(var_run.setup.url + ((var_wp_port in ['80', '443']) | ternary('', ':' + var_wp_port)), '') }}
     setup_title: >-
       {{ var_web | ternary(var_run.setup.title, '') }}
     setup_admin_user: >-
@@ -295,7 +297,7 @@ children:
         env: "{{ var_containers_dict.wordpress.env }}"
         domain: "{{ var_wp_domain }}"
         host: >-
-          {{ var_wp_domain }}{{ var_wp_port in ['80', '443'] | ternary('', ':' + var_wp_port) }}
+          {{ var_wp_domain }}{{ (var_wp_port in ['80', '443']) | ternary('', ':' + var_wp_port) }}
         ssl: "{{ var_wp_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
         config:

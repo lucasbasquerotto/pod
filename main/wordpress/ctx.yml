@@ -182,14 +182,22 @@ children:
       {% if 'nginx' in var_services %}
 
       {% set var_wp_domain = var_containers_dict.wordpress.domain %}
-      {% set var_wp_ssl = var_containers_dict.wordpress.ssl %}
-      {% set var_wp_port = var_containers_dict.wordpress.port %}
-      {% set var_wp_protocol = var_wp_ssl | bool | ternary('https', 'http') %}
+      {% set var_wp_server_ssl = var_containers_dict.nginx.wordpress.ssl | default('false') %}
+      {% set var_wp_server_port = var_containers_dict.nginx.wordpress.port | default('80') %}
+      {% set var_wp_server_external_port = var_containers_dict.nginx.wordpress.external_port | default('80') %}
+      {% set var_wp_protocol = var_wp_server_ssl | bool | ternary('https', 'http') %}
+      {% set var_wp_upstream_ssl = var_containers_dict.wordpress.ssl | default('false') %}
+      {% set var_wp_upstream_port = var_containers_dict.wordpress.port | default('80') %}
+      {% set var_wp_upstream_protocol = var_wp_upstream_ssl | bool | ternary('https', 'http') %}
 
       {% set var_pma_domain = var_containers_dict.phpmyadmin.domain %}
-      {% set var_pma_ssl = var_containers_dict.phpmyadmin.ssl %}
-      {% set var_pma_port = var_containers_dict.phpmyadmin.port %}
-      {% set var_pma_protocol = var_pma_ssl | bool | ternary('https', 'http') %}
+      {% set var_pma_server_ssl = var_containers_dict.nginx.phpmyadmin.ssl | default('false') %}
+      {% set var_pma_server_port = var_containers_dict.nginx.phpmyadmin.port | default('80') %}
+      {% set var_pma_server_external_port = var_containers_dict.nginx.phpmyadmin.external_port | default('80') %}
+      {% set var_pma_protocol = var_pma_server_ssl | bool | ternary('https', 'http') %}
+      {% set var_pma_upstream_ssl = var_containers_dict.phpmyadmin.ssl | default('false') %}
+      {% set var_pma_upstream_port = var_containers_dict.phpmyadmin.port | default('80') %}
+      {% set var_pma_upstream_protocol = var_pma_upstream_ssl | bool | ternary('https', 'http') %}
 
       nginx:
         includes:
@@ -204,19 +212,20 @@ children:
         servers:
         - name: "www"
           host: "www.{{ var_wp_domain }}"
-          port: "{{ var_wp_port }}"
-          ssl: "{{ var_wp_ssl }}"
+          port: "{{ var_wp_server_port }}"
+          ssl: "{{ var_wp_server_ssl }}"
           redirect:
             protocol: "{{ var_wp_protocol }}"
             host: "{{ var_wp_domain }}"
-            port: "{{ var_wp_port }}"
+            port: "{{ var_wp_server_port }}"
         - name: "wordpress"
           host: "{{ var_wp_domain }}"
-          port: "{{ var_wp_port }}"
-          ssl: "{{ var_wp_ssl }}"
+          port: "{{ var_wp_server_port }}"
+          external_port: "{{ var_wp_server_external_port }}"
+          ssl: "{{ var_wp_server_ssl }}"
           upstream:
-            protocol: "http"
-            port: "80"
+            protocol: "{{ var_wp_upstream_protocol }}"
+            port: "{{ var_wp_upstream_port }}"
           locations:
           - path: "/wp-admin/"
             includes:
@@ -225,11 +234,12 @@ children:
           - path: "/"
         - name: "phpmyadmin"
           host: "{{ var_pma_domain }}"
-          port: "{{ var_pma_port }}"
-          ssl: "{{ var_pma_ssl }}"
+          port: "{{ var_pma_server_port }}"
+          external_port: "{{ var_pma_server_external_port }}"
+          ssl: "{{ var_pma_server_ssl }}"
           upstream:
-            protocol: "http"
-            port: "80"
+            protocol: "{{ var_pma_upstream_protocol }}"
+            port: "{{ var_pma_upstream_port }}"
           locations:
           - path: "/"
         includes_dict:
@@ -298,7 +308,7 @@ children:
         domain: "{{ var_wp_domain }}"
         host: >-
           {{ var_wp_domain }}{{ (var_wp_port in ['80', '443']) | ternary('', ':' + var_wp_port) }}
-        ssl: "{{ var_wp_ssl }}"
+        ssl: "{{ var_wp_server_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
         config:
           auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
@@ -315,8 +325,8 @@ children:
 
       phpmyadmin:
         domain: "{{ var_pma_domain }}"
-        port: "{{ var_pma_port }}"
-        ssl: "{{ var_pma_ssl }}"
+        port: "{{ var_pma_server_port }}"
+        ssl: "{{ var_pma_server_ssl }}"
 
       {% endif %}
       {% if 'mysql' in var_services %}

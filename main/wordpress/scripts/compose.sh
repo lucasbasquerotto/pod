@@ -19,6 +19,7 @@ if [ -z "$DIR" ] || [ "$DIR" = "/" ]; then
 fi
 
 command="${1:-}"
+
 commands="update (u), fast-update (f), prepare (p), deploy, run, stop"
 commands="$commands, build, exec, restart, logs, sh, bash"
 re_number='^[0-9]+$'
@@ -27,6 +28,8 @@ if [ -z "$command" ]; then
 	echo -e "${RED}No command passed (valid commands: $commands)${NC}"
 	exit 1
 fi
+
+shift;
 	
 start="$(date '+%F %X')"
 
@@ -388,30 +391,29 @@ case "$command" in
 		;;
 	"run")
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-run
-		details="${2:-}"
 		cd "$pod_layer_dir/"
-		sudo docker-compose up -d --remove-orphans $details
+		sudo docker-compose up -d --remove-orphans $@
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
 	"stop")
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
 		cd "$pod_layer_dir/"
-		sudo docker-compose rm --stop -v --force
+		sudo docker-compose stop $@
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
 		;;
-	"stop-all")
-		sudo docker stop "$(sudo docker ps -q)"
-		;;
-	"rm-all")
-		sudo docker rm --force "$(sudo docker ps -aq)"
+	"rm")
+		"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
+		cd "$pod_layer_dir/"
+		sudo docker-compose rm --stop -v --force $@
+		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
 		;;
 	"build"|"exec"|"restart"|"logs")
 		cd "$pod_layer_dir/"
-		sudo docker-compose "${@}"
+		sudo docker-compose "$command" ${@}
 		;;
 	"sh"|"bash")
 		cd "$pod_layer_dir/"
-		sudo docker-compose exec "${2}" /bin/"$command"
+		sudo docker-compose exec "${1}" /bin/"$command"
 		;;
 	"backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"

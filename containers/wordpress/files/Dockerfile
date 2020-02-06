@@ -6,13 +6,14 @@ FROM $IMAGE:$VERSION
 ARG ENV_DIR
 ARG WORDPRESS_INI_FILE_TYPE
 
-COPY --chown=www-data:www-data $ENV_DIR/.env /var/www/html/
+COPY $ENV_DIR/* /tmp/dockerfile/
 
-RUN mv "$PHP_INI_DIR/php.ini-$WORDPRESS_INI_FILE_TYPE" "$PHP_INI_DIR/php.ini" 
-
-ENV PORT 80
-ENTRYPOINT []
-CMD sed -i "s/80/$PORT/g" \
-    /etc/apache2/sites-available/000-default.conf \
-    /etc/apache2/ports.conf \
- && docker-php-entrypoint apache2-foreground
+RUN set -eou; \
+  mv "$PHP_INI_DIR/php.ini-$WORDPRESS_INI_FILE_TYPE" "$PHP_INI_DIR/php.ini"; \
+  mv /tmp/dockerfile/.env /var/www/html/; \
+  chown www-data:www-data /var/www/html/.env; \
+  if [ -f /tmp/dockerfile/apache.conf ]; then \
+    mv /tmp/dockerfile/apache.conf /etc/apache2/sites-available/000-default.conf; \
+    chown www-data:www-data /etc/apache2/sites-available/000-default.conf; \
+    echo "" > /etc/apache2/ports.conf; \
+  fi

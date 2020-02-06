@@ -119,8 +119,9 @@
     secret_key: "{{ item_params.bucket.secret_key }}"
 {% endif %}
 
-{% if item_src == 'wordpress'
-%}- src: "{{ item_full_src }}/templates/.env"
+{% if item_src == 'wordpress' %}
+
+- src: "{{ item_full_src }}/templates/.env"
   dest: "{{ item_dest }}/.env"
   params: 
     env: "{{ item_params.env }}"
@@ -131,8 +132,8 @@
     db_password: "{{ item_params.db_password }}"
     db_charset: "utf8mb4"
     db_collate: ""
-    home: "{{ item_params.ssl | bool | ternary('https', 'http') }}://{{ item_params.host }}"
-    siteurl: "{{ item_params.ssl | bool | ternary('https', 'http') }}://{{ item_params.host }}"
+    home: "{{ item_params.external_host }}"
+    siteurl: "{{ item_params.external_host }}"
     auth_key: "{{ item_params.config.auth_key }}"
     secure_auth_key: "{{ item_params.config.secure_auth_key }}"
     logged_in_key: "{{ item_params.config.logged_in_key }}"
@@ -144,6 +145,19 @@
     table_prefix: "wp_"
     wplang: "en_US"
     wp_debug: "{{ item_params.debug | default(false) | lower }}"
+    
+{% if item_params.apache | default(false) | bool
+%}- src: "{{ item_full_src }}/templates/apache.conf"
+  dest: "{{ item_dest }}/apache.conf"
+  params: >-
+    {{ item_params.apache_params | default({}) | combine({ 
+      'domain': item_params.domain,
+      'port': item_params.port,
+      'host': item_params.host,
+      'ssl': item_params.ssl
+    }) | to_json }}
+{% endif %}
+
 {% endif %}
 
 ### template end - {{ item_dest }} ({{ item_full_src }})

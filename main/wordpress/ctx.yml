@@ -73,7 +73,17 @@ templates:
 {% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
 {% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
 
-{% set var_wp_port = var_containers_dict.wordpress.port %}
+{% set var_wp_domain = var_containers_dict.wordpress.domain %}
+{% set var_wp_ssl = var_containers_dict.wordpress.ssl | default(false) %}
+{% set var_wp_port = var_containers_dict.wordpress.port 
+  | default(var_wp_ssl | bool | ternary('443', '80')) 
+%}
+{% set var_wp_external_ssl = var_containers_dict.nginx.wordpress.ssl | default(var_wp_ssl) %}
+{% set var_wp_external_port = var_containers_dict.nginx.wordpress.port | default(var_wp_port) %}
+{% set var_wp_external_host = (var_wp_external_ssl | bool | ternary('https', 'http')) 
+  + var_wp_domain 
+  + ((var_wp_external_port in ['80', '443']) | ternary('', ':' + var_wp_external_port)) 
+%}
 
 - src: "main/vars/vars.tpl.sh"
   root: true  
@@ -181,25 +191,11 @@ children:
 
       {% if 'nginx' in var_services %}
 
-      {% set var_wp_domain = var_containers_dict.wordpress.domain %}
-      {% set var_wp_server_ssl = var_containers_dict.nginx.wordpress.ssl | default('false') %}
-      {% set var_wp_server_port = var_containers_dict.nginx.wordpress.port | default('80') %}
-      {% set var_wp_server_external_port = var_containers_dict.nginx.wordpress.external_port | default('80') %}
-      {% set var_wp_protocol = var_wp_server_ssl | bool | ternary('https', 'http') %}
-      {% set var_wp_upstream_ssl = var_containers_dict.wordpress.ssl | default('false') %}
-      {% set var_wp_upstream_port = var_containers_dict.wordpress.port | default('80') %}
-      {% set var_wp_upstream_protocol = var_wp_upstream_ssl | bool | ternary('https', 'http') %}
-
-      {% set var_pma_domain = var_containers_dict.phpmyadmin.domain %}
-      {% set var_pma_server_ssl = var_containers_dict.nginx.phpmyadmin.ssl | default('false') %}
-      {% set var_pma_server_port = var_containers_dict.nginx.phpmyadmin.port | default('80') %}
-      {% set var_pma_server_external_port = var_containers_dict.nginx.phpmyadmin.external_port | default('80') %}
-      {% set var_pma_protocol = var_pma_server_ssl | bool | ternary('https', 'http') %}
-      {% set var_pma_upstream_ssl = var_containers_dict.phpmyadmin.ssl | default('false') %}
-      {% set var_pma_upstream_port = var_containers_dict.phpmyadmin.port | default('80') %}
-      {% set var_pma_upstream_protocol = var_pma_upstream_ssl | bool | ternary('https', 'http') %}
-
       nginx:
+        vars_dict:
+          domains_dict: {{ var_containers_dict | to_json }}
+          servers_dict: {{ var_containers_dict.nginx | to_json }}
+          upstreams_dict: {{ var_containers_dict | to_json }}
         includes:
         - "log"
         - "limit_req_zone"
@@ -210,38 +206,31 @@ children:
         worker_processes: 1
         worker_connections: 512
         servers:
-        - name: "www"
-          host: "www.{{ var_wp_domain }}"
-          port: "{{ var_wp_server_port }}"
-          ssl: "{{ var_wp_server_ssl }}"
-          redirect:
-            protocol: "{{ var_wp_protocol }}"
-            host: "{{ var_wp_domain }}"
-            port: "{{ var_wp_server_port }}"
-        - name: "wordpress"
-          host: "{{ var_wp_domain }}"
-          port: "{{ var_wp_server_port }}"
-          external_port: "{{ var_wp_server_external_port }}"
-          ssl: "{{ var_wp_server_ssl }}"
-          upstream:
-            protocol: "{{ var_wp_upstream_protocol }}"
-            port: "{{ var_wp_upstream_port }}"
-          locations:
-          - path: "/wp-admin/"
-            includes:
-            - "file_upload"
-            - "file_upload_ratelimit"
-          - path: "/"
-        - name: "phpmyadmin"
-          host: "{{ var_pma_domain }}"
-          port: "{{ var_pma_server_port }}"
-          external_port: "{{ var_pma_server_external_port }}"
-          ssl: "{{ var_pma_server_ssl }}"
-          upstream:
-            protocol: "{{ var_pma_upstream_protocol }}"
-            port: "{{ var_pma_upstream_port }}"
-          locations:
-          - path: "/"
+        - "www"
+        - "wp"
+        - "pma"
+        servers_dict:
+          www:
+            subdomain: "www"
+            service: "wordpress"
+            redirect:
+              protocol: "wp"
+          wp:
+            subdomain: ""
+            service: "wordpress"
+            upstream: true
+            locations:
+            - path: "/wp-admin/"
+              includes:
+              - "file_upload"
+              - "file_upload_ratelimit"
+            - path: "/"
+          pma:
+            subdomain: ""
+            service: "phpmyadmin"
+            upstream: true
+            locations:
+            - path: "/"
         includes_dict:
           file_upload:
             type: "file_upload"
@@ -263,7 +252,7 @@ children:
             params: 
               zone: "mainlimit"
               size: "10m"
-              rate: "2r/s"
+              rate: "3r/s"
           log:
             type: "log"
             params:
@@ -306,10 +295,12 @@ children:
       wordpress:
         env: "{{ var_containers_dict.wordpress.env }}"
         domain: "{{ var_wp_domain }}"
-        host: >-
-          {{ var_wp_domain }}{{ (var_wp_port in ['80', '443']) | ternary('', ':' + var_wp_port) }}
-        ssl: "{{ var_wp_server_ssl }}"
+        port: "{{ var_wp_port }}"
+        external_host: "{{ var_wp_external_host }}"
+        ssl: "{{ var_wp_ssl }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
+        apache: "{{ var_containers_dict.wordpress.apache | default(false) }}"
+        apache_params: {{ var_containers_dict.wordpress.apache_params | default({}) | to_json }}
         config:
           auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
           secure_auth_key: "{{ params.credentials.wordpress.config.secure_auth_key }}"
@@ -323,10 +314,16 @@ children:
       {% endif %}
       {% if 'phpmyadmin' in var_services %}
 
+      {% set var_pma_domain = var_containers_dict.phpmyadmin.domain %}
+      {% set var_pma_ssl = var_containers_dict.phpmyadmin.ssl | default(false) %}
+      {% set var_pma_port = var_containers_dict.phpmyadmin.port 
+        | default(var_pma_ssl | bool | ternary('443', '80')) 
+      %}
+
       phpmyadmin:
         domain: "{{ var_pma_domain }}"
-        port: "{{ var_pma_server_port }}"
-        ssl: "{{ var_pma_server_ssl }}"
+        port: "{{ var_pma_port }}"
+        ssl: "{{ var_pma_ssl }}"
 
       {% endif %}
       {% if 'mysql' in var_services %}

@@ -153,8 +153,8 @@
     {{ item_params.apache_params | default({}) | combine({ 
       'domain': item_params.domain,
       'port': item_params.port,
-      'host': item_params.host,
-      'ssl': item_params.ssl
+      'ssl': item_params.ssl,
+      'external_host': item_params.external_host
     }) | to_json }}
 {% endif %}
 

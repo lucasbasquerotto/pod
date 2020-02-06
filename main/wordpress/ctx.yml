@@ -79,9 +79,9 @@ templates:
   | default(var_wp_ssl | bool | ternary('443', '80')) 
 %}
 {% set var_wp_external_ssl = var_containers_dict.nginx.wordpress.ssl | default(var_wp_ssl) %}
-{% set var_wp_external_port = var_containers_dict.nginx.wordpress.port | default(var_wp_port) %}
+{% set var_wp_external_port = var_containers_dict.nginx.wordpress.external_port | default(var_wp_port) %}
 {% set var_wp_external_host = (var_wp_external_ssl | bool | ternary('https', 'http')) 
-  + var_wp_domain 
+  + '://' + var_wp_domain 
   + ((var_wp_external_port in ['80', '443']) | ternary('', ':' + var_wp_external_port)) 
 %}
 
@@ -296,8 +296,8 @@ children:
         env: "{{ var_containers_dict.wordpress.env }}"
         domain: "{{ var_wp_domain }}"
         port: "{{ var_wp_port }}"
-        external_host: "{{ var_wp_external_host }}"
         ssl: "{{ var_wp_ssl }}"
+        external_host: "{{ var_wp_external_host }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
         apache: "{{ var_containers_dict.wordpress.apache | default(false) }}"
         apache_params: {{ var_containers_dict.wordpress.apache_params | default({}) | to_json }}

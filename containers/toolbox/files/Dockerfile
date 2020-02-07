@@ -3,7 +3,5 @@ ARG VERSION
 
 FROM $IMAGE:$VERSION
 
-ARG ENV_DIR
-
-COPY $ENV_DIR/s3cmd.cfg /root/.s3cfg
-COPY $ENV_DIR/aws/ /root/.aws/
+COPY s3cmd.cfg /root/.s3cfg
+COPY aws/ /root/.aws/

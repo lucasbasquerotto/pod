@@ -97,25 +97,15 @@ services:
     item_logging_aux | default(var_default_logging_dict[var_default_logging] | default(''), True)
     ]) | default({})
   %}
-  
-  {% set item_args = item.args | default({}) %}
-
-  {% if item.build_env_dir | default(false) | bool %}
-    {% set item_args = item_args | combine({ 
-        'ENV_DIR': '${POD_ENV_DIR}/' + var_services_dir_base  + '/' + name
-      }) 
-    %}
-  {% endif %}
 
   {{ name }}:
     container_name: "${CTX_NAME}-{{ var_services_dir_base }}-{{ name }}"
     hostname: "{{ item.hostname | default(name) }}"
     build: 
-      context: ./
-      dockerfile: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}/Dockerfile"
+      context: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}/"
     
-      {% if item_args | default({}) | dict2items | list | length > 0 %}args:
-        {% for subitem in item_args | dict2items | sort(attribute='key') | list 
+      {% if item.args | default({}) | dict2items | list | length > 0 %}args:
+        {% for subitem in item.args | dict2items | sort(attribute='key') | list 
         %}{{ subitem.key }}: {{ subitem.value }}
         {% endfor %}
       {% endif %}

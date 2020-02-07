@@ -3,6 +3,4 @@ ARG VERSION
 
 FROM $IMAGE:$VERSION
 
-ARG ENV_DIR
-
-COPY $ENV_DIR/nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf

@@ -419,7 +419,7 @@ case "$command" in
 			"$pod_layer_dir/$scripts_dir/$script_env_file" after-rm
 		fi
 		;;
-	"build"|"exec"|"restart"|"logs")
+	"build"|"exec"|"restart"|"logs"|"ps")
 		cd "$pod_layer_dir/"
 		sudo docker-compose "$command" ${@}
 		;;

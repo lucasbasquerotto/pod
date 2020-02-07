@@ -56,6 +56,9 @@ case "$command" in
     "after-stop")
         "$ctl_layer_dir/run" stop
         ;;
+    "after-rm")
+        "$ctl_layer_dir/run" rm
+        ;;
     *)
         echo -e "env - $command - nothing to run"
         ;;

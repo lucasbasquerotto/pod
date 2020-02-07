@@ -396,16 +396,28 @@ case "$command" in
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
 	"stop")
-		"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
+		if [ $# -eq 0 ]; then
+			"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
+		fi
+		
 		cd "$pod_layer_dir/"
 		sudo docker-compose stop $@
-		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
+		
+		if [ $# -eq 0 ]; then
+			"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
+		fi
 		;;
 	"rm")
-		"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
+		if [ $# -eq 0 ]; then
+			"$pod_layer_dir/$scripts_dir/$script_env_file" before-rm
+		fi
+
 		cd "$pod_layer_dir/"
 		sudo docker-compose rm --stop -v --force $@
-		"$pod_layer_dir/$scripts_dir/$script_env_file" after-stop
+
+		if [ $# -eq 0 ]; then
+			"$pod_layer_dir/$scripts_dir/$script_env_file" after-rm
+		fi
 		;;
 	"build"|"exec"|"restart"|"logs")
 		cd "$pod_layer_dir/"

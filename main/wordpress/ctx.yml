@@ -299,8 +299,6 @@ children:
         ssl: "{{ var_wp_ssl }}"
         external_host: "{{ var_wp_external_host }}"
         db_password: "{{ params.credentials.wordpress.db.password }}"
-        apache: "{{ var_containers_dict.wordpress.apache | default(false) }}"
-        apache_params: {{ var_containers_dict.wordpress.apache_params | default({}) | to_json }}
         config:
           auth_key: "{{ params.credentials.wordpress.config.auth_key }}"
           secure_auth_key: "{{ params.credentials.wordpress.config.secure_auth_key }}"

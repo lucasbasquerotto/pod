@@ -119,9 +119,8 @@
     secret_key: "{{ item_params.bucket.secret_key }}"
 {% endif %}
 
-{% if item_src == 'wordpress' %}
-
-- src: "{{ item_full_src }}/templates/.env"
+{% if item_src == 'wordpress' 
+%}- src: "{{ item_full_src }}/templates/.env"
   dest: "{{ item_dest }}/.env"
   params: 
     env: "{{ item_params.env }}"
@@ -145,19 +144,6 @@
     table_prefix: "wp_"
     wplang: "en_US"
     wp_debug: "{{ item_params.debug | default(false) | lower }}"
-    
-{% if item_params.apache | default(false) | bool
-%}- src: "{{ item_full_src }}/templates/apache.conf"
-  dest: "{{ item_dest }}/apache.conf"
-  params: >-
-    {{ item_params.apache_params | default({}) | combine({ 
-      'domain': item_params.domain,
-      'port': item_params.port,
-      'ssl': item_params.ssl,
-      'external_host': item_params.external_host
-    }) | to_json }}
-{% endif %}
-
 {% endif %}
 
 ### template end - {{ item_dest }} ({{ item_full_src }})

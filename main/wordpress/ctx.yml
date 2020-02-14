@@ -1,5 +1,6 @@
 ## general vars - start ###
 
+{% set var_ctx = params.ctx %}
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_services = params.main.services %}
 {% set var_run = params.main.run | default({}) %}
@@ -90,6 +91,7 @@ templates:
   dest: "vars.sh"
   mode: '0755'
   params: 
+    ctx: "{{ var_ctx }}"
     scripts_dir: "main/wordpress/scripts"
     script_run_file: "compose.sh"
     script_env_file: >-

@@ -16,7 +16,7 @@
 {% set var_env_services_data_dict = var_main_params.services_data_dict | default({}) %}
 {% set var_base_dir = var_main_params.containers_base_dir | default('containers') %}
 
-{% set var_compose = var_pod_params.pod.orchestration in ['compose', 'none'] %}
+{% set var_compose = var_main_params.orchestration in ['docker_compose', 'none'] %}
 {% set var_data_dir = var_pod_params.local_data_dir_inside | default(var_pod_params.data_dir, true) %}
 
 {% macro define_files(services, run_type) %}

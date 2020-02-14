@@ -5,7 +5,7 @@
 {% set var_run = params.main.run | default({}) %}
 
 {% set var_containers_dict = params.main.containers_dict | default({}) %}
-{% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
+{% set var_compose_orchestration = params.main.orchestration in ['docker_compose', 'none'] %}
 
 ## general vars - end ###
 
@@ -169,7 +169,7 @@ children:
 
 {% else %}
   {% set error = {} %}
-  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
+  {{ error['error.orchestration.invalid.' + params.main.orchestration] }}
 {% endif %}
 
 - name: "main/vars/vars.main.yml"

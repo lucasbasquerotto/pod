@@ -1,6 +1,6 @@
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_remote = params.main.local | default(false) | bool | ternary('false', 'true') %}
-{% set var_compose_orchestration = params.pod.pod.orchestration in ['compose', 'none'] %}
+{% set var_compose_orchestration = params.main.orchestration in ['docker_compose', 'none'] %}
 
 env_files:
 - src: "files/test/test.txt"
@@ -45,7 +45,7 @@ children:
 
 {% else %}
   {% set error = {} %}
-  {{ error['error.orchestration.invalid.' + params.pod.pod.orchestration] }}
+  {{ error['error.orchestration.invalid.' + params.main.orchestration] }}
 {% endif %}
 
 - name: "main/vars/vars.main.yml"

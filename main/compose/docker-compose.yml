@@ -102,7 +102,7 @@ services:
     container_name: "${CTX_NAME}-{{ var_services_dir_base }}-{{ name }}"
     hostname: "{{ item.hostname | default(name) }}"
     build: 
-      context: "${POD_ENV_DIR}/{{ var_services_dir_base }}/{{ name }}/"
+      context: "{{ var_services_dir_base }}/{{ name }}/"
     
       {% if item.args | default({}) | dict2items | list | length > 0 %}args:
         {% for subitem in item.args | dict2items | sort(attribute='key') | list 

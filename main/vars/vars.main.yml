@@ -1,4 +1,5 @@
 {% set var_params = params.env_params | default({}) %}
+{% set var_dest_dir_base = var_params.dirs.dest_dir_base %}
 {% set var_volumes_dict = params.volumes_dict | default({}) %}
 {% set var_services_data_dict = params.services_data_dict | default({}) %}
 
@@ -170,6 +171,23 @@ volumes:
 ### volume end - {{ name }} ({{ item.rel_path }})
 {% endfor %}
 
+templates:
+
+- when: false
+
+{{ define_templates(var_services, false) }}
+
+{{ define_templates(var_run_services, true) }}
+
+{% if (params.run | default({}) | dict2items | list | length) > 0 %}
+
+- src: "main/vars/vars.tpl.sh"
+  dest: "vars.sh"
+  mode: '0755'
+  params: {{ params.run | to_json }}
+
+{% endif %}
+  
 files:
 
 - when: false
@@ -178,11 +196,11 @@ files:
 
 {{ define_files(var_run_services, true) }}
 
-templates:
+{% if (params.run | default({}) | dict2items | list | length) > 0 %}
 
-- when: false
+- src: "{{ var_dest_dir_base }}/vars.sh"
+  root: true  
+  dest: "vars.sh"
+  mode: '0755'
 
-{{ define_templates(var_services, false) }}
-
-{{ define_templates(var_run_services, true) }}
-  
+{% endif %}

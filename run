@@ -1,10 +1,8 @@
 #!/bin/bash
 set -eou pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-. "${DIR}/vars.sh"
+. "${pod_layer_dir}/vars.sh"
 
-export "DIR=$DIR"
-
-"${DIR}/${scripts_dir}/${script_run_file}" ${@}
+"${pod_layer_dir}/run-env" "$pod_layer_dir" ${@}

@@ -1,0 +1,61 @@
+#!/bin/bash
+set -eou pipefail
+
+vars_dir="$1"
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+if [ -z "$vars_dir" ]; then
+	msg="[error] enter the vars directory parameter"
+	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	exit 1
+fi
+
+shift;
+
+if [ -z "$vars_dir" ]; then
+	msg="[error] enter the vars directory parameter"
+	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	exit 1
+fi
+
+start="$(date '+%F %X')"
+msg="[run-env] [${1:-}] start ($vars_dir)"
+echo -e "${CYAN}$(date '+%F %X') ${msg}${NC}"
+
+. "${vars_dir}/vars.sh"
+
+if [ -z "${pod_inner_dir:-}" ]; then
+	msg="[error] pod_inner_dir not specified in the vars.sh file"
+	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	exit 1
+fi
+
+if [ -z "${scripts_dir:-}" ]; then
+	msg="[error] scripts_dir not specified in the vars.sh file"
+	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	exit 1
+fi
+
+if [ -z "${script_run_file:-}" ]; then
+	msg="[error] script_run_file not specified in the vars.sh file"
+	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	exit 1
+fi
+
+DIR="$pod_inner_dir"
+
+export "DIR=$DIR"
+
+pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"${pod_layer_dir}/${scripts_dir}/${script_run_file}" ${@}
+
+end="$(date '+%F %X')"
+msg="[run-env] [${1:-}] end ($vars_dir)"
+echo -e "${CYAN}$(date '+%F %X') ${msg}${NC}"
+
+echo -e "${GREEN}[run-env] [${1:-}] summary - $start to $end ${NC}"

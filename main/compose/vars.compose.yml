@@ -17,7 +17,6 @@ templates:
 
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.yml"
-  root: true
   params: {{ compose_params | to_json }}
 
 {% set compose_params = compose_params | combine({ 
@@ -28,19 +27,17 @@ templates:
 
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.run.yml"
-  root: true
   params: {{ compose_params | to_json }}
   when: (var_main_params.run_services | default([]) | length) > 0
 
 - src: "main/compose/.env"
   dest: ".env"
-  root: true
   params: 
-    ctx_name: "{{ var_pod_params.pod_id }}"
+    ctx_name: "{{ var_params.env_name }}-{{ var_params.ctx_name }}-{{ var_pod_params.name }}"
     pod_repo: "{{ var_pod_params.repo.src }}"
     pod_repo_version: "{{ var_pod_params.repo.version }}"
     git_commit: "{{ var_pod_params.git_commit }}"
-    pod_env_dir: "{{ var_pod_params.pod_env_dir }}"
+    pod_env_dir: "{{ var_pod_params.env_dir }}"
     data_dir: "{{ var_pod_params.data_dir }}"
     env_list: {{ (var_ctx_env_list + var_env_list) | to_json }}
     env_encoded_list: {{ var_env_encoded_list | to_json }}

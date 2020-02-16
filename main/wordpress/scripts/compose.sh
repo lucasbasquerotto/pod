@@ -36,37 +36,37 @@ start="$(date '+%F %X')"
 case "$command" in
 	"migrate"|"m"|"update"|"u"|"fast-update"|"f")
 		echo -e "${CYAN}$(date '+%F %X') - $command - prepare...${NC}"
-		"$pod_layer_dir/run" prepare 
+		"$pod_layer_dir/run-env" "$DIR" prepare 
 		echo -e "${CYAN}$(date '+%F %X') - $command - build...${NC}"
-		"$pod_layer_dir/run" build
+		"$pod_layer_dir/run-env" "$DIR" build
 
 		if [[ "$command" = @("migrate"|"m") ]]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - setup...${NC}"
-			"$pod_layer_dir/run" setup 
+			"$pod_layer_dir/run-env" "$DIR" setup 
 		elif [[ "$command" != @("fast-update"|"f") ]]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-			"$pod_layer_dir/run" deploy 
+			"$pod_layer_dir/run-env" "$DIR" deploy 
 		fi
 		
 		echo -e "${CYAN}$(date '+%F %X') - $command - run...${NC}"
-		"$pod_layer_dir/run" run
+		"$pod_layer_dir/run-env" "$DIR" run
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"prepare"|"p")
 		"$scripts_full_dir/$script_env_file" prepare "$env_local_repo" "${@:2}"
 		;;
 	"setup")
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose rm -f --stop wordpress mysql
 
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-setup
 
-		"$pod_layer_dir/run" main-setup
+		"$pod_layer_dir/run-env" "$DIR" main-setup
 
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-setup
 		;;
 	"main-setup")
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose up -d toolbox mysql
 		
 		db_restore_dir="tmp/main/mysql/backup"
@@ -228,7 +228,7 @@ case "$command" in
 			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
 
 			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-			"$pod_layer_dir/run" deploy 
+			"$pod_layer_dir/run-env" "$DIR" deploy 
 		else
 			if [ ! -z "$setup_local_db_file" ] \
 			|| [ ! -z "$setup_remote_db_file" ] \
@@ -346,7 +346,7 @@ case "$command" in
 				SHELL
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-				"$pod_layer_dir/run" deploy 
+				"$pod_layer_dir/run-env" "$DIR" deploy 
 			else
 				# Deploy a brand-new Wordpress site (with possibly seeded data)
 				echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
@@ -359,7 +359,7 @@ case "$command" in
 					--admin_email="$setup_admin_email"
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-				"$pod_layer_dir/run" deploy 
+				"$pod_layer_dir/run-env" "$DIR" deploy 
 
 				if [ ! -z "$setup_local_seed_data" ]; then
 					echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
@@ -391,7 +391,7 @@ case "$command" in
 		;;
 	"run")
 		"$pod_layer_dir/$scripts_dir/$script_env_file" before-run
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose up -d --remove-orphans $@
 		"$pod_layer_dir/$scripts_dir/$script_env_file" after-run
 		;;
@@ -400,7 +400,7 @@ case "$command" in
 			"$pod_layer_dir/$scripts_dir/$script_env_file" before-stop
 		fi
 		
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose stop $@
 		
 		if [ $# -eq 0 ]; then
@@ -412,7 +412,7 @@ case "$command" in
 			"$pod_layer_dir/$scripts_dir/$script_env_file" before-rm
 		fi
 
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose rm --stop -v --force $@
 
 		if [ $# -eq 0 ]; then
@@ -420,17 +420,18 @@ case "$command" in
 		fi
 		;;
 	"build"|"exec"|"restart"|"logs"|"ps")
-		cd "$pod_layer_dir/"
+		echo "DIR1=$DIR"
+		cd "$DIR/"
 		sudo docker-compose "$command" ${@}
 		;;
 	"sh"|"bash")
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		sudo docker-compose exec "${1}" /bin/"$command"
 		;;
 	"backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
 
-		cd "$pod_layer_dir/"
+		cd "$DIR/"
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_backup_base_dir="tmp/main/backup"
 		db_backup_dir="tmp/main/mysql/backup"

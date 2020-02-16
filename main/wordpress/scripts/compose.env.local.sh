@@ -33,10 +33,10 @@ case "$command" in
         env_local_repo="$1"
         shift
 
-        "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$env_local_repo/dev" "${@}"
+        "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$env_local_repo/run" "${@}"
 
         sudo chmod +x "$app_layer_dir/"
-        cp "$pod_layer_dir/$pod_env_dir/main/wordpress/.env" "$app_layer_dir/.env"
+        cp "$pod_layer_dir/$pod_dir/main/wordpress/.env" "$app_layer_dir/.env"
         chmod +r "$app_layer_dir/.env"
         chmod 777 "$app_layer_dir/web/app/uploads/"
         ;;

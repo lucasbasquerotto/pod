@@ -1,3 +1,5 @@
+{% set var_env = params.env_name %}
+{% set var_ctx = params.ctx_name %}
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_remote = params.main.local | default(false) | bool | ternary('false', 'true') %}
 {% set var_run = params.main.run | default({}) %}
@@ -30,3 +32,6 @@ children:
       fluentd:
         elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
         flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"
+    run:
+      env: "{{ var_env }}"
+      ctx: "{{ var_ctx }}"

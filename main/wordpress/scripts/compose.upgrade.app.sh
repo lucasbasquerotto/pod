@@ -2,10 +2,12 @@
 # shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
-. "${DIR}/vars.sh"
+. "${pod_vars_dir}/vars.sh"
 
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+cd "$pod_full_dir"
 
 echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - remove old container${NC}"
 sudo docker-compose rm -f --stop wordpress

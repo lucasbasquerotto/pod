@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
-. "${DIR}/vars.sh"
+. "${pod_vars_dir}/vars.sh"
 
 command="${1:-}"
 

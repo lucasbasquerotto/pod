@@ -25,6 +25,8 @@ shift
 ctl_layer_dir="$base_dir/ctl"
 app_layer_dir="$base_dir/apps/$wordpress_dev_repo_dir"
 
+pod_env_shared_file="$pod_layer_dir/$scripts_dir/compose.env.shared.sh"
+
 start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
@@ -40,11 +42,13 @@ case "$command" in
         chmod +r "$app_layer_dir/.env"
         chmod 777 "$app_layer_dir/web/app/uploads/"
         ;;
-    "before-setup")
+    "setup")
         cd "$pod_full_dir"
         sudo docker-compose rm --stop --force wordpress composer mysql
         sudo docker-compose up -d mysql composer
         sudo docker-compose exec composer composer install --verbose
+
+        "$pod_env_shared_file" setup "$@"
         ;;
     "before-deploy")
         cd "$pod_full_dir"
@@ -59,7 +63,10 @@ case "$command" in
     "after-rm")
         "$ctl_layer_dir/run" rm
         ;;
-    *)
+    "backup")
+		"$pod_env_shared_file" backup
+		;;
+	*)
         echo -e "env - $command - nothing to run"
         ;;
 esac

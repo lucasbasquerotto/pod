@@ -13,6 +13,12 @@ start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
+    "backup")
+        "$pod_env_shared_file" backup $@
+        ;;
+    "setup")
+        "$pod_env_shared_file" setup $@
+        ;;
     *)
         echo -e "env - $command - nothing to run"
         ;;

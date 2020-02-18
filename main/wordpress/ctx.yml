@@ -335,3 +335,5 @@ children:
       db_user: "{{ params.credentials.wordpress.db.user }}"
       db_pass: "{{ params.credentials.wordpress.db.password }}"
       db_name: "{{ params.credentials.wordpress.db.name }}"
+      restore_service: "toolbox"
+      backup_service: "toolbox"

@@ -20,7 +20,7 @@ fi
 command="${1:-}"
 
 commands="migrate (m), update (u), fast-update (f), prepare (p), setup, deploy"
-commands="$commands, run, stop, rm, build, exec, restart, logs, ps, sh, bash, backup"
+commands="$commands, up, run, stop, rm, build, exec, restart, logs, ps, sh, bash, backup"
 re_number='^[0-9]+$'
 
 if [ -z "$command" ]; then
@@ -48,11 +48,14 @@ case "$command" in
 		fi
 		
 		echo -e "${CYAN}$(date '+%F %X') - $command - run...${NC}"
-		"$pod_script_root_run_file_full" "$pod_vars_dir" run
+		"$pod_script_root_run_file_full" "$pod_vars_dir" up
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"prepare"|"p")
 		"$scripts_full_dir/$script_env_file" prepare "$env_local_repo" "${@:2}"
+		;;
+	"backup")
+		"$pod_script_env_file_full" backup
 		;;
 	"setup")
 		"$pod_script_env_file_full" setup
@@ -69,11 +72,11 @@ case "$command" in
 
 		"$pod_script_env_file_full" after-deploy
 		;;
-	"run")
-		"$pod_script_env_file_full" before-run
+	"up")
+		"$pod_script_env_file_full" before-up
 		cd "$pod_full_dir/"
 		sudo docker-compose up -d --remove-orphans $@
-		"$pod_script_env_file_full" after-run
+		"$pod_script_env_file_full" after-up
 		;;
 	"stop")
 		if [ $# -eq 0 ]; then
@@ -99,16 +102,13 @@ case "$command" in
 			"$pod_script_env_file_full" after-rm
 		fi
 		;;
-	"build"|"exec"|"restart"|"logs"|"ps")
+	"build"|"run"|"exec"|"restart"|"logs"|"ps")
 		cd "$pod_full_dir/"
 		sudo docker-compose "$command" ${@}
 		;;
 	"sh"|"bash")
 		cd "$pod_full_dir/"
 		sudo docker-compose exec "${1}" /bin/"$command"
-		;;
-	"backup")
-		"$pod_script_env_file_full" backup
 		;;
 	*)
 		echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"

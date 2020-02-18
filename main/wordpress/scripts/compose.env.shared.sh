@@ -19,12 +19,10 @@ fi
 
 command="${1:-}"
 
-commands="update (u), fast-update (f), prepare (p), deploy, run, stop"
-commands="$commands, build, exec, restart, logs, sh, bash"
 re_number='^[0-9]+$'
 
 if [ -z "$command" ]; then
-	echo -e "${RED}No command passed (valid commands: $commands)${NC}"
+	echo -e "${RED}No command passed (env - shared).${NC}"
 	exit 1
 fi
 
@@ -35,23 +33,26 @@ start="$(date '+%F %X')"
 case "$command" in
 	"setup")
 		cd "$pod_full_dir/"
-		sudo docker-compose rm -f --stop wordpress mysql
-		sudo docker-compose up -d "$restore_service" mysql
+		"$pod_env_shared_file_full" "setup:uploads"
+		"$pod_env_shared_file_full" "setup:db"
+		"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
+		;;
+	"setup:uploads")
+		# Restore the uploaded files
+		"$pod_script_env_file_full" "setup:uploads:before"
+
+    cd "$pod_full_dir"
+		sudo docker-compose up -d "$restore_service"
 		
-		db_restore_dir="tmp/main/mysql/backup"
-		uploads_restore_dir="tmp/main/wordpress/uploads"
 		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"
-		wp_uploads_toolbox_dir="tmp/data/wordpress/uploads"
 		key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 
+		uploads_restore_dir="tmp/main/wordpress/uploads"
+		wp_uploads_toolbox_dir="tmp/data/wordpress/uploads"
+    
 		setup_uploads_zip_file=""
 		restore_remote_src_uploads=""
 		restore_local_dest_uploads=""
-
-		restore_remote_src_db=""
-		restore_local_dest_db=""
-
-		# Restore uploaded files
 
 		dir_ls="$(sudo docker exec -i "$(sudo docker-compose ps -q "$restore_service")" \
 			find /${wp_uploads_toolbox_dir}/ -type f | wc -l)"
@@ -160,10 +161,25 @@ case "$command" in
 			fi
 		fi
 
-		# Restore database
+		"$pod_script_env_file_full" "setup:uploads:after"
+		;;
+	"setup:db")
+		# Restore the database
+		"$pod_script_env_file_full" "setup:db:before"
+
+    cd "$pod_full_dir"
+		sudo docker-compose up -d "$restore_service" "$db_service"
 		
+		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"
+		key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+		
+		db_restore_dir="tmp/main/$db_service/backup"
+    
+		restore_remote_src_db=""
+		restore_local_dest_db=""
+
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$db_name'"
-		tables="$(sudo docker-compose exec -T mysql \
+		tables="$(sudo docker-compose exec -T "$db_service" \
 			mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
 
 		if [ ! -z "$tables" ]; then
@@ -177,7 +193,7 @@ case "$command" in
 		if [ -z "$tables" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
 			sleep 60
-			tables="$(sudo docker-compose exec -T mysql \
+			tables="$(sudo docker-compose exec -T "$db_service" \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")"
 
 			if [ ! -z "$tables" ]; then
@@ -196,9 +212,6 @@ case "$command" in
 		if [ "$tables" != "0" ]; then
 			msg="The database already has $tables tables, skipping database restore..."
 			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
-
-			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-			"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
 		else
 			if [ ! -z "$setup_local_db_file" ] \
 			|| [ ! -z "$setup_remote_db_file" ] \
@@ -216,7 +229,7 @@ case "$command" in
 					backup_bucket_path="$backup_bucket_prefix/$setup_remote_bucket_path_db_dir"
 					backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 					
-					restore_remote_src_uploads="s3://$backup_bucket_path"
+					restore_remote_src_db="s3://$backup_bucket_path"
 				elif [ ! -z "$setup_remote_bucket_path_db_file" ]; then
 					setup_db_file_name="db-$key.zip"
 					setup_db_file="$db_restore_dir/$setup_db_file_name"
@@ -254,7 +267,7 @@ case "$command" in
 						curl -L -o "/$setup_db_file" -k "$setup_remote_db_file"
 					elif [ ! -z "$setup_remote_bucket_path_db_dir" ]; then
 						msg="$command - restore db from remote bucket dir"
-						msg="\$msg [$restore_remote_src_uploads -> $db_restore_dir]"
+						msg="\$msg [$restore_remote_src_db -> $db_restore_dir]"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 
 						if [ "$use_aws_s3" = 'true' ]; then
@@ -262,11 +275,11 @@ case "$command" in
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 							aws s3 sync \
 								--endpoint="$s3_endpoint" \
-								"$restore_remote_src_uploads" "/$db_restore_dir"
+								"$restore_remote_src_db" "/$db_restore_dir"
 						elif [ "$use_s3cmd" = 'true' ]; then
 							msg="$command - toolbox - s3cmd - sync bucket db dir to local path"
 							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							s3cmd sync "$restore_remote_src_uploads" "/$db_restore_dir"
+							s3cmd sync "$restore_remote_src_db" "/$db_restore_dir"
 						else
 							msg="$command - toolbox - not able to sync bucket db dir to local path"
 							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
@@ -309,7 +322,7 @@ case "$command" in
 				SHELL
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - main${NC}"
-				sudo docker exec -i "$(sudo docker-compose ps -q mysql)" /bin/bash <<-SHELL
+				sudo docker exec -i "$(sudo docker-compose ps -q "$db_service")" /bin/bash <<-SHELL
 					set -eou pipefail
 					mysql -u "$db_user" -p"$db_pass" -e "CREATE DATABASE IF NOT EXISTS $db_name;"
 					pv "/$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
@@ -318,34 +331,11 @@ case "$command" in
 				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
 				"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
 			else
-				# Deploy a brand-new Wordpress site (with possibly seeded data)
-				echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
-				sudo docker-compose run --rm wordpress \
-					wp --allow-root core install \
-					--url="$setup_url" \
-					--title="$setup_title" \
-					--admin_user="$setup_admin_user" \
-					--admin_password="$setup_admin_password" \
-					--admin_email="$setup_admin_email"
-
-				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-				"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
-
-				if [ ! -z "$setup_local_seed_data" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
-					sudo docker-compose run --rm wordpress \
-						wp --allow-root import ./"$setup_local_seed_data" --authors=create
-				fi
-
-				if [ ! -z "$setup_remote_seed_data" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
-					sudo docker-compose run --rm wordpress sh -c \
-						"curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' \
-						&& wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
-						&& rm -f ./tmp/tmp-seed-data.xml"
-				fi
+		    "$pod_script_env_file_full" "setup:db:new"
 			fi
 		fi
+
+		"$pod_script_env_file_full" "setup:db:after"
 		;;
 	"backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
@@ -478,7 +468,8 @@ case "$command" in
 		;;
 	
   *)
-    echo -e "env - $command - nothing to run"
+		echo -e "${RED}[shared] Invalid command: $command ${NC}"
+		exit 1
     ;;
 esac
 

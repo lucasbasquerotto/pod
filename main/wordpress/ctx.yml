@@ -337,3 +337,4 @@ children:
       db_name: "{{ params.credentials.wordpress.db.name }}"
       restore_service: "toolbox"
       backup_service: "toolbox"
+      db_service: "mysql"

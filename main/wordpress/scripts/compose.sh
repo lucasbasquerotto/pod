@@ -4,8 +4,6 @@ set -eou pipefail
 
 . "${pod_vars_dir}/vars.sh"
 
-scripts_full_dir="${pod_layer_dir}/${scripts_dir}"
-
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
@@ -52,7 +50,7 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"prepare"|"p")
-		"$scripts_full_dir/$script_env_file" prepare "$env_local_repo" "${@:2}"
+		"$pod_script_env_file_full" prepare "$env_local_repo" "${@:2}"
 		;;
 	"backup")
 		"$pod_script_env_file_full" backup
@@ -61,7 +59,7 @@ case "$command" in
 		"$pod_script_env_file_full" setup
 		;;
 	"deploy")
-		"$pod_script_env_file_full" before-deploy
+		"$pod_script_env_file_full" hook "deploy:before"
 
 		if [ ! -z "$script_upgrade_file" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
@@ -70,36 +68,36 @@ case "$command" in
 			echo -e "${CYAN}$(date '+%F %X') - env - $command - no upgrade defined${NC}"
 		fi
 
-		"$pod_script_env_file_full" after-deploy
+		"$pod_script_env_file_full" hook "deploy:after"
 		;;
 	"up")
-		"$pod_script_env_file_full" before-up
+		"$pod_script_env_file_full" hook "up:before"
 		cd "$pod_full_dir/"
 		sudo docker-compose up -d --remove-orphans $@
-		"$pod_script_env_file_full" after-up
+		"$pod_script_env_file_full" hook "up:after"
 		;;
 	"stop")
 		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" before-stop
+			"$pod_script_env_file_full" hook "stop:before"
 		fi
 		
 		cd "$pod_full_dir/"
 		sudo docker-compose stop $@
 		
 		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" after-stop
+			"$pod_script_env_file_full" hook "stop:after"
 		fi
 		;;
 	"rm")
 		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" before-rm
+			"$pod_script_env_file_full" hook "rm:before"
 		fi
 
 		cd "$pod_full_dir/"
 		sudo docker-compose rm --stop -v --force $@
 
 		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" after-rm
+			"$pod_script_env_file_full" hook "rm:after"
 		fi
 		;;
 	"build"|"run"|"exec"|"restart"|"logs"|"ps")

@@ -279,62 +279,63 @@ children:
       {% endif %}
 
     run:
-      env: "{{ var_env }}"
-      ctx: "{{ var_ctx }}"
-      pod_inner_dir: "{{ params.dirs.dest_dir_base }}"
-      pod_env_dir: "{{ params.pod.env_dir }}"
-      scripts_dir: "main/wordpress/scripts"
-      script_run_file: "compose.sh"
-      script_env_file: >-
+      var_env: "{{ var_env }}"
+      var_ctx: "{{ var_ctx }}"
+      var_pod_name: "{{ params.pod.name }}"
+      var_pod_inner_dir: "{{ params.dirs.dest_dir_base }}"
+      var_pod_env_dir: "{{ params.pod.env_dir }}"
+      var_scripts_dir: "main/wordpress/scripts"
+      var_script_run_file: "compose.sh"
+      var_script_env_file: >-
         {{ var_local | ternary('compose.env.local.sh', 'compose.env.remote.sh') }}
-      script_upgrade_file: >-
+      var_script_upgrade_file: >-
         {{ var_web | ternary('compose.upgrade.app.sh', '') }}
-      wordpress_dev_repo_dir: >-
+      var_wordpress_dev_repo_dir: >-
         {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
-      env_local_repo: "{{ params.pod.env_local_repo }}"
-      setup_url: >-
+      var_env_local_repo: "{{ params.pod.env_local_repo }}"
+      var_setup_url: >-
         {{ var_web | ternary(var_run.setup.url + ((var_wp_port in ['80', '443']) | ternary('', ':' + var_wp_port)), '') }}
-      setup_title: >-
+      var_setup_title: >-
         {{ var_web | ternary(var_run.setup.title, '') }}
-      setup_admin_user: >-
+      var_setup_admin_user: >-
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_user, '') }}
-      setup_admin_password: >-
+      var_setup_admin_password: >-
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_password, '') }}
-      setup_admin_email: >-
+      var_setup_admin_email: >-
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_email, '') }}
-      setup_local_db_file: "{{ setup_local_db_file }}"
-      setup_local_uploads_zip_file: "{{ setup_local_uploads_file }}"
-      setup_remote_db_file: "{{ setup_remote_db_file }}"
-      setup_remote_uploads_zip_file: "{{ setup_remote_uploads_file }}"
-      setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
-      setup_remote_bucket_path_uploads_dir: "{{ setup_remote_bucket_path_uploads_dir }}"
-      setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
-      setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
-      setup_local_seed_data: >-
+      var_setup_local_db_file: "{{ setup_local_db_file }}"
+      var_setup_local_uploads_zip_file: "{{ setup_local_uploads_file }}"
+      var_setup_remote_db_file: "{{ setup_remote_db_file }}"
+      var_setup_remote_uploads_zip_file: "{{ setup_remote_uploads_file }}"
+      var_setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
+      var_setup_remote_bucket_path_uploads_dir: "{{ setup_remote_bucket_path_uploads_dir }}"
+      var_setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
+      var_setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
+      var_setup_local_seed_data: >-
         {{ 
         (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
         | ternary(var_run.setup.local_seed_data | default(''), '') 
         }}
-      setup_remote_seed_data: >-
+      var_setup_remote_seed_data: >-
         {{ 
         (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
         | ternary(var_run.setup.remote_seed_data | default(''), '') 
         }}
-      s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
-      use_aws_s3: "{{ var_containers_dict.toolbox.use_aws_s3_cli | default(false) | lower }}"
-      use_s3cmd: "{{ var_containers_dict.toolbox.use_s3cmd | default(false) | lower }}"
-      backup_bucket_name: "{{ var_run.backup.bucket_name | default('') }}"
-      backup_bucket_path: "{{ var_run.backup.bucket_path | default('') }}"
-      backup_bucket_db_sync_dir: >-
+      var_s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
+      var_use_aws_s3: "{{ var_containers_dict.toolbox.use_aws_s3_cli | default(false) | lower }}"
+      var_use_s3cmd: "{{ var_containers_dict.toolbox.use_s3cmd | default(false) | lower }}"
+      var_backup_bucket_name: "{{ var_run.backup.bucket_name | default('') }}"
+      var_backup_bucket_path: "{{ var_run.backup.bucket_path | default('') }}"
+      var_backup_bucket_db_sync_dir: >-
         {{ var_db | ternary(var_run.backup.bucket_db_sync_dir, '') }}
-      backup_bucket_uploads_sync_dir: >-
+      var_backup_bucket_uploads_sync_dir: >-
         {{ var_web | ternary(var_run.backup.bucket_uploads_sync_dir, '') }}
-      backup_delete_old_days: "{{ var_run.backup.delete_old_days | default(30) }}"
-      old_domain_host: "{{ var_run.setup.old_domain_host | default('') }}"
-      new_domain_host: "{{ var_run.setup.new_domain_host | default('') }}"   
-      db_user: "{{ params.credentials.wordpress.db.user }}"
-      db_pass: "{{ params.credentials.wordpress.db.password }}"
-      db_name: "{{ params.credentials.wordpress.db.name }}"
-      restore_service: "toolbox"
-      backup_service: "toolbox"
-      db_service: "mysql"
+      var_backup_delete_old_days: "{{ var_run.backup.delete_old_days | default(30) }}"
+      var_old_domain_host: "{{ var_run.setup.old_domain_host | default('') }}"
+      var_new_domain_host: "{{ var_run.setup.new_domain_host | default('') }}"   
+      var_db_user: "{{ params.credentials.wordpress.db.user }}"
+      var_db_pass: "{{ params.credentials.wordpress.db.password }}"
+      var_db_name: "{{ params.credentials.wordpress.db.name }}"
+      var_restore_service: "toolbox"
+      var_backup_service: "toolbox"
+      var_db_service: "mysql"

@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_shared_file_full="$pod_layer_dir/$scripts_dir/compose.shared.sh"
+pod_shared_file_full="$pod_layer_dir/$var_scripts_dir/compose.shared.sh"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -24,12 +24,8 @@ fi
 
 command="${1:-}"
 
-commands="migrate (m), update (u), fast-update (f), prepare (p), setup, deploy"
-commands="$commands, up, run, stop, rm, build, exec, restart, logs, ps, sh, bash, backup"
-re_number='^[0-9]+$'
-
 if [ -z "$command" ]; then
-	echo -e "${RED}No command passed (valid commands: $commands)${NC}"
+	echo -e "${RED}No command entered (compose).${NC}"
 	exit 1
 fi
 

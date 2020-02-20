@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_env_shared_file_full="$pod_layer_dir/$scripts_dir/compose.env.shared.sh"
+pod_env_shared_file_full="$pod_layer_dir/$var_scripts_dir/compose.env.shared.sh"
 
 pod_layer_base_dir="$(dirname "$pod_layer_dir")"
 base_dir="$(dirname "$pod_layer_base_dir")"
@@ -27,17 +27,23 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
 fi
 
 ctl_layer_dir="$base_dir/ctl"
-app_layer_dir="$base_dir/apps/$wordpress_dev_repo_dir"
+app_layer_dir="$base_dir/apps/$var_wordpress_dev_repo_dir"
 
 command="${1:-}"
-shift
+
+if [ -z "$command" ]; then
+	echo -e "${RED}No command entered (env).${NC}"
+	exit 1
+fi
+
+shift;
 
 start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
   "prepare")
-    "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$env_local_repo/run" "${@}"
+    "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$var_env_local_repo/run" "${@}"
 
     sudo chmod +x "$app_layer_dir/"
     cp "$pod_full_dir/main/wordpress/.env" "$app_layer_dir/.env"
@@ -62,6 +68,11 @@ case "$command" in
   "stop"|"rm")
 		"$pod_env_shared_file_full" "$command" "$@"
     "$ctl_layer_dir/run" "$command"
+    ;;
+  "clear")
+    "$pod_script_env_file" rm
+    sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
+    sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
 	*)
 		"$pod_env_shared_file_full" "$command" "$@"

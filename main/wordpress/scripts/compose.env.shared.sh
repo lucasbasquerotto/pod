@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_script_run_file_full="$pod_layer_dir/$scripts_dir/$script_run_file"
+pod_script_run_file_full="$pod_layer_dir/$var_scripts_dir/$var_script_run_file"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -49,26 +49,26 @@ case "$command" in
     echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
     sudo docker-compose run --rm wordpress \
       wp --allow-root core install \
-      --url="$setup_url" \
-      --title="$setup_title" \
-      --admin_user="$setup_admin_user" \
-      --admin_password="$setup_admin_password" \
-      --admin_email="$setup_admin_email"
+      --url="$var_setup_url" \
+      --title="$var_setup_title" \
+      --admin_user="$var_setup_admin_user" \
+      --admin_password="$var_setup_admin_password" \
+      --admin_email="$var_setup_admin_email"
 
-    if [ ! -z "$setup_local_seed_data" ] || [ ! -z "$setup_remote_seed_data" ]; then
+    if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
       echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
       "$pod_script_env_file" deploy 
 
-      if [ ! -z "$setup_local_seed_data" ]; then
+      if [ ! -z "$var_setup_local_seed_data" ]; then
         echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
         sudo docker-compose run --rm wordpress \
-          wp --allow-root import ./"$setup_local_seed_data" --authors=create
+          wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
       fi
 
-      if [ ! -z "$setup_remote_seed_data" ]; then
+      if [ ! -z "$var_setup_remote_seed_data" ]; then
         echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
         sudo docker-compose run --rm wordpress sh -c \
-          "curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' \
+          "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
           && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
           && rm -f ./tmp/tmp-seed-data.xml"
       fi
@@ -76,7 +76,7 @@ case "$command" in
 		;;
 	"deploy")
     cd "$pod_full_dir"
-    
+
     echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - remove old container${NC}"
     sudo docker-compose rm -f --stop wordpress
 
@@ -88,10 +88,10 @@ case "$command" in
     sudo docker-compose run --rm wordpress wp --allow-root \
         plugin activate --all
 
-    if [ ! -z "$old_domain_host" ] && [ ! -z "$new_domain_host" ]; then
+    if [ ! -z "$var_old_domain_host" ] && [ ! -z "$var_new_domain_host" ]; then
         echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update domain${NC}"
         sudo docker-compose run --rm wordpress wp --allow-root \
-            search-replace "$old_domain_host" "$new_domain_host"
+            search-replace "$var_old_domain_host" "$var_new_domain_host"
     fi
 		;;
 	*)

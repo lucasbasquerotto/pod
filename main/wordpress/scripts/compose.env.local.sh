@@ -2,9 +2,14 @@
 # shellcheck disable=SC1090,SC2154
 set -eou pipefail
 
+pod_vars_dir="$POD_VARS_DIR"
+pod_layer_dir="$POD_LAYER_DIR"
+pod_full_dir="$POD_FULL_DIR"
+pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+
 . "${pod_vars_dir}/vars.sh"
 
-export "pod_env_shared_file_full=$pod_layer_dir/$scripts_dir/compose.env.shared.sh"
+pod_env_shared_file_full="$pod_layer_dir/$scripts_dir/compose.env.shared.sh"
 
 pod_layer_base_dir="$(dirname "$pod_layer_dir")"
 base_dir="$(dirname "$pod_layer_base_dir")"
@@ -21,28 +26,17 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
   exit 1
 fi
 
-command="${1:-}"
-shift
-
-strict=true
-
-if [ "$command" = "hook" ]; then
-  command="${1:-}"
-  shift
-  strict=false
-fi
-
 ctl_layer_dir="$base_dir/ctl"
 app_layer_dir="$base_dir/apps/$wordpress_dev_repo_dir"
+
+command="${1:-}"
+shift
 
 start="$(date '+%F %X')"
 echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
   "prepare")
-    env_local_repo="$1"
-    shift
-
     "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$env_local_repo/run" "${@}"
 
     sudo chmod +x "$app_layer_dir/"
@@ -50,36 +44,27 @@ case "$command" in
     chmod +r "$app_layer_dir/.env"
     chmod 777 "$app_layer_dir/web/app/uploads/"
     ;;
-  "deploy:before")
-    cd "$pod_full_dir"
-    sudo docker-compose rm --stop --force wordpress composer mysql
-    sudo docker-compose up -d mysql composer
-    sudo docker-compose exec composer composer clear-cache
-    sudo docker-compose exec composer composer update --verbose
-    ;;
-  "stop:after")
-    "$ctl_layer_dir/run" stop
-    ;;
-  "rm:after")
-    "$ctl_layer_dir/run" rm
-    ;;
 	"setup")
     cd "$pod_full_dir"
     sudo docker-compose rm --stop --force wordpress composer mysql
     sudo docker-compose up -d mysql composer
     sudo docker-compose exec composer composer install --verbose
-
 		"$pod_env_shared_file_full" "$command"
 		;;
-	"setup:uploads"|"setup:db"|"setup:db:new"|"backup")
-		"$pod_env_shared_file_full" "$command"
-		;;
+  "deploy")
+    cd "$pod_full_dir"
+    sudo docker-compose rm --stop --force wordpress composer mysql
+    sudo docker-compose up -d mysql composer
+    sudo docker-compose exec composer composer clear-cache
+    sudo docker-compose exec composer composer update --verbose
+		"$pod_env_shared_file_full" "$command" "$@"
+    ;;
+  "stop"|"rm")
+		"$pod_env_shared_file_full" "$command" "$@"
+    "$ctl_layer_dir/run" "$command"
+    ;;
 	*)
-    if [ "$strict" = "true" ]; then
-      echo -e "${RED}[env] Invalid command: $command ${NC}"
-    else
-      echo -e "env - $command - nothing to run"
-    fi
+		"$pod_env_shared_file_full" "$command" "$@"
     ;;
 esac
 

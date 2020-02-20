@@ -2,6 +2,11 @@
 # shellcheck disable=SC1090,SC2154,SC1117
 set -eou pipefail
 
+pod_vars_dir="$POD_VARS_DIR"
+pod_layer_dir="$POD_LAYER_DIR"
+pod_full_dir="$POD_FULL_DIR"
+pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+
 . "${pod_vars_dir}/vars.sh"
 
 scripts_full_dir="${pod_layer_dir}/${scripts_dir}"
@@ -31,16 +36,32 @@ shift;
 start="$(date '+%F %X')"
 
 case "$command" in
+	"migrate"|"m"|"update"|"u"|"fast-update"|"f")
+		echo -e "${CYAN}$(date '+%F %X') - $command - prepare...${NC}"
+		"$pod_script_env_file" prepare 
+		echo -e "${CYAN}$(date '+%F %X') - $command - build...${NC}"
+		"$pod_script_env_file" build
+
+		if [[ "$command" = @("migrate"|"m") ]]; then
+			echo -e "${CYAN}$(date '+%F %X') - $command - setup...${NC}"
+			"$pod_script_env_file" setup 
+		elif [[ "$command" != @("fast-update"|"f") ]]; then
+			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+			"$pod_script_env_file" deploy 
+		fi
+		
+		echo -e "${CYAN}$(date '+%F %X') - $command - run...${NC}"
+		"$pod_script_env_file" up
+		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
+		;;
 	"setup")
 		cd "$pod_full_dir/"
-		"$pod_script_env_file_full" "setup:uploads"
-		"$pod_script_env_file_full" "setup:db"
-		"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
+		"$pod_script_env_file" "setup:uploads"
+		"$pod_script_env_file" "setup:db"
+		"$pod_script_env_file" deploy 
 		;;
 	"setup:uploads")
 		# Restore the uploaded files
-		"$pod_script_env_file_full" hook "setup:uploads:before"
-
     cd "$pod_full_dir"
 		sudo docker-compose up -d "$restore_service"
 		
@@ -160,13 +181,9 @@ case "$command" in
 				SHELL
 			fi
 		fi
-
-		"$pod_script_env_file_full" hook "setup:uploads:after"
 		;;
 	"setup:db")
 		# Restore the database
-		"$pod_script_env_file_full" hook "setup:db:before"
-
     cd "$pod_full_dir"
 		sudo docker-compose up -d "$restore_service" "$db_service"
 		
@@ -327,15 +344,10 @@ case "$command" in
 					mysql -u "$db_user" -p"$db_pass" -e "CREATE DATABASE IF NOT EXISTS $db_name;"
 					pv "/$setup_db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
 				SHELL
-
-				echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-				"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
 			else
-		    "$pod_script_env_file_full" "setup:db:new"
+		    "$pod_script_env_file" "setup:db:new"
 			fi
 		fi
-
-		"$pod_script_env_file_full" hook "setup:db:after"
 		;;
   "backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
@@ -468,7 +480,7 @@ case "$command" in
 		;;
 	
   *)
-		echo -e "${RED}[shared] Invalid command: $command ${NC}"
+		echo -e "${RED}Invalid command: $command ${NC}"
 		exit 1
     ;;
 esac

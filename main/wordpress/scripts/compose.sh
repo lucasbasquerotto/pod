@@ -2,7 +2,14 @@
 # shellcheck disable=SC1090,SC2154,SC1117
 set -eou pipefail
 
+pod_vars_dir="$POD_VARS_DIR"
+pod_layer_dir="$POD_LAYER_DIR"
+pod_full_dir="$POD_FULL_DIR"
+pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+
 . "${pod_vars_dir}/vars.sh"
+
+pod_shared_file_full="$pod_layer_dir/$scripts_dir/compose.shared.sh"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -31,76 +38,15 @@ shift;
 start="$(date '+%F %X')"
 
 case "$command" in
-	"migrate"|"m"|"update"|"u"|"fast-update"|"f")
-		echo -e "${CYAN}$(date '+%F %X') - $command - prepare...${NC}"
-		"$pod_script_root_run_file_full" "$pod_vars_dir" prepare 
-		echo -e "${CYAN}$(date '+%F %X') - $command - build...${NC}"
-		"$pod_script_root_run_file_full" "$pod_vars_dir" build
-
-		if [[ "$command" = @("migrate"|"m") ]]; then
-			echo -e "${CYAN}$(date '+%F %X') - $command - setup...${NC}"
-			"$pod_script_root_run_file_full" "$pod_vars_dir" setup 
-		elif [[ "$command" != @("fast-update"|"f") ]]; then
-			echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-			"$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
-		fi
-		
-		echo -e "${CYAN}$(date '+%F %X') - $command - run...${NC}"
-		"$pod_script_root_run_file_full" "$pod_vars_dir" up
-		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
-		;;
-	"prepare"|"p")
-		"$pod_script_env_file_full" prepare "$env_local_repo" "${@:2}"
-		;;
-	"backup")
-		"$pod_script_env_file_full" backup
-		;;
-	"setup")
-		"$pod_script_env_file_full" setup
-		;;
-	"deploy")
-		"$pod_script_env_file_full" hook "deploy:before"
-
-		if [ ! -z "$script_upgrade_file" ]; then
-			echo -e "${CYAN}$(date '+%F %X') - env - $command - upgrade${NC}"
-			"$pod_layer_dir/$scripts_dir/$script_upgrade_file"
-		else
-			echo -e "${CYAN}$(date '+%F %X') - env - $command - no upgrade defined${NC}"
-		fi
-
-		"$pod_script_env_file_full" hook "deploy:after"
-		;;
 	"up")
-		"$pod_script_env_file_full" hook "up:before"
 		cd "$pod_full_dir/"
 		sudo docker-compose up -d --remove-orphans $@
-		"$pod_script_env_file_full" hook "up:after"
-		;;
-	"stop")
-		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" hook "stop:before"
-		fi
-		
-		cd "$pod_full_dir/"
-		sudo docker-compose stop $@
-		
-		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" hook "stop:after"
-		fi
 		;;
 	"rm")
-		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" hook "rm:before"
-		fi
-
 		cd "$pod_full_dir/"
 		sudo docker-compose rm --stop -v --force $@
-
-		if [ $# -eq 0 ]; then
-			"$pod_script_env_file_full" hook "rm:after"
-		fi
 		;;
-	"build"|"run"|"exec"|"restart"|"logs"|"ps")
+	"build"|"run"|"stop"|"exec"|"restart"|"logs"|"ps")
 		cd "$pod_full_dir/"
 		sudo docker-compose "$command" ${@}
 		;;
@@ -109,8 +55,7 @@ case "$command" in
 		sudo docker-compose exec "${1}" /bin/"$command"
 		;;
 	*)
-		echo -e "${RED}Invalid command: $command (valid commands: $commands)${NC}"
-		exit 1
+		"$pod_shared_file_full" "$command" "$@"
 		;;
 esac
 

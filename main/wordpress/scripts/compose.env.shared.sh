@@ -2,9 +2,14 @@
 # shellcheck disable=SC1090,SC2154,SC1117
 set -eou pipefail
 
+pod_vars_dir="$POD_VARS_DIR"
+pod_layer_dir="$POD_LAYER_DIR"
+pod_full_dir="$POD_FULL_DIR"
+pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+
 . "${pod_vars_dir}/vars.sh"
 
-export "pod_shared_file_full=$pod_layer_dir/$scripts_dir/compose.shared.sh"
+pod_script_run_file_full="$pod_layer_dir/$scripts_dir/$script_run_file"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -19,10 +24,8 @@ fi
 
 command="${1:-}"
 
-re_number='^[0-9]+$'
-
 if [ -z "$command" ]; then
-	echo -e "${RED}No command passed (env - shared).${NC}"
+	echo -e "${RED}No command entered (env - shared).${NC}"
 	exit 1
 fi
 
@@ -31,18 +34,15 @@ shift;
 start="$(date '+%F %X')"
 
 case "$command" in
-	"setup"|"backup")
-		"$pod_shared_file_full" "$command"
-		;;
 	"setup:uploads")
     cd "$pod_full_dir"
 		sudo docker-compose rm -f --stop wordpress
-		"$pod_shared_file_full" "$command"
+		"$pod_script_run_file_full" "$command"
 		;;
 	"setup:db")
     cd "$pod_full_dir"
 		sudo docker-compose rm -f --stop wordpress mysql
-		"$pod_shared_file_full" "$command"
+		"$pod_script_run_file_full" "$command"
 		;;
 	"setup:db:new")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
@@ -57,7 +57,7 @@ case "$command" in
 
     if [ ! -z "$setup_local_seed_data" ] || [ ! -z "$setup_remote_seed_data" ]; then
       echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-      "$pod_script_root_run_file_full" "$pod_vars_dir" deploy 
+      "$pod_script_env_file" deploy 
 
       if [ ! -z "$setup_local_seed_data" ]; then
         echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
@@ -73,10 +73,29 @@ case "$command" in
           && rm -f ./tmp/tmp-seed-data.xml"
       fi
     fi
-    ;;
+		;;
+	"deploy")
+    cd "$pod_full_dir"
+    
+    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - remove old container${NC}"
+    sudo docker-compose rm -f --stop wordpress
+
+    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update database${NC}"
+    sudo docker-compose run --rm wordpress wp --allow-root \
+        core update-db
+
+    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - activate plugins${NC}"
+    sudo docker-compose run --rm wordpress wp --allow-root \
+        plugin activate --all
+
+    if [ ! -z "$old_domain_host" ] && [ ! -z "$new_domain_host" ]; then
+        echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update domain${NC}"
+        sudo docker-compose run --rm wordpress wp --allow-root \
+            search-replace "$old_domain_host" "$new_domain_host"
+    fi
+		;;
 	*)
-		echo -e "${RED}[env-shared] Invalid command: $command ${NC}"
-		exit 1
+    "$pod_script_run_file_full" "$command" "$@"
     ;;
 esac
 

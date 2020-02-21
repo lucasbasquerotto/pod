@@ -10,20 +10,24 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 start="$(date '+%F %X')"
-echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
 
 case "$command" in
-    "backup")
-        "$pod_env_shared_file" backup $@
-        ;;
-    "setup")
-        "$pod_env_shared_file" setup $@
-        ;;
-    *)
-        echo -e "env - $command - nothing to run"
-        ;;
+  "setup"|"backup")
+    echo -e "${CYAN}$(date '+%F %X') - env (remote) - $command - start${NC}"
+    ;;
 esac
 
-echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
+case "$command" in
+  *)
+    "$pod_env_shared_file_full" "$command" "$@"
+    ;;
+esac
+
 end="$(date '+%F %X')"
-echo -e "${CYAN}env - $command - $start - $end${NC}"
+
+case "$command" in
+  "setup"|"backup")
+    echo -e "${CYAN}$(date '+%F %X') - env (remote) - $command - end${NC}"
+    echo -e "${CYAN}env (remote) - $command - $start - $end${NC}"
+    ;;
+esac

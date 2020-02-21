@@ -30,8 +30,6 @@ if [ -z "$command" ]; then
 fi
 
 shift;
-	
-start="$(date '+%F %X')"
 
 case "$command" in
 	"up")
@@ -54,6 +52,3 @@ case "$command" in
 		"$pod_shared_file_full" "$command" "$@"
 		;;
 esac
-
-end="$(date '+%F %X')"
-echo -e "${CYAN}$command - $start - $end${NC}"

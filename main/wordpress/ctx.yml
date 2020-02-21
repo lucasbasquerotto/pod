@@ -339,3 +339,8 @@ children:
       var_restore_service: "toolbox"
       var_backup_service: "toolbox"
       var_db_service: "mysql"
+      var_uploads_service_dir: "tmp/data/wordpress/uploads"
+      var_uploads_main_dir: "tmp/main/wordpress/uploads"
+      var_main_backup_base_dir: "tmp/main/backup"
+      var_db_backup_dir: "tmp/main/mysql/backup"
+      var_db_restore_dir: "tmp/main/mysql/backup"

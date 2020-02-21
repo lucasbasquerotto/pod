@@ -39,7 +39,12 @@ fi
 shift;
 
 start="$(date '+%F %X')"
-echo -e "${CYAN}$(date '+%F %X') - env - $command - start${NC}"
+
+case "$command" in
+  "prepare"|"setup"|"deploy"|"stop"|"rm"|"clear")
+    echo -e "${CYAN}$(date '+%F %X') - env (local) - $command - start${NC}"
+    ;;
+esac
 
 case "$command" in
   "prepare")
@@ -51,18 +56,19 @@ case "$command" in
     chmod 777 "$app_layer_dir/web/app/uploads/"
     ;;
 	"setup")
-    cd "$pod_full_dir"
-    sudo docker-compose rm --stop --force wordpress composer mysql
-    sudo docker-compose up -d mysql composer
-    sudo docker-compose exec composer composer install --verbose
+    "$pod_env_shared_file_full" rm wordpress composer 
+    "$pod_env_shared_file_full" stop mysql
+    "$pod_env_shared_file_full" up mysql composer
+    "$pod_env_shared_file_full" exec composer composer install --verbose
 		"$pod_env_shared_file_full" "$command"
 		;;
   "deploy")
     cd "$pod_full_dir"
-    sudo docker-compose rm --stop --force wordpress composer mysql
-    sudo docker-compose up -d mysql composer
-    sudo docker-compose exec composer composer clear-cache
-    sudo docker-compose exec composer composer update --verbose
+    "$pod_env_shared_file_full" rm wordpress composer 
+    "$pod_env_shared_file_full" stop mysql
+    "$pod_env_shared_file_full" up mysql composer
+    "$pod_env_shared_file_full" exec composer composer clear-cache
+    "$pod_env_shared_file_full" exec composer composer update --verbose
 		"$pod_env_shared_file_full" "$command" "$@"
     ;;
   "stop"|"rm")
@@ -74,11 +80,43 @@ case "$command" in
     sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
+  "test")
+		cd "$pod_full_dir/"
+    if output="$(sudo docker exec -i "$("$pod_env_shared_file_full" ps -q "$var_db_service")" \
+			mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")"; then
+        printf "some_command succeeded\n$output\n"
+    else
+        printf "some_command failed\n$output\n"
+    fi
+				
+    # if output="$("$pod_env_shared_file_full" exec -T "$var_db_service" \
+		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")"; then
+    #     printf "some_command succeeded\n$output\n"
+    # else
+    #     printf "some_command failed\n$output\n"
+    # fi
+    
+		# output="$("$pod_env_shared_file_full" exec -T "$var_db_service" \
+		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")" ||:
+		# echo "output=$output"
+
+    # "$pod_env_shared_file_full" exec -T "$var_db_service" \
+		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES"
+
+		cd "$pod_full_dir/"
+		sudo docker-compose exec -T "$var_db_service" \
+			mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES"
+    ;;
 	*)
 		"$pod_env_shared_file_full" "$command" "$@"
     ;;
 esac
 
-echo -e "${CYAN}$(date '+%F %X') - env - $command - end${NC}"
 end="$(date '+%F %X')"
-echo -e "${CYAN}env - $command - $start - $end${NC}"
+
+case "$command" in
+  "prepare"|"setup"|"deploy"|"stop"|"rm"|"clear")
+    echo -e "${CYAN}$(date '+%F %X') - env (local) - $command - end${NC}"
+    echo -e "${CYAN}env (local) - $command - $start - $end${NC}"
+    ;;
+esac

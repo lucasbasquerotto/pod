@@ -78,16 +78,17 @@ case "$command" in
 		restore_remote_src_uploads=""
 		restore_local_dest_uploads=""
 
-		dir_ls="$("$pod_script_env_file" exec-nontty "$var_restore_service" \
-			find /${var_uploads_service_dir}/ -type f | wc -l)"
+		echo -e "${CYAN}$(date '+%F %X') - $command - verify if uploads setup should be done${NC}"
+		skip="$("$pod_script_env_file" "setup:uploads:verify")"
 
-		if [ -z "$dir_ls" ]; then
-			dir_ls="0"
+		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
+			msg="Value of the 'setup:uploads:verify' should be true or false - result: $skip"
+			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
+			exit 1
 		fi
 
-		if [[ $dir_ls -ne 0 ]]; then
-			msg="There are already uploaded files restored, skipping phase..."
-			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
+		if [ "$skip" = "true" ]; then
+			echo "$(date '+%F %X') - $command - skipping..."
 		else
 			if [ ! -z "$var_setup_local_uploads_zip_file" ] \
 			|| [ ! -z "$var_setup_remote_uploads_zip_file" ] \
@@ -185,9 +186,22 @@ case "$command" in
 			fi
 		fi
 		;;
+	"setup:uploads:verify")
+		dir_ls="$("$pod_script_env_file" exec-nontty "$var_restore_service" \
+			find /${var_uploads_service_dir}/ -type f | wc -l)"
+
+		if [ -z "$dir_ls" ]; then
+			dir_ls="0"
+		fi
+
+		if [[ $dir_ls -ne 0 ]]; then
+			echo "true"
+		else
+			echo "false"
+		fi
+		;;
 	"setup:db")
 		# Restore the database
-    cd "$pod_full_dir"
 		"$pod_script_env_file" up "$var_restore_service" "$var_db_service"
 		
 		backup_bucket_prefix="$var_backup_bucket_name/$var_backup_bucket_path"
@@ -196,41 +210,17 @@ case "$command" in
 		restore_remote_src_db=""
 		restore_local_dest_db=""
 
-		sql_tables="select count(*) from information_schema.tables where table_schema = '$var_db_name'"
-		sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
-			mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
-		tables=""
+		echo -e "${CYAN}$(date '+%F %X') - $command - verify if db setup should be done${NC}"
+		skip="$("$pod_script_env_file" "setup:db:verify")"
 
-		if [ ! -z "$sql_output" ]; then
-			tables="$(echo "$sql_output" | tail -n 1)"
-		fi
-
-		if ! [[ $tables =~ $re_number ]] ; then
-			tables=""
-		fi
-
-		if [ -z "$tables" ]; then
-			echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
-			sleep 60
-			sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
-				mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
-
-			if [ ! -z "$sql_output" ]; then
-				tables="$(echo "$sql_output" | tail -n 1)"
-			fi
-		fi
-
-		re='^[0-9]+$'
-
-		if ! [[ $tables =~ $re ]] ; then
-			msg="Could nor verify number of tables in database - output: $sql_output"
+		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
+			msg="Value of the 'setup:db:verify' should be true or false - result: $skip"
 			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
 			exit 1
 		fi
 
-		if [ "$tables" != "0" ]; then
-			msg="The database already has $tables tables, skipping database restore..."
-			echo -e "${CYAN}$(date '+%F %X') - ${msg}${NC}"
+		if [ "$skip" = "true" ]; then
+			echo "$(date '+%F %X') - $command - skipping..."
 		else
 			if [ ! -z "$var_setup_local_db_file" ] \
 			|| [ ! -z "$var_setup_remote_db_file" ] \
@@ -343,6 +333,46 @@ case "$command" in
 			else
 		    "$pod_script_env_file" "setup:db:new"
 			fi
+		fi
+		;;
+	"setup:db:verify")
+		"$pod_script_env_file" "setup:db:verify:mysql"
+		;;
+	"setup:db:verify:mysql")
+		sql_tables="select count(*) from information_schema.tables where table_schema = '$var_db_name'"
+		sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
+			mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
+		tables=""
+
+		if [ ! -z "$sql_output" ]; then
+			tables="$(echo "$sql_output" | tail -n 1)"
+		fi
+
+		if ! [[ $tables =~ $re_number ]] ; then
+			tables=""
+		fi
+
+		if [ -z "$tables" ]; then
+			>&2 echo "$(date '+%F %X') - $command - wait for db to be ready"
+			sleep 60
+			sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
+				mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
+
+			if [ ! -z "$sql_output" ]; then
+				tables="$(echo "$sql_output" | tail -n 1)"
+			fi
+		fi
+
+		if ! [[ $tables =~ $re_number ]] ; then
+			msg="Could nor verify number of tables in database - output: $sql_output"
+			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
+			exit 1
+		fi
+
+		if [ "$tables" != "0" ]; then
+			echo "true"
+		else
+			echo "false"
 		fi
 		;;
   "setup:db:mysql")
@@ -495,7 +525,6 @@ case "$command" in
 esac
 
 end="$(date '+%F %X')"
-echo -e "${CYAN}$command - $start - $end${NC}"
 
 case "$command" in
 	"migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"setup:uploads"|"setup:db"|"setup:db:mysql"|"backup"|"backup:db:mysql")

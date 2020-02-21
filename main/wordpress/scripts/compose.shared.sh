@@ -78,7 +78,7 @@ case "$command" in
 		restore_remote_src_uploads=""
 		restore_local_dest_uploads=""
 
-		dir_ls="$(sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_restore_service")" \
+		dir_ls="$("$pod_script_env_file" exec-nontty "$var_restore_service" \
 			find /${var_uploads_service_dir}/ -type f | wc -l)"
 
 		if [ -z "$dir_ls" ]; then
@@ -121,7 +121,7 @@ case "$command" in
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - $var_backup_service - restore${NC}"
 				"$pod_script_env_file" up "$var_restore_service"
-				sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_restore_service")" /bin/bash <<-SHELL
+				"$pod_script_env_file" exec-nontty "$var_restore_service" /bin/bash <<-SHELL
 					set -eou pipefail
 
 					rm -rf "/$var_uploads_main_dir"
@@ -197,11 +197,9 @@ case "$command" in
 		restore_local_dest_db=""
 
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$var_db_name'"
-		sql_output="$(sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_db_service")" \
+		sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
 			mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
 		tables=""
-
-		echo "sql_output=$sql_output"
 
 		if [ ! -z "$sql_output" ]; then
 			tables="$(echo "$sql_output" | tail -n 1)"
@@ -213,8 +211,8 @@ case "$command" in
 
 		if [ -z "$tables" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - wait for db to be ready${NC}"
-			sleep 30
-			sql_output="$(sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_db_service")" \
+			sleep 60
+			sql_output="$("$pod_script_env_file" exec-nontty "$var_db_service" \
 				mysql -u "$var_db_user" -p"$var_db_pass" -N -e "$sql_tables")" ||:
 
 			if [ ! -z "$sql_output" ]; then
@@ -273,7 +271,7 @@ case "$command" in
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 				"$pod_script_env_file" up "$var_restore_service"
-				sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_restore_service")" /bin/bash <<-SHELL
+				"$pod_script_env_file" exec-nontty "$var_restore_service" /bin/bash <<-SHELL
 					set -eou pipefail
 
 					rm -rf "/$var_db_restore_dir"
@@ -355,7 +353,7 @@ case "$command" in
 			exit 1
 		fi
 
-		sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_db_service")" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mysql -u "$var_db_user" -p"$var_db_pass" -e "CREATE DATABASE IF NOT EXISTS $var_db_name;"
 			pv "/$setup_db_sql_file" | mysql -u "$var_db_user" -p"$var_db_pass" "$var_db_name"
@@ -378,7 +376,7 @@ case "$command" in
 		"$pod_script_env_file" up "$var_db_service" "$var_backup_service"
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean directories${NC}"
-		sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_backup_service")" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_backup_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			rm -rf "/$var_db_backup_dir"
@@ -392,7 +390,7 @@ case "$command" in
 		"$pod_script_env_file" "backup:db:mysql"
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
-		sudo docker exec -i "$("$pod_script_env_file" ps -q "$var_backup_service")" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_backup_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			mkdir -p "/$main_backup_dir"
@@ -478,13 +476,14 @@ case "$command" in
 			fi
 
 			find /$var_main_backup_base_dir/* -ctime +$var_backup_delete_old_days -delete;
-			find /$var_main_backup_base_dir/* -maxdepth 0 -type d -ctime +$var_backup_delete_old_days -exec rm -rf {} \;
+			find /$var_main_backup_base_dir/* -maxdepth 0 -type d -ctime \
+			  +$var_backup_delete_old_days -exec rm -rf {} \;
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - generated backup file(s) at '/$main_backup_dir'${NC}"
 		;;
 	"backup:db:mysql")
-		sudo docker exec -i "$("$pod_script_env_file" ps -q mysql)" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mysqldump -u "$var_db_user" -p"$var_db_pass" "$var_db_name" > "/$var_db_backup_dir/$var_db_name.sql"
 		SHELL

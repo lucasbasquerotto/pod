@@ -34,15 +34,30 @@ shift;
 case "$command" in
 	"up")
 		cd "$pod_full_dir/"
-		sudo docker-compose up -d --remove-orphans $@
+		sudo docker-compose up -d --remove-orphans "${@}"
 		;;
 	"rm")
 		cd "$pod_full_dir/"
-		sudo docker-compose rm --stop -v --force $@
+		sudo docker-compose rm --stop -v --force "${@}"
+		;;
+	"exec-nontty")
+		cd "$pod_full_dir/"
+		
+		service="${1:-}"
+
+		if [ -z "$service" ]; then
+			msg="[exec-nontty] service not specified"
+			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
+			exit 1
+		fi
+
+		shift;
+
+		sudo docker exec -i "$("$pod_script_env_file" ps -q "$service")" "${@}"
 		;;
 	"build"|"run"|"stop"|"exec"|"restart"|"logs"|"ps")
 		cd "$pod_full_dir/"
-		sudo docker-compose "$command" ${@}
+		sudo docker-compose "$command" "${@}"
 		;;
 	"sh"|"bash")
 		cd "$pod_full_dir/"

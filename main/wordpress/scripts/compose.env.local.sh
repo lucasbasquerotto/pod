@@ -80,33 +80,6 @@ case "$command" in
     sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
-  "test")
-		cd "$pod_full_dir/"
-    if output="$(sudo docker exec -i "$("$pod_env_shared_file_full" ps -q "$var_db_service")" \
-			mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")"; then
-        printf "some_command succeeded\n$output\n"
-    else
-        printf "some_command failed\n$output\n"
-    fi
-				
-    # if output="$("$pod_env_shared_file_full" exec -T "$var_db_service" \
-		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")"; then
-    #     printf "some_command succeeded\n$output\n"
-    # else
-    #     printf "some_command failed\n$output\n"
-    # fi
-    
-		# output="$("$pod_env_shared_file_full" exec -T "$var_db_service" \
-		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES")" ||:
-		# echo "output=$output"
-
-    # "$pod_env_shared_file_full" exec -T "$var_db_service" \
-		# 	mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES"
-
-		cd "$pod_full_dir/"
-		sudo docker-compose exec -T "$var_db_service" \
-			mysql -u "root" -p"1234556{{ test2 }}" -N -e "SHOW DATABASES"
-    ;;
 	*)
 		"$pod_env_shared_file_full" "$command" "$@"
     ;;

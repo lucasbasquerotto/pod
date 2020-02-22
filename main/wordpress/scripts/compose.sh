@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_shared_file_full="$pod_layer_dir/$var_scripts_dir/compose.shared.sh"
+pod_shared_file_full="$pod_layer_dir/$var_scripts_dir/main.sh"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -42,7 +42,7 @@ case "$command" in
 		;;
 	"exec-nontty")
 		cd "$pod_full_dir/"
-		
+
 		service="${1:-}"
 
 		if [ -z "$service" ]; then

@@ -8,7 +8,8 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_script_run_file_full="$pod_layer_dir/$var_scripts_dir/$var_script_run_file"
+pod_script_run_file_full="$pod_layer_dir/main/wordpress/scripts/compose.sh"
+pod_script_db_file_full="$pod_layer_dir/main/wordpress/scripts/db.sh"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -95,6 +96,9 @@ case "$command" in
             search-replace "$var_old_domain_host" "$var_new_domain_host"
     fi
     ;;
+  "setup:db:verify"|"setup:db:local:file"|"backup:db:local")
+		"$pod_script_db_file_full" "$command:mysql"
+		;;
   *)
     "$pod_script_run_file_full" "$command" "$@"
     ;;

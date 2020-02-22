@@ -65,22 +65,13 @@ case "$command" in
 		"$pod_script_env_file" deploy 
 		;;
 	"setup:uploads")
-		# Restore the uploaded files
-    cd "$pod_full_dir"
 		"$pod_script_env_file" up "$var_restore_service"
-		
-		backup_bucket_prefix="$var_backup_bucket_name/$var_backup_bucket_path"
-		key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-    
-		setup_uploads_zip_file=""
-		restore_remote_src_uploads=""
-		restore_local_dest_uploads=""
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - verify if uploads setup should be done${NC}"
 		skip="$("$pod_script_env_file" "setup:uploads:verify")"
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
-			msg="Value of the 'setup:uploads:verify' should be true or false - result: $skip"
+			msg="$command: value of the verification should be true or false - result: $skip"
 			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
 			exit 1
 		fi
@@ -93,94 +84,8 @@ case "$command" in
 			|| [ ! -z "$var_setup_remote_bucket_path_uploads_dir" ] \
 			|| [ ! -z "$var_setup_remote_bucket_path_uploads_file" ]; then
 
-				if [ ! -z "$var_setup_local_uploads_zip_file" ]; then
-					echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
-					setup_uploads_zip_file="$var_setup_local_uploads_zip_file"
-				elif [ ! -z "$var_setup_remote_uploads_zip_file" ]; then
-					setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
-					setup_uploads_zip_file="/$var_uploads_main_dir/$setup_uploads_zip_file_name"
-				elif [ ! -z "$var_setup_remote_bucket_path_uploads_dir" ]; then
-					var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_dir"
-					var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
-					
-					restore_remote_src_uploads="s3://$var_backup_bucket_path"
-				elif [ ! -z "$var_setup_remote_bucket_path_uploads_file" ]; then
-					setup_uploads_zip_file_name="uploads-$key.zip"
-					setup_uploads_zip_file="$var_uploads_main_dir/$setup_uploads_zip_file_name"
-
-					var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_file"
-					var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
-					
-					restore_remote_src_uploads="s3://$var_backup_bucket_path"
-					restore_local_dest_uploads="/$setup_uploads_zip_file"
-					restore_local_dest_uploads=$(echo "$restore_local_dest_uploads" | tr -s /)
-				fi
-
-				uploads_restore_specific_dir="$var_uploads_main_dir/uploads-$key"
-
-				echo -e "${CYAN}$(date '+%F %X') - $command - $var_backup_service - restore${NC}"
-				"$pod_script_env_file" up "$var_restore_service"
-				"$pod_script_env_file" exec-nontty "$var_restore_service" /bin/bash <<-SHELL
-					set -eou pipefail
-
-					rm -rf "/$var_uploads_main_dir"
-					mkdir -p "/$var_uploads_main_dir"
-				
-					if [ ! -z "$var_setup_local_uploads_zip_file" ]; then
-						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
-					elif [ ! -z "$var_setup_remote_uploads_zip_file" ]; then
-						echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
-						curl -L -o "$setup_uploads_zip_file" -k "$var_setup_remote_uploads_zip_file"
-					elif [ ! -z "$var_setup_remote_bucket_path_uploads_file" ]; then
-						msg="$command - restore uploads zip file from remote bucket"
-						msg="\$msg [$restore_remote_src_uploads -> $restore_local_dest_uploads]"
-						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-					
-						if [ "$var_use_aws_s3" = 'true' ]; then
-							msg="$command - $var_backup_service - aws_s3 - copy bucket file to local path"
-							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							aws s3 cp \
-								--endpoint="$var_s3_endpoint" \
-								"$restore_remote_src_uploads" "$restore_local_dest_uploads"
-						elif [ "$var_use_s3cmd" = 'true' ]; then
-							msg="$command - $var_backup_service - s3cmd - copy bucket file to local path"
-							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							s3cmd cp "$restore_remote_src_uploads" "$restore_local_dest_uploads"
-						else
-							msg="$command - $var_backup_service - not able to copy bucket file to local path"
-							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
-							exit 1
-						fi
-					fi
-
-					if [ ! -z "$var_setup_remote_bucket_path_uploads_dir" ]; then
-						msg="$command - restore uploads from remote bucket directly to uploads directory"
-						msg="\$msg [$restore_remote_src_uploads -> /$var_uploads_service_dir]"
-						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-					
-						if [ "$var_use_aws_s3" = 'true' ]; then
-							msg="$command - $var_backup_service - aws_s3 - sync bucket dir to local path"
-							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							aws s3 sync \
-								--endpoint="$var_s3_endpoint" \
-								"$restore_remote_src_uploads" "/$var_uploads_service_dir"
-						elif [ "$var_use_s3cmd" = 'true' ]; then
-							msg="$command - $var_backup_service - s3cmd - sync bucket dir to local path"
-							echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-							s3cmd sync "$restore_remote_src_uploads" "/$var_uploads_service_dir"
-						else
-							msg="$command - $var_backup_service - not able to sync bucket dir to local path"
-							echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
-							exit 1
-						fi
-					else
-						echo -e "${CYAN}$(date '+%F %X') - $command - uploads unzip${NC}"
-						unzip "/$setup_uploads_zip_file" -d "/$uploads_restore_specific_dir"
-
-						echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore - main${NC}"
-						cp -r  "/$uploads_restore_specific_dir/uploads"/. "/$var_uploads_service_dir/"
-					fi
-				SHELL
+				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore - remote${NC}"
+				setup_db_sql_file="$("$pod_script_env_file" "setup:uploads:remote")"
 			fi
 		fi
 		;;
@@ -332,14 +237,6 @@ case "$command" in
 					echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
 					exit 1
 				fi
-
-				extension=${setup_db_sql_file##*.}
-
-				if [ "$extension" != "sql" ]; then
-					msg="$command: db file extension should be sql - found: $extension ($setup_db_sql_file)"
-					echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
-					exit 1
-				fi
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - local${NC}"
 				"$pod_script_env_file" "setup:db:local:file" "$setup_db_sql_file"
@@ -390,7 +287,7 @@ case "$command" in
 			setup_db_sql_file="$setup_db_file"
 		fi
 
-		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
+		>&2  echo -e "${CYAN}$(date '+%F %X') - $command - create and clean the directories${NC}"
 		"$pod_script_env_file" up "$var_restore_service"
 		"$pod_script_env_file" exec-nontty "$var_restore_service" /bin/bash <<-SHELL
 			set -eou pipefail
@@ -399,44 +296,44 @@ case "$command" in
 			mkdir -p "/$var_db_restore_dir"
 		
 			if [ ! -z "$var_setup_local_db_file" ]; then
-				echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
+				>&2 echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
 			elif [ ! -z "$var_setup_remote_db_file" ]; then
-				echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
+				>&2 echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
 				curl -L -o "/$setup_db_file" -k "$var_setup_remote_db_file"
 			elif [ ! -z "$var_setup_remote_bucket_path_db_dir" ]; then
 				msg="$command - restore db from remote bucket dir"
 				msg="\$msg [$restore_remote_src_db -> $var_db_restore_dir]"
-				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+				>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 
 				if [ "$var_use_aws_s3" = 'true' ]; then
 					msg="$command - $var_backup_service - aws_s3 - sync bucket db dir to local path"
-					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 sync \
 						--endpoint="$var_s3_endpoint" \
 						"$restore_remote_src_db" "/$var_db_restore_dir"
 				elif [ "$var_use_s3cmd" = 'true' ]; then
 					msg="$command - $var_backup_service - s3cmd - sync bucket db dir to local path"
-					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "$restore_remote_src_db" "/$var_db_restore_dir"
 				else
 					msg="$command - $var_backup_service - not able to sync bucket db dir to local path"
-					echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
+					>&2 echo -e "${RED}\$(date '+%F %X') - \${msg}${NC}"
 					exit 1
 				fi
 			elif [ ! -z "$var_setup_remote_bucket_path_db_file" ]; then
 				msg="$command - restore db from remote bucket"
 				msg="\$msg [$restore_remote_src_db -> $restore_local_dest_db]"
-				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+				>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 
 				if [ "$var_use_aws_s3" = 'true' ]; then
 					msg="$command - $var_backup_service - aws_s3 - copy bucket file to local path"
-					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 cp \
 						--endpoint="$var_s3_endpoint" \
 						"$restore_remote_src_db" "$restore_local_dest_db"
 				elif [ "$var_use_s3cmd" = 'true' ]; then
 					msg="$command - $var_backup_service - s3cmd - copy bucket file to local path"
-					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
+					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd cp "$restore_remote_src_db" "$restore_local_dest_db"
 				else
 					msg="$command - $var_backup_service - not able to copy bucket file to local path"
@@ -454,12 +351,12 @@ case "$command" in
 			fi
 
 			if [ "$extension" = "zip" ]; then
-				echo -e "${CYAN}$(date '+%F %X') - $command - db unzip${NC}"
-				unzip "/$setup_db_file" -d "/$var_db_restore_dir"
+				>&2 echo -e "${CYAN}$(date '+%F %X') - $command - db unzip${NC}"
+				>&2 unzip "/$setup_db_file" -d "/$var_db_restore_dir"
 			fi
 		SHELL
 			
-		echo "$setup_db_sql_file"
+		echo "/$setup_db_sql_file"
 		;;
 	"backup")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"

@@ -97,7 +97,7 @@ case "$command" in
     fi
     ;;
   "setup:db:verify"|"setup:db:local:file"|"backup:db:local")
-		"$pod_script_db_file_full" "$command:mysql"
+		"$pod_script_db_file_full" "$command:mysql" "$@"
 		;;
   *)
     "$pod_script_run_file_full" "$command" "$@"

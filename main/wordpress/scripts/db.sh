@@ -70,8 +70,23 @@ case "$command" in
 
 		"$pod_script_env_file" exec-nontty "$var_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
+
+      extension=${setup_db_sql_file##*.}
+
+      if [ "\$extension" != "sql" ]; then
+        msg="$command: db file extension should be sql - found: \$extension ($setup_db_sql_file)"
+        echo -e "${RED}$(date '+%F %X') - \${msg}${NC}"
+        exit 1
+      fi
+
+      if [ ! -f "$setup_db_sql_file" ]; then
+        msg="$command: db file not found: $setup_db_sql_file"
+        echo -e "${RED}$(date '+%F %X') - \${msg}${NC}"
+        exit 1
+      fi
+      
 			mysql -u "$var_db_user" -p"$var_db_pass" -e "CREATE DATABASE IF NOT EXISTS $var_db_name;"
-			pv "/$setup_db_sql_file" | mysql -u "$var_db_user" -p"$var_db_pass" "$var_db_name"
+			pv "$setup_db_sql_file" | mysql -u "$var_db_user" -p"$var_db_pass" "$var_db_name"
 		SHELL
 		;;
   "backup:db:local:mysql")

@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154
+# shellcheck disable=SC1090,SC2154,SC2153
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_env_shared_file_full="$pod_layer_dir/$var_scripts_dir/compose.env.shared.sh"
+pod_env_shared_file="$pod_layer_dir/$var_scripts_dir/shared.sh"
 
 pod_layer_base_dir="$(dirname "$pod_layer_dir")"
 base_dir="$(dirname "$pod_layer_base_dir")"
@@ -56,23 +56,23 @@ case "$command" in
     chmod 777 "$app_layer_dir/web/app/uploads/"
     ;;
 	"setup")
-    "$pod_env_shared_file_full" rm wordpress composer 
-    "$pod_env_shared_file_full" stop mysql
-    "$pod_env_shared_file_full" up mysql composer
-    "$pod_env_shared_file_full" exec composer composer install --verbose
-		"$pod_env_shared_file_full" "$command"
+    "$pod_env_shared_file" rm wordpress composer 
+    "$pod_env_shared_file" stop mysql
+    "$pod_env_shared_file" up mysql composer
+    "$pod_env_shared_file" exec composer composer install --verbose
+		"$pod_env_shared_file" "$command"
 		;;
   "deploy")
     cd "$pod_full_dir"
-    "$pod_env_shared_file_full" rm wordpress composer 
-    "$pod_env_shared_file_full" stop mysql
-    "$pod_env_shared_file_full" up mysql composer
-    "$pod_env_shared_file_full" exec composer composer clear-cache
-    "$pod_env_shared_file_full" exec composer composer update --verbose
-		"$pod_env_shared_file_full" "$command" "$@"
+    "$pod_env_shared_file" rm wordpress composer 
+    "$pod_env_shared_file" stop mysql
+    "$pod_env_shared_file" up mysql composer
+    "$pod_env_shared_file" exec composer composer clear-cache
+    "$pod_env_shared_file" exec composer composer update --verbose
+		"$pod_env_shared_file" "$command" "$@"
     ;;
   "stop"|"rm")
-		"$pod_env_shared_file_full" "$command" "$@"
+		"$pod_env_shared_file" "$command" "$@"
     "$ctl_layer_dir/run" "$command"
     ;;
   "clear")
@@ -81,7 +81,7 @@ case "$command" in
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
 	*)
-		"$pod_env_shared_file_full" "$command" "$@"
+		"$pod_env_shared_file" "$command" "$@"
     ;;
 esac
 

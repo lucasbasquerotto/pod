@@ -285,11 +285,8 @@ children:
       var_pod_inner_dir: "{{ params.dirs.dest_dir_base }}"
       var_pod_env_dir: "{{ params.pod.env_dir }}"
       var_scripts_dir: "main/wordpress/scripts"
-      var_script_run_file: "compose.sh"
       var_script_env_file: >-
-        {{ var_local | ternary('compose.env.local.sh', 'compose.env.remote.sh') }}
-      var_script_upgrade_file: >-
-        {{ var_web | ternary('compose.upgrade.app.sh', '') }}
+        {{ var_local | ternary('local.sh', 'remote.sh') }}
       var_wordpress_dev_repo_dir: >-
         {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
       var_env_local_repo: "{{ params.pod.env_local_repo }}"

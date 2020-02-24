@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -9,10 +9,8 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_shared_file_full="$pod_layer_dir/$var_scripts_dir/main.sh"
+pod_shared_file="$pod_layer_dir/main/scripts/main.sh"
 
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -64,6 +62,6 @@ case "$command" in
 		sudo docker-compose exec "${1}" /bin/"$command"
 		;;
 	*)
-		"$pod_shared_file_full" "$command" "$@"
+		"$pod_shared_file" "$command" "$@"
 		;;
 esac

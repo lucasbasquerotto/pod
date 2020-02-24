@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -7,7 +7,6 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 

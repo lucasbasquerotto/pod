@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -118,18 +118,18 @@ case "$command" in
 			setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
 			setup_uploads_zip_file="/$var_uploads_main_dir/$setup_uploads_zip_file_name"
 		elif [ ! -z "$var_setup_remote_bucket_path_uploads_dir" ]; then
-			var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_dir"
-			var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
+			backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_dir"
+			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
-			restore_remote_src_uploads="s3://$var_backup_bucket_path"
+			restore_remote_src_uploads="s3://$backup_bucket_path"
 		elif [ ! -z "$var_setup_remote_bucket_path_uploads_file" ]; then
 			setup_uploads_zip_file_name="uploads-$key.zip"
 			setup_uploads_zip_file="$var_uploads_main_dir/$setup_uploads_zip_file_name"
 
-			var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_file"
-			var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
+			backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_uploads_file"
+			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
-			restore_remote_src_uploads="s3://$var_backup_bucket_path"
+			restore_remote_src_uploads="s3://$backup_bucket_path"
 			restore_local_dest_uploads="/$setup_uploads_zip_file"
 			restore_local_dest_uploads=$(echo "$restore_local_dest_uploads" | tr -s /)
 		else
@@ -260,18 +260,18 @@ case "$command" in
 		elif [ ! -z "$var_setup_remote_bucket_path_db_dir" ]; then
 			setup_db_file="$var_db_restore_dir/$var_db_name.sql"
 
-			var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_db_dir"
-			var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
+			backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_db_dir"
+			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
-			restore_remote_src_db="s3://$var_backup_bucket_path"
+			restore_remote_src_db="s3://$backup_bucket_path"
 		elif [ ! -z "$var_setup_remote_bucket_path_db_file" ]; then
 			setup_db_file_name="db-$key.zip"
 			setup_db_file="$var_db_restore_dir/$setup_db_file_name"
 
-			var_backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_db_file"
-			var_backup_bucket_path=$(echo "$var_backup_bucket_path" | tr -s /)
+			backup_bucket_path="$backup_bucket_prefix/$var_setup_remote_bucket_path_db_file"
+			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
-			restore_remote_src_db="s3://$var_backup_bucket_path"
+			restore_remote_src_db="s3://$backup_bucket_path"
 			restore_local_dest_db="/$setup_db_file"
 			restore_local_dest_db=$(echo "$restore_local_dest_db" | tr -s /)
 		else
@@ -373,10 +373,10 @@ case "$command" in
 		main_backup_dir="$var_main_backup_base_dir/$main_backup_name"
 		backup_bucket_prefix="$var_backup_bucket_name/$var_backup_bucket_path"
 		backup_bucket_prefix="$(echo "$backup_bucket_prefix" | tr -s /)"
-		var_backup_bucket_uploads_sync_dir_full="$var_backup_bucket_name/$var_backup_bucket_path/$var_backup_bucket_uploads_sync_dir"
-		var_backup_bucket_uploads_sync_dir_full="$(echo "$var_backup_bucket_uploads_sync_dir_full" | tr -s /)"
-		var_backup_bucket_db_sync_dir_full="$var_backup_bucket_name/$var_backup_bucket_path/$var_backup_bucket_db_sync_dir"
-		var_backup_bucket_db_sync_dir_full="$(echo "$var_backup_bucket_db_sync_dir_full" | tr -s /)"		
+		backup_bucket_uploads_sync_dir="$var_backup_bucket_name/$var_backup_bucket_path/$var_backup_bucket_uploads_sync_dir"
+		backup_bucket_uploads_sync_dir="$(echo "$backup_bucket_uploads_sync_dir" | tr -s /)"
+		backup_bucket_db_sync_dir="$var_backup_bucket_name/$var_backup_bucket_path/$var_backup_bucket_db_sync_dir"
+		backup_bucket_db_sync_dir="$(echo "$backup_bucket_db_sync_dir" | tr -s /)"		
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - start needed services${NC}"
 		"$pod_script_env_file" up "$var_db_service" "$var_backup_service"
@@ -441,7 +441,7 @@ case "$command" in
 						aws s3 sync \
 							--endpoint="$var_s3_endpoint" \
 							"/$var_uploads_service_dir/" \
-							"s3://$var_backup_bucket_uploads_sync_dir_full/"
+							"s3://$backup_bucket_uploads_sync_dir/"
 					fi
 
 					if [ ! -z "$var_backup_bucket_db_sync_dir" ]; then
@@ -450,7 +450,7 @@ case "$command" in
 						aws s3 sync \
 							--endpoint="$var_s3_endpoint" \
 							"/$var_db_backup_dir/" \
-							"s3://$var_backup_bucket_db_sync_dir_full/"
+							"s3://$backup_bucket_db_sync_dir/"
 					fi
 				elif [ "$var_use_s3cmd" = 'true' ]; then
 					msg="$command - $var_backup_service - s3cmd - sync local backup with bucket"
@@ -460,13 +460,13 @@ case "$command" in
 					if [ ! -z "$var_backup_bucket_uploads_sync_dir" ]; then
 						msg="$command - $var_backup_service - s3cmd - sync local uploads dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						s3cmd sync "/$var_uploads_service_dir/" "s3://$var_backup_bucket_uploads_sync_dir_full/"
+						s3cmd sync "/$var_uploads_service_dir/" "s3://$backup_bucket_uploads_sync_dir/"
 					fi
 
 					if [ ! -z "$var_backup_bucket_db_sync_dir" ]; then
 						msg="$command - $var_backup_service - s3cmd - sync local db dir with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						s3cmd sync "/$var_db_backup_dir/" "s3://$var_backup_bucket_db_sync_dir_full/"
+						s3cmd sync "/$var_db_backup_dir/" "s3://$backup_bucket_db_sync_dir/"
 					fi
 				else
 					msg="$command - $var_backup_service - not able to sync local backup with bucket"

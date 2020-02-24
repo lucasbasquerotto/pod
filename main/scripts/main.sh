@@ -214,8 +214,12 @@ case "$command" in
 		restore_local_dest_db=""
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - verify if db setup should be done${NC}"
-		skip="$("$pod_script_env_file" "setup:db:verify")"
-
+		skip="$("$pod_script_env_file" "setup:db:verify" \
+      --db_name="$var_db_name" \
+      --db_service="$var_db_service" \
+      --db_user="$var_db_user" \
+      --db_pass="$var_db_pass")"
+      
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="$command: value of the verification should be true or false - result: $skip"
 			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
@@ -239,7 +243,12 @@ case "$command" in
 				fi
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - local${NC}"
-				"$pod_script_env_file" "setup:db:local:file" "$setup_db_sql_file"
+				"$pod_script_env_file" "setup:db:local:file" \
+          --db_name="$var_db_name" \
+          --db_service="$var_db_service" \
+          --db_user="$var_db_user" \
+          --db_pass="$var_db_pass" \
+          --db_sql_file="$setup_db_sql_file"
 			else
 		    "$pod_script_env_file" "setup:db:new"
 			fi
@@ -393,7 +402,12 @@ case "$command" in
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
-		"$pod_script_env_file" "backup:db:local"
+		"$pod_script_env_file" "backup:db:local" \
+      --db_name="$var_db_name" \
+      --db_service="$var_db_service" \
+      --db_user="$var_db_user" \
+      --db_pass="$var_db_pass" \
+      --db_backup_dir="$var_db_backup_dir"
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
 		"$pod_script_env_file" exec-nontty "$var_backup_service" /bin/bash <<-SHELL

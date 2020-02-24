@@ -91,7 +91,7 @@ case "$command" in
 		;;
 	"setup:uploads:verify")
 		dir_ls="$("$pod_script_env_file" exec-nontty "$var_restore_service" \
-			find /${var_uploads_service_dir}/ -type f | wc -l)"
+			find /"${var_uploads_service_dir}"/ -type f | wc -l)"
 
 		if [ -z "$dir_ls" ]; then
 			dir_ls="0"

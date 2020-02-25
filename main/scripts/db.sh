@@ -2,28 +2,28 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
-pod_vars_dir="$POD_VARS_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
-
-. "${pod_vars_dir}/vars.sh"
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+function error {
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		>&2 echo -e "${RED}${msg}${NC}"
+		exit 2
+}
+
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	echo -e "${RED}No command entered (db).${NC}"
-	exit 1
+	error "No command entered (db)."
 fi
 
 shift;
 
 args=( "$@" )
 
->&2 echo "args2=${args[@]}"
-
-die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
+die() { error "$*"; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
 while getopts n:s:u:p:d:-: OPT; do
@@ -74,9 +74,7 @@ case "$command" in
 		fi
 
 		if ! [[ $tables =~ $re_number ]] ; then
-			msg="Could nor verify number of tables in database - output: $sql_output"
-			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
-			exit 1
+			error "Could nor verify number of tables in database - output: $sql_output"
 		fi
 
 		if [ "$tables" != "0" ]; then
@@ -87,8 +85,7 @@ case "$command" in
 		;;
   "setup:db:local:file:mysql")
 		if [ -z "$db_sql_file" ]; then
-			echo -e "${RED}[setup:db:mysql] db_sql_file not specified${NC}"
-			exit 1
+			error "[$command] db_sql_file not specified"
 		fi
 
 		"$pod_script_env_file" exec-nontty "$db_service" /bin/bash <<-SHELL
@@ -97,15 +94,11 @@ case "$command" in
       extension=${db_sql_file##*.}
 
       if [ "\$extension" != "sql" ]; then
-        msg="$command: db file extension should be sql - found: \$extension ($db_sql_file)"
-        echo -e "${RED}$(date '+%F %X') - \${msg}${NC}"
-        exit 1
+        error "$command: db file extension should be sql - found: \$extension ($db_sql_file)"
       fi
 
       if [ ! -f "$db_sql_file" ]; then
-        msg="$command: db file not found: $db_sql_file"
-        echo -e "${RED}$(date '+%F %X') - \${msg}${NC}"
-        exit 1
+        error "$command: db file not found: $db_sql_file"
       fi
       
 			mysql -u "$db_user" -p"$db_pass" -e "CREATE DATABASE IF NOT EXISTS $db_name;"
@@ -119,7 +112,6 @@ case "$command" in
 		SHELL
     ;;
   *)
-		echo -e "${RED}Invalid command: $command ${NC}"
-		exit 1
+		error "Invalid command: $command"
     ;;
 esac

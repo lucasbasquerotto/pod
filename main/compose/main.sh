@@ -2,29 +2,29 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
-pod_vars_dir="$POD_VARS_DIR"
 pod_layer_dir="$POD_LAYER_DIR"
 pod_full_dir="$POD_FULL_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
-
-. "${pod_vars_dir}/vars.sh"
 
 pod_shared_file="$pod_layer_dir/main/scripts/main.sh"
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+function error {
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		>&2 echo -e "${RED}${msg}${NC}"
+		exit 2
+}
+
 if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
-	msg="This project must not be in the '/' directory"
-	echo -e "${RED}${msg}${NC}"
-	exit 1
+	error "This project must not be in the '/' directory"
 fi
 
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	echo -e "${RED}No command entered (compose).${NC}"
-	exit 1
+	error "No command entered (compose)."
 fi
 
 shift;
@@ -44,9 +44,7 @@ case "$command" in
 		service="${1:-}"
 
 		if [ -z "$service" ]; then
-			msg="[exec-nontty] service not specified"
-			echo -e "${RED}$(date '+%F %X') - ${msg}${NC}"
-			exit 1
+			error "[$command] service not specified"
 		fi
 
 		shift;
@@ -62,6 +60,6 @@ case "$command" in
 		sudo docker-compose exec "${1}" /bin/"$command"
 		;;
 	*)
-		"$pod_shared_file" "$command" "$@"
+		error "$command: invalid command"
 		;;
 esac

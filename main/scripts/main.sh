@@ -2,12 +2,8 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
-pod_vars_dir="$POD_VARS_DIR"
 pod_layer_dir="$POD_LAYER_DIR"
-pod_full_dir="$POD_FULL_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
-
-. "${pod_vars_dir}/vars.sh"
 
 CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
@@ -122,7 +118,6 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"setup"|"fast-setup")
-		cd "$pod_full_dir/"
 		"$pod_script_env_file" "setup:uploads" "${args[@]}"
 		"$pod_script_env_file" "setup:db" "${args[@]}"
 
@@ -416,7 +411,6 @@ case "$command" in
 			error "$msg"
 		fi
 
-		cd "$pod_full_dir/"
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"

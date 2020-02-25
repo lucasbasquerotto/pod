@@ -18,12 +18,17 @@ CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+function error {
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		>&2 echo -e "${RED}${msg}${NC}"
+		exit 2
+}
+
 if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
   msg="This project must be in a directory structure of type"
   msg="$msg [base_dir]/[pod_layer_base_dir]/[this_repo] with"
   msg="$msg base_dir different than '' or '/' instead of $pod_layer_dir"
-  echo -e "${RED}${msg}${NC}"
-  exit 1
+  error "$msg"
 fi
 
 ctl_layer_dir="$base_dir/ctl"
@@ -32,8 +37,7 @@ app_layer_dir="$base_dir/apps/$var_wordpress_dev_repo_dir"
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	echo -e "${RED}No command entered (env).${NC}"
-	exit 1
+	error "No command entered (env)."
 fi
 
 shift;

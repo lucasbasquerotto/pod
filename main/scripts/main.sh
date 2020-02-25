@@ -40,10 +40,11 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		setup_uploads_task_names ) needs_arg; setup_uploads_task_names="$OPTARG";;
-		setup_dbs_task_names ) needs_arg; setup_dbs_task_names="$OPTARG";;
-		uploads_task_name ) needs_arg; uploads_task_name="$OPTARG";;
-		db_task_name ) needs_arg; db_task_name="$OPTARG";;  
+		setup_task_names ) needs_arg; setup_task_names="$OPTARG";;
+		setup_task_name ) needs_arg; setup_task_name="$OPTARG";; 
+
+		backup_task_names ) needs_arg; backup_task_names="$OPTARG";;
+		backup_task_name ) needs_arg; backup_task_name="$OPTARG";;
 
 		local_uploads_zip_file ) needs_arg; local_uploads_zip_file="$OPTARG" ;;
 		remote_uploads_zip_file ) needs_arg; remote_uploads_zip_file="$OPTARG" ;;
@@ -60,7 +61,6 @@ while getopts ':-:' OPT; do
 		use_s3cmd ) needs_arg; use_s3cmd="$OPTARG";;
 		db_name ) needs_arg; db_name="$OPTARG";;
 		db_service ) needs_arg; db_service="$OPTARG" ;;
-		db_backup_dir ) needs_arg; db_backup_dir="$OPTARG" ;;
 		local_db_file ) needs_arg; local_db_file="$OPTARG" ;;
 		remote_db_file ) needs_arg; remote_db_file="$OPTARG" ;;
 		remote_bucket_path_db_dir ) needs_arg; remote_bucket_path_db_dir="$OPTARG" ;;
@@ -68,8 +68,12 @@ while getopts ':-:' OPT; do
 		db_restore_dir ) needs_arg; db_restore_dir="$OPTARG";;
 		backup_delete_old_days ) needs_arg; backup_delete_old_days="$OPTARG";;
 		main_backup_base_dir ) needs_arg; main_backup_base_dir="$OPTARG";;
-		backup_bucket_uploads_sync_dir ) needs_arg; backup_bucket_uploads_sync_dir="$OPTARG";;
-		backup_bucket_db_sync_dir ) needs_arg; backup_bucket_db_sync_dir="$OPTARG";;  
+		backup_bucket_sync_dir ) needs_arg; backup_bucket_sync_dir="$OPTARG";;    
+		backup_local_task_name ) needs_arg; backup_local_task_name="$OPTARG";;  
+		backup_kind ) needs_arg; backup_kind="$OPTARG";;  
+		backup_name ) needs_arg; backup_name="$OPTARG";;  
+		backup_service_dir ) needs_arg; backup_service_dir="$OPTARG";;  
+		backup_intermediate_dir ) needs_arg; backup_intermediate_dir="$OPTARG";; 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -106,47 +110,20 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"setup"|"fast-setup")
-		function setup_task {
-			task_names="${1:-}"
-			task_cmd_base_name="${2:-}"
-			task_parameter_name="${3:-}"
+		task_names="${setup_task_names:-}" 
+		task_cmd_base_name="setup:task" 
+		task_parameter_name="setup_task_name"
 
-			if [ ! -z "${task_names:-}" ]; then
-				IFS=',' read -a tmp <<< "${task_names}"
-				arr=("${tmp[@]}")
+		if [ ! -z "${task_names:-}" ]; then
+			IFS=',' read -a tmp <<< "${task_names}"
+			arr=("${tmp[@]}")
 
-				for task_name in "${arr[@]}"; do
-					>&2 echo "[$task_cmd_base_name] $task_parameter_name=$task_name"
-					"$pod_script_env_file" "$task_cmd_base_name:$task_name" "${args[@]}" \
-						"--$task_parameter_name"="$task_name"
-				done
-			fi
-		}
-
-		setup_task "${setup_uploads_task_names:-}" "setup:uploads" "uploads_task_name"
-		setup_task "${setup_dbs_task_names:-}" "setup:db" "db_task_name"
-
-    # if [ ! -z "${setup_uploads_task_names:-}" ]; then
-		# 	IFS=',' read -a tmp <<< "${setup_uploads_task_names}"
-    #   arr=("${tmp[@]}")
-
-    #   for uploads_task_name in "${arr[@]}"; do
-    #     >&2 echo "uploads_task_name=$uploads_task_name"
-		#     "$pod_script_env_file" "setup:uploads:$uploads_task_name" "${args[@]}" \
-    #       --uploads_task_name="$uploads_task_name"
-    #   done
-    # fi
-
-    # if [ ! -z "${setup_dbs_task_names:-}" ]; then
-		# 	IFS=',' read -a tmp <<< "${setup_uploads_task_names}"
-    #   arr=("${tmp[@]}")
-
-    #   for db_task_name in "${arr[@]}"; do
-    #     >&2 echo "db_task_name=$db_task_name"
-		#     "$pod_script_env_file" "setup:db:$db_task_name" "${args[@]}" \
-    #       --db_task_name="$db_task_name"
-    #   done
-    # fi
+			for task_name in "${arr[@]}"; do
+				>&2 echo "[$task_cmd_base_name] $task_parameter_name=$task_name"
+				"$pod_script_env_file" "$task_cmd_base_name:$task_name" "${args[@]}" \
+					"--$task_parameter_name"="$task_name"
+			done
+		fi
 
 		if [ "$command" = "setup" ]; then
 			"$pod_script_env_file" deploy "${args[@]}" 
@@ -431,7 +408,23 @@ case "$command" in
 			
 		echo "/$setup_db_sql_file"
 		;;
-	"backup")
+	"backup")	
+		task_names="${backup_task_names:-}" 
+		task_cmd_base_name="backup:task" 
+		task_parameter_name="backup_task_name"
+
+		if [ ! -z "${task_names:-}" ]; then
+			IFS=',' read -a tmp <<< "${task_names}"
+			arr=("${tmp[@]}")
+
+			for task_name in "${arr[@]}"; do
+				>&2 echo "[$task_cmd_base_name] $task_parameter_name=$task_name"
+				"$pod_script_env_file" "$task_cmd_base_name:$task_name" "${args[@]}" \
+					"--$task_parameter_name"="$task_name"
+			done
+		fi
+		;;  
+	"backup:default")
 		echo -e "${CYAN}$(date '+%F %X') - $command - started${NC}"
 
 		if ! [[ $backup_delete_old_days =~ $re_number ]] ; then
@@ -440,49 +433,48 @@ case "$command" in
 			error "$msg"
 		fi
 
+		echo -e "${CYAN}$(date '+%F %X') - $command - start needed services${NC}"
+		"$pod_script_env_file" up "$backup_service"
+
 		main_backup_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_backup_dir="$main_backup_base_dir/$main_backup_name"
 		backup_bucket_prefix="$backup_bucket_name/$backup_bucket_path"
 		backup_bucket_prefix="$(echo "$backup_bucket_prefix" | tr -s /)"
-		backup_bucket_uploads_sync_dir_full="$backup_bucket_name/$backup_bucket_path/$backup_bucket_uploads_sync_dir"
-		backup_bucket_uploads_sync_dir_full="$(echo "$backup_bucket_uploads_sync_dir_full" | tr -s /)"
-		backup_bucket_db_sync_dir_full="$backup_bucket_name/$backup_bucket_path/$backup_bucket_db_sync_dir"
-		backup_bucket_db_sync_dir_full="$(echo "$backup_bucket_db_sync_dir_full" | tr -s /)"		
+		backup_bucket_sync_dir_full="$backup_bucket_name/$backup_bucket_path/$backup_bucket_sync_dir"
+		backup_bucket_sync_dir_full="$(echo "$backup_bucket_sync_dir_full" | tr -s /)"
 
-		echo -e "${CYAN}$(date '+%F %X') - $command - start needed services${NC}"
-		"$pod_script_env_file" up "$db_service" "$backup_service"
-	
 		echo -e "${CYAN}$(date '+%F %X') - $command - create and clean directories${NC}"
 		"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
-			rm -rf "/$db_backup_dir"
-			mkdir -p "/$db_backup_dir"
-
-			rm -rf "/$uploads_main_dir"
-			mkdir -p "/$uploads_main_dir"
+			rm -rf "/$backup_intermediate_dir"
+			mkdir -p "/$backup_intermediate_dir"
 		SHELL
 
-		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
-		"$pod_script_env_file" "backup:db:local:$db_task_name" "${args[@]}"
-	
+		if [ ! -z "$backup_local_task_name" ]; then
+			echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
+			"$pod_script_env_file" "backup:local:$backup_local_task_name" "${args[@]}"
+		fi
+
 		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
 		"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			mkdir -p "/$main_backup_dir"
 
-			if [ -z "$backup_bucket_uploads_sync_dir" ]; then
-				echo -e "${CYAN}$(date '+%F %X') - $command - uploads backup${NC}"
-				cp -r "/$uploads_service_dir" "/$uploads_main_dir"
-				cd '/$uploads_main_dir'
-				zip -r uploads.zip ./*
-				mv "/$uploads_main_dir/uploads.zip" "/$main_backup_dir/uploads.zip"
-			fi
-
-			if [ -z "$backup_bucket_db_sync_dir" ]; then
-				zip -j "/$db_backup_dir/db.zip" "/$db_backup_dir/$db_name.sql"
-				mv "/$db_backup_dir/db.zip" "/$main_backup_dir/db.zip"
+			if [ -z "$backup_bucket_sync_dir" ]; then
+			  if [ "$backup_kind" = "dir" ]; then
+					echo -e "${CYAN}$(date '+%F %X') - $command - backup directpry ($backup_service_dir)${NC}"
+					cp -r "/$backup_service_dir" "/$backup_intermediate_dir"
+					cd "/$backup_intermediate_dir"
+					zip -r $backup_name.zip ./*
+					mv "/$backup_intermediate_dir/$backup_name.zip" "/$main_backup_dir/$backup_name.zip"
+				elif [ "$backup_kind" = "file" ]; then
+					zip -j "/$backup_intermediate_dir/$backup_name.zip" "/$backup_service_dir/$backup_src_file"
+					mv "/$backup_intermediate_dir/$backup_name.zip" "/$main_backup_dir/$backup_name.zip"
+				else
+					error "[$command] $backup_kind: backup_kind invalid value"
+				fi
 			fi
 
 			if [ ! -z "$backup_bucket_name" ]; then
@@ -506,38 +498,23 @@ case "$command" in
 						"/$main_backup_base_dir/" \
 						"s3://$backup_bucket_prefix"
 
-					if [ ! -z "$backup_bucket_uploads_sync_dir" ]; then
-						msg="$command - $backup_service - aws_s3 - sync local uploads dir with bucket"
+					if [ ! -z "$backup_bucket_sync_dir" ]; then
+						msg="$command - $backup_service - aws_s3 - sync local directory with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 						aws s3 sync \
 							--endpoint="$s3_endpoint" \
-							"/$uploads_service_dir/" \
-							"s3://$backup_bucket_uploads_sync_dir_full/"
-					fi
-
-					if [ ! -z "$backup_bucket_db_sync_dir" ]; then
-						msg="$command - $backup_service - aws_s3 - sync local db dir with bucket"
-						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						aws s3 sync \
-							--endpoint="$s3_endpoint" \
-							"/$db_backup_dir/" \
-							"s3://$backup_bucket_db_sync_dir_full/"
+							"/$backup_service_dir/" \
+							"s3://$backup_bucket_sync_dir_full/"
 					fi
 				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - sync local backup with bucket"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
 
-					if [ ! -z "$backup_bucket_uploads_sync_dir" ]; then
-						msg="$command - $backup_service - s3cmd - sync local uploads dir with bucket"
+					if [ ! -z "$backup_bucket_sync_dir" ]; then
+						msg="$command - $backup_service - s3cmd - sync local directory with bucket"
 						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						s3cmd sync "/$uploads_service_dir/" "s3://$backup_bucket_uploads_sync_dir_full/"
-					fi
-
-					if [ ! -z "$backup_bucket_db_sync_dir" ]; then
-						msg="$command - $backup_service - s3cmd - sync local db dir with bucket"
-						echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
-						s3cmd sync "/$db_backup_dir/" "s3://$backup_bucket_db_sync_dir_full/"
+						s3cmd sync "/$backup_service_dir/" "s3://$backup_bucket_sync_dir_full/"
 					fi
 				else
 					msg="$command - $backup_service - not able to sync local backup with bucket"
@@ -547,7 +524,7 @@ case "$command" in
 
 			find /$main_backup_base_dir/* -ctime +$backup_delete_old_days -delete;
 			find /$main_backup_base_dir/* -maxdepth 0 -type d -ctime \
-			  +$backup_delete_old_days -exec rm -rf {} \;
+				+$backup_delete_old_days -exec rm -rf {} \;
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - generated backup file(s) at '/$main_backup_dir'${NC}"

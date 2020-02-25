@@ -104,6 +104,8 @@ case "$command" in
 		SHELL
 		;;
   "backup:db:local:mysql")
+		"$pod_script_env_file" up "$db_service"
+
 		"$pod_script_env_file" exec-nontty "$db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mysqldump -u "$db_user" -p"$db_pass" "$db_name" > "/$db_backup_dir/$db_name.sql"

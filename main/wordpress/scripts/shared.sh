@@ -222,6 +222,100 @@ case "$command" in
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
+  "args:main:backup:task:wp:uploads")
+    opts=()
+
+    if [ ! -z "${var_uploads_service_dir:-}" ]; then
+      opts+=( "--backup_service_dir=${var_uploads_service_dir:-}" )
+    fi
+    if [ ! -z "${var_uploads_main_dir:-}" ]; then
+      opts+=( "--backup_intermediate_dir=${var_uploads_main_dir:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_name:-}" ]; then
+      opts+=( "--backup_bucket_name=${var_backup_bucket_name:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_path:-}" ]; then
+      opts+=( "--backup_bucket_path=${var_backup_bucket_path:-}" )
+    fi
+    if [ ! -z "${var_backup_service:-}" ]; then
+      opts+=( "--backup_service=${var_backup_service:-}" )
+    fi
+    if [ ! -z "${var_s3_endpoint:-}" ]; then
+      opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
+    fi
+    if [ ! -z "${var_use_aws_s3:-}" ]; then
+      opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
+    fi
+    if [ ! -z "${var_use_s3cmd:-}" ]; then
+      opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    fi
+    if [ ! -z "${var_backup_delete_old_days:-}" ]; then
+      opts+=( "--backup_delete_old_days=${var_backup_delete_old_days:-}" )
+    fi
+    if [ ! -z "${var_main_backup_base_dir:-}" ]; then
+      opts+=( "--main_backup_base_dir=${var_main_backup_base_dir:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_uploads_sync_dir:-}" ]; then
+      opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
+    fi  
+    
+    opts+=( "--backup_kind=dir" )
+    opts+=( "--backup_name=uploads" )
+    
+    if [ ${#@} -ne 0 ]; then
+      opts+=( "${@}" )
+    fi
+
+		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
+		;;
+  "args:main:backup:task:wp:db")
+    opts=()
+
+    if [ ! -z "${var_db_backup_dir:-}" ]; then
+      opts+=( "--backup_service_dir=${var_db_backup_dir:-}" )
+    fi
+    if [ ! -z "${var_uploads_main_dir:-}" ]; then
+      opts+=( "--backup_intermediate_dir=${var_db_backup_dir:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_name:-}" ]; then
+      opts+=( "--backup_bucket_name=${var_backup_bucket_name:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_path:-}" ]; then
+      opts+=( "--backup_bucket_path=${var_backup_bucket_path:-}" )
+    fi
+    if [ ! -z "${var_backup_service:-}" ]; then
+      opts+=( "--backup_service=${var_backup_service:-}" )
+    fi
+    if [ ! -z "${var_s3_endpoint:-}" ]; then
+      opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
+    fi
+    if [ ! -z "${var_use_aws_s3:-}" ]; then
+      opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
+    fi
+    if [ ! -z "${var_use_s3cmd:-}" ]; then
+      opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    fi
+    if [ ! -z "${var_backup_delete_old_days:-}" ]; then
+      opts+=( "--backup_delete_old_days=${var_backup_delete_old_days:-}" )
+    fi
+    if [ ! -z "${var_main_backup_base_dir:-}" ]; then
+      opts+=( "--main_backup_base_dir=${var_main_backup_base_dir:-}" )
+    fi
+    if [ ! -z "${var_backup_bucket_uploads_sync_dir:-}" ]; then
+      opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
+    fi
+    
+    opts+=( "--backup_local_task_name=wp" )
+    opts+=( "--backup_kind=file" )
+    opts+=( "--backup_name=db" )
+    
+    if [ ${#@} -ne 0 ]; then
+      opts+=( "${@}" )
+    fi
+
+		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
+		;;
+  
   "args:db:wp")
     opts=()
 
@@ -246,6 +340,9 @@ case "$command" in
 
 		"$pod_script_db_file" "$inner_cmd" "${opts[@]}"
     ;;
+  "setup:task:wp:uploads"|"setup:task:wp:db")
+    "$pod_script_env_file" "args:main:${command}" "setup:default" "$@"
+    ;;
   "setup:uploads:wp")
     "$pod_script_env_file" "args:main:wp" "${command%:*}" "$@"
     ;;
@@ -259,7 +356,7 @@ case "$command" in
   "setup:db:remote:file:wp")
     "$pod_script_main_file" "${command%:*}" "$@"
     ;;
-  "setup:db:verify:wp"|"setup:db:local:file:wp"|"backup:db:local:wp")
+  "setup:db:verify:wp"|"setup:db:local:file:wp")
 		"$pod_script_env_file" "args:db:wp" "${command%:*}:mysql" "$@"
 		;;
   "setup:db:new:mysql")
@@ -295,6 +392,12 @@ case "$command" in
   "backup")
     "$pod_script_env_file" args "$command" "$@"
     ;;
+  "backup:task:wp:uploads"|"backup:task:wp:db")
+    "$pod_script_env_file" "args:main:${command}" "backup:default" "$@"
+    ;;
+  "backup:local:wp")
+		"$pod_script_env_file" "args:db:wp" "backup:db:local:mysql" "$@"
+		;;
 	"migrate"|"update"|"fast-update"|"setup"|"fast-setup")
     "$pod_script_main_file" "$command" "$@"
     ;;

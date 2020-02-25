@@ -17,9 +17,9 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-		>&2 echo -e "${RED}${msg}${NC}"
-		exit 2
+	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
 }
 
 if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
@@ -37,7 +37,7 @@ shift;
 inner_cmd=''
 
 case "$command" in
-  "args:db")
+  "args"|"args:"*)
     inner_cmd="${1:-}"
 
 		if [ -z "$inner_cmd" ]; then
@@ -45,10 +45,27 @@ case "$command" in
 		fi
 
     shift;
+    ;;
+	"m")
+    command="args"
+    inner_cmd="migrate"
+    ;;
+	"u")
+    command="args"
+    inner_cmd="update"
+    ;;
+	"f")
+    command="args"
+    inner_cmd="fast-update"
+    ;;
+	"s")
+    command="args"
+    inner_cmd="fast-setup"
+    ;;
 esac
 
 case "$command" in
-  "main"|"args"|"args:db")
+  "main"|"args"|"args:"*)
     die() { error "$*"; }  # complain to STDERR and exit with error
     needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
@@ -59,6 +76,8 @@ case "$command" in
         OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
       fi
       case "$OPT" in
+        uploads_task_name ) needs_arg; uploads_task_name="$OPTARG";;
+        db_task_name ) needs_arg; db_task_name="$OPTARG";; 
         db_sql_file ) needs_arg; db_sql_file="$OPTARG" ;;
         ??* ) ;;  # bad long option
         \? )  ;;  # bad short option (error reported via getopts)
@@ -99,13 +118,22 @@ case "$command" in
     fi
     ;;
   "args")
-    cmd="${1:-}"
+    opts=()
 
-		if [ -z "$cmd" ]; then
-			error "[$command] internal command not specified"
-		fi
+    if [ ! -z "${var_setup_uploads_task_names:-}" ]; then
+      opts+=( "--setup_uploads_task_names=${var_setup_uploads_task_names:-}" )
+    fi
+    if [ ! -z "${var_setup_dbs_task_names:-}" ]; then
+      opts+=( "--setup_dbs_task_names=${var_setup_dbs_task_names:-}" )
+    fi
+    
+    if [ ${#@} -ne 0 ]; then
+      opts+=( "${@}" )
+    fi
 
-    shift;
+		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
+		;;
+  "args:main:wp")
     opts=()
 
     if [ ! -z "${var_setup_local_uploads_zip_file:-}" ]; then
@@ -180,20 +208,21 @@ case "$command" in
     if [ ! -z "${var_backup_bucket_db_sync_dir:-}" ]; then
       opts+=( "--backup_bucket_db_sync_dir=${var_backup_bucket_db_sync_dir:-}" )
     fi
-    if [ ! -z "${var_setup_uploads_task_names:-}" ]; then
-      opts+=( "--setup_uploads_task_names=${var_setup_uploads_task_names:-}" )
+
+    if [ ! -z "${uploads_task_name:-}" ]; then
+      opts+=( "--uploads_task_name=${uploads_task_name:-}" )
     fi
-    if [ ! -z "${var_setup_dbs_task_names:-}" ]; then
-      opts+=( "--setup_dbs_task_names=${var_setup_dbs_task_names:-}" )
-    fi
+    if [ ! -z "${db_task_name:-}" ]; then
+      opts+=( "--db_task_name=${db_task_name:-}" )
+    fi    
     
     if [ ${#@} -ne 0 ]; then
       opts+=( "${@}" )
     fi
 
-		"$pod_script_main_file" "$cmd" "${opts[@]}"
+		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
-  "args:db")
+  "args:db:wp")
     opts=()
 
     if [ ! -z "${var_db_name:-}" ]; then
@@ -217,18 +246,21 @@ case "$command" in
 
 		"$pod_script_db_file" "$inner_cmd" "${opts[@]}"
     ;;
+  "setup:uploads:wp")
+    "$pod_script_env_file" "args:main:wp" "${command%:*}" "$@"
+    ;;
   "setup:uploads:wp"|"setup:uploads:verify:wp"|"setup:uploads:remote:wp")
     "$pod_script_main_file" "${command%:*}" "$@"
     ;;
   "setup:db:wp")
     "$pod_script_run_file" rm wordpress 
-    "$pod_script_main_file" "${command%:*}" "$@"
+    "$pod_script_env_file" "args:main:wp" "${command%:*}" "$@"
     ;;
   "setup:db:remote:file:wp")
     "$pod_script_main_file" "${command%:*}" "$@"
     ;;
   "setup:db:verify:wp"|"setup:db:local:file:wp"|"backup:db:local:wp")
-		"$pod_script_env_file" "args:db" "${command%:*}:mysql" "$@"
+		"$pod_script_env_file" "args:db:wp" "${command%:*}:mysql" "$@"
 		;;
   "setup:db:new:mysql")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
@@ -260,7 +292,10 @@ case "$command" in
       fi
     fi
     ;;
-  "migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup"|"backup")
+  "backup")
+    "$pod_script_env_file" args "$command" "$@"
+    ;;
+	"migrate"|"update"|"fast-update"|"setup"|"fast-setup")
     "$pod_script_main_file" "$command" "$@"
     ;;
 	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec"|"restart"|"logs"|"ps"|"sh"|"bash")

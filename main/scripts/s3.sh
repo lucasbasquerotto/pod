@@ -3,9 +3,9 @@
 set -eou pipefail
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-		>&2 echo -e "${RED}${msg}${NC}"
-		exit 2
+	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
 }
 
 RED='\033[0;31m'

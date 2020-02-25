@@ -11,9 +11,9 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-		>&2 echo -e "${RED}${msg}${NC}"
-		exit 2
+	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
 }
 
 if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
@@ -40,6 +40,11 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		setup_uploads_task_names ) needs_arg; setup_uploads_task_names="$OPTARG";;
+		setup_dbs_task_names ) needs_arg; setup_dbs_task_names="$OPTARG";;
+		uploads_task_name ) needs_arg; uploads_task_name="$OPTARG";;
+		db_task_name ) needs_arg; db_task_name="$OPTARG";;  
+
 		local_uploads_zip_file ) needs_arg; local_uploads_zip_file="$OPTARG" ;;
 		remote_uploads_zip_file ) needs_arg; remote_uploads_zip_file="$OPTARG" ;;
 		remote_bucket_path_uploads_dir ) needs_arg; remote_bucket_path_uploads_dir="$OPTARG" ;;
@@ -64,11 +69,7 @@ while getopts ':-:' OPT; do
 		backup_delete_old_days ) needs_arg; backup_delete_old_days="$OPTARG";;
 		main_backup_base_dir ) needs_arg; main_backup_base_dir="$OPTARG";;
 		backup_bucket_uploads_sync_dir ) needs_arg; backup_bucket_uploads_sync_dir="$OPTARG";;
-		backup_bucket_db_sync_dir ) needs_arg; backup_bucket_db_sync_dir="$OPTARG";;
-		setup_uploads_task_names ) needs_arg; setup_uploads_task_names="$OPTARG";;
-		setup_dbs_task_names ) needs_arg; setup_dbs_task_names="$OPTARG";;
-		uploads_task_name ) needs_arg; uploads_task_name="$OPTARG";;
-		db_task_name ) needs_arg; db_task_name="$OPTARG";;    
+		backup_bucket_db_sync_dir ) needs_arg; backup_bucket_db_sync_dir="$OPTARG";;  
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -80,14 +81,13 @@ re_number='^[0-9]+$'
 start="$(date '+%F %X')"
 
 case "$command" in
-	"migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup" \
-    |"setup:uploads"|"setup:db"|"backup")
+	"migrate"|"update"|"fast-update"|"setup"|"fast-setup"|"setup:uploads"|"setup:db"|"backup")
     echo -e "${CYAN}$(date '+%F %X') - $command - start${NC}"
     ;;
 esac
 
 case "$command" in
-	"migrate"|"m"|"update"|"u"|"fast-update"|"f")
+	"migrate"|"update"|"fast-update")
 		echo -e "${CYAN}$(date '+%F %X') - $command - prepare...${NC}"
 		"$pod_script_env_file" prepare
 		echo -e "${CYAN}$(date '+%F %X') - $command - build...${NC}"
@@ -106,25 +106,47 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"setup"|"fast-setup")
-    if [ ! -z "${setup_uploads_task_names:-}" ]; then
-      arr=(${setup_uploads_task_names//,/ })
+		function setup_task {
+			task_names="${1:-}"
+			task_cmd_base_name="${2:-}"
+			task_parameter_name="${3:-}"
 
-      for uploads_task_name in "${arr[@]}"; do
-        >&2 echo "uploads_task_name=$uploads_task_name"
-		    "$pod_script_env_file" "setup:uploads:$uploads_task_name" "${args[@]}" \
-          --uploads_task_name="$uploads_task_name"
-      done
-    fi
+			if [ ! -z "${task_names:-}" ]; then
+				IFS=',' read -a tmp <<< "${task_names}"
+				arr=("${tmp[@]}")
 
-    if [ ! -z "${setup_dbs_task_names:-}" ]; then
-      arr=(${setup_dbs_task_names//,/ })
+				for task_name in "${arr[@]}"; do
+					>&2 echo "[$task_cmd_base_name] $task_parameter_name=$task_name"
+					"$pod_script_env_file" "$task_cmd_base_name:$task_name" "${args[@]}" \
+						"--$task_parameter_name"="$task_name"
+				done
+			fi
+		}
 
-      for db_task_name in "${arr[@]}"; do
-        >&2 echo "db_task_name=$db_task_name"
-		    "$pod_script_env_file" "setup:db:$db_task_name" "${args[@]}" \
-          --db_task_name="$db_task_name"
-      done
-    fi
+		setup_task "${setup_uploads_task_names:-}" "setup:uploads" "uploads_task_name"
+		setup_task "${setup_dbs_task_names:-}" "setup:db" "db_task_name"
+
+    # if [ ! -z "${setup_uploads_task_names:-}" ]; then
+		# 	IFS=',' read -a tmp <<< "${setup_uploads_task_names}"
+    #   arr=("${tmp[@]}")
+
+    #   for uploads_task_name in "${arr[@]}"; do
+    #     >&2 echo "uploads_task_name=$uploads_task_name"
+		#     "$pod_script_env_file" "setup:uploads:$uploads_task_name" "${args[@]}" \
+    #       --uploads_task_name="$uploads_task_name"
+    #   done
+    # fi
+
+    # if [ ! -z "${setup_dbs_task_names:-}" ]; then
+		# 	IFS=',' read -a tmp <<< "${setup_uploads_task_names}"
+    #   arr=("${tmp[@]}")
+
+    #   for db_task_name in "${arr[@]}"; do
+    #     >&2 echo "db_task_name=$db_task_name"
+		#     "$pod_script_env_file" "setup:db:$db_task_name" "${args[@]}" \
+    #       --db_task_name="$db_task_name"
+    #   done
+    # fi
 
 		if [ "$command" = "setup" ]; then
 			"$pod_script_env_file" deploy "${args[@]}" 
@@ -538,7 +560,7 @@ esac
 end="$(date '+%F %X')"
 
 case "$command" in
-	"migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"setup:uploads"|"setup:db"|"backup")
+	"migrate"|"update"|"fast-update"|"setup"|"fast-setup"|"setup:uploads"|"setup:db"|"backup")
     echo -e "${CYAN}$(date '+%F %X') - $command - end${NC}"
     echo -e "${CYAN}$command - $start - $end${NC}"
     ;;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
 pod_layer_dir="$POD_LAYER_DIR"
@@ -11,7 +11,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 		>&2 echo -e "${RED}${msg}${NC}"
 		exit 2
 }
@@ -28,21 +28,7 @@ fi
 
 shift;
 
-case "$command" in
-  "args:db")
-    inner_cmd="${1:-}"
-
-		if [ -z "$inner_cmd" ]; then
-			error "[$command] command not specified"
-		fi
-
-    shift;
-		;;
-esac
-
 args=( "$@" )
-
->&2 echo "args=${args[@]}"
 
 die() { error "$*"; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
@@ -67,10 +53,8 @@ while getopts ':-:' OPT; do
 		s3_endpoint ) needs_arg; s3_endpoint="$OPTARG";;
 		use_aws_s3 ) needs_arg; use_aws_s3="$OPTARG";;
 		use_s3cmd ) needs_arg; use_s3cmd="$OPTARG";;
-		db_name ) needs_arg; db_name="$OPTARG"; >&2 echo "db_name=$db_name" ;;
+		db_name ) needs_arg; db_name="$OPTARG";;
 		db_service ) needs_arg; db_service="$OPTARG" ;;
-		db_user ) needs_arg; db_user="$OPTARG" ;;
-		db_pass ) needs_arg; db_pass="$OPTARG";;
 		db_backup_dir ) needs_arg; db_backup_dir="$OPTARG" ;;
 		local_db_file ) needs_arg; local_db_file="$OPTARG" ;;
 		remote_db_file ) needs_arg; remote_db_file="$OPTARG" ;;
@@ -81,7 +65,10 @@ while getopts ':-:' OPT; do
 		main_backup_base_dir ) needs_arg; main_backup_base_dir="$OPTARG";;
 		backup_bucket_uploads_sync_dir ) needs_arg; backup_bucket_uploads_sync_dir="$OPTARG";;
 		backup_bucket_db_sync_dir ) needs_arg; backup_bucket_db_sync_dir="$OPTARG";;
-		db_sql_file ) needs_arg; db_sql_file="$OPTARG";;
+		setup_uploads_task_names ) needs_arg; setup_uploads_task_names="$OPTARG";;
+		setup_dbs_task_names ) needs_arg; setup_dbs_task_names="$OPTARG";;
+		uploads_task_name ) needs_arg; uploads_task_name="$OPTARG";;
+		db_task_name ) needs_arg; db_task_name="$OPTARG";;    
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -93,7 +80,8 @@ re_number='^[0-9]+$'
 start="$(date '+%F %X')"
 
 case "$command" in
-	"migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"setup:uploads"|"setup:db"|"backup")
+	"migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup" \
+    |"setup:uploads"|"setup:db"|"backup")
     echo -e "${CYAN}$(date '+%F %X') - $command - start${NC}"
     ;;
 esac
@@ -118,8 +106,25 @@ case "$command" in
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
 	"setup"|"fast-setup")
-		"$pod_script_env_file" "setup:uploads" "${args[@]}"
-		"$pod_script_env_file" "setup:db" "${args[@]}"
+    if [ ! -z "${setup_uploads_task_names:-}" ]; then
+      arr=(${setup_uploads_task_names//,/ })
+
+      for uploads_task_name in "${arr[@]}"; do
+        >&2 echo "uploads_task_name=$uploads_task_name"
+		    "$pod_script_env_file" "setup:uploads:$uploads_task_name" "${args[@]}" \
+          --uploads_task_name="$uploads_task_name"
+      done
+    fi
+
+    if [ ! -z "${setup_dbs_task_names:-}" ]; then
+      arr=(${setup_dbs_task_names//,/ })
+
+      for db_task_name in "${arr[@]}"; do
+        >&2 echo "db_task_name=$db_task_name"
+		    "$pod_script_env_file" "setup:db:$db_task_name" "${args[@]}" \
+          --db_task_name="$db_task_name"
+      done
+    fi
 
 		if [ "$command" = "setup" ]; then
 			"$pod_script_env_file" deploy "${args[@]}" 
@@ -129,7 +134,7 @@ case "$command" in
 		"$pod_script_env_file" up "$restore_service"
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - verify if uploads setup should be done${NC}"
-		skip="$("$pod_script_env_file" "setup:uploads:verify" "${args[@]}")"
+		skip="$("$pod_script_env_file" "setup:uploads:verify:$uploads_task_name" "${args[@]}")"
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			error "$command: value of the verification should be true or false - result: $skip"
@@ -138,13 +143,14 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %X') - $command - skipping..."
 		else
-			if [ ! -z "$local_uploads_zip_file" ] \
-			|| [ ! -z "$remote_uploads_zip_file" ] \
-			|| [ ! -z "$remote_bucket_path_uploads_dir" ] \
-			|| [ ! -z "$remote_bucket_path_uploads_file" ]; then
+			if [ ! -z "${local_uploads_zip_file:-}" ] \
+			|| [ ! -z "${remote_uploads_zip_file:-}" ] \
+			|| [ ! -z "${remote_bucket_path_uploads_dir:-}" ] \
+			|| [ ! -z "${remote_bucket_path_uploads_file:-}" ]; then
 
 				echo -e "${CYAN}$(date '+%F %X') - $command - uploads restore - remote${NC}"
-				setup_db_sql_file="$("$pod_script_env_file" "setup:uploads:remote" "${args[@]}")"
+				setup_db_sql_file="$("$pod_script_env_file" \
+          "setup:uploads:remote:$uploads_task_name" "${args[@]}")"
 			fi
 		fi
 		;;
@@ -170,18 +176,18 @@ case "$command" in
 		restore_remote_src_uploads=""
 		restore_local_dest_uploads=""
 
-		if [ ! -z "$local_uploads_zip_file" ]; then
+		if [ ! -z "${local_uploads_zip_file:-}" ]; then
 			echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
 			setup_uploads_zip_file="$local_uploads_zip_file"
-		elif [ ! -z "$remote_uploads_zip_file" ]; then
+		elif [ ! -z "${remote_uploads_zip_file:-}" ]; then
 			setup_uploads_zip_file_name="uploads-$(date '+%Y%m%d_%H%M%S')-$(date '+%s').zip"
 			setup_uploads_zip_file="/$uploads_main_dir/$setup_uploads_zip_file_name"
-		elif [ ! -z "$remote_bucket_path_uploads_dir" ]; then
+		elif [ ! -z "${remote_bucket_path_uploads_dir:-}" ]; then
 			backup_bucket_path="$backup_bucket_prefix/$remote_bucket_path_uploads_dir"
 			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
 			restore_remote_src_uploads="s3://$backup_bucket_path"
-		elif [ ! -z "$remote_bucket_path_uploads_file" ]; then
+		elif [ ! -z "${remote_bucket_path_uploads_file:-}" ]; then
 			setup_uploads_zip_file_name="uploads-$key.zip"
 			setup_uploads_zip_file="$uploads_main_dir/$setup_uploads_zip_file_name"
 
@@ -205,23 +211,23 @@ case "$command" in
 			rm -rf "/$uploads_main_dir"
 			mkdir -p "/$uploads_main_dir"
 		
-			if [ ! -z "$local_uploads_zip_file" ]; then
+			if [ ! -z "${local_uploads_zip_file:-}" ]; then
 				echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from local dir${NC}"
-			elif [ ! -z "$remote_uploads_zip_file" ]; then
+			elif [ ! -z "${remote_uploads_zip_file:-}" ]; then
 				echo -e "${CYAN}$(date '+%F %X') - $command - restore uploads from remote dir${NC}"
 				curl -L -o "$setup_uploads_zip_file" -k "$remote_uploads_zip_file"
-			elif [ ! -z "$remote_bucket_path_uploads_file" ]; then
+			elif [ ! -z "${remote_bucket_path_uploads_file:-}" ]; then
 				msg="$command - restore uploads zip file from remote bucket"
 				msg="\$msg [$restore_remote_src_uploads -> $restore_local_dest_uploads]"
 				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 			
-				if [ "$use_aws_s3" = 'true' ]; then
+				if [ "${use_aws_s3:-}" = 'true' ]; then
 					msg="$command - $backup_service - aws_s3 - copy bucket file to local path"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 cp \
 						--endpoint="$s3_endpoint" \
 						"$restore_remote_src_uploads" "$restore_local_dest_uploads"
-				elif [ "$use_s3cmd" = 'true' ]; then
+				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - copy bucket file to local path"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd cp "$restore_remote_src_uploads" "$restore_local_dest_uploads"
@@ -230,18 +236,18 @@ case "$command" in
 				fi
 			fi
 
-			if [ ! -z "$remote_bucket_path_uploads_dir" ]; then
+			if [ ! -z "${remote_bucket_path_uploads_dir:-}" ]; then
 				msg="$command - restore uploads from remote bucket directly to uploads directory"
 				msg="\$msg [$restore_remote_src_uploads -> /$uploads_service_dir]"
 				echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 			
-				if [ "$use_aws_s3" = 'true' ]; then
+				if [ "${use_aws_s3:-}" = 'true' ]; then
 					msg="$command - $backup_service - aws_s3 - sync bucket dir to local path"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 sync \
 						--endpoint="$s3_endpoint" \
 						"$restore_remote_src_uploads" "/$uploads_service_dir"
-				elif [ "$use_s3cmd" = 'true' ]; then
+				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - sync bucket dir to local path"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "$restore_remote_src_uploads" "/$uploads_service_dir"
@@ -268,7 +274,7 @@ case "$command" in
 		restore_local_dest_db=""
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - verify if db setup should be done${NC}"
-		skip="$("$pod_script_env_file" "args:db" "setup:db:verify" "${args[@]}")"
+		skip="$("$pod_script_env_file" "setup:db:verify:${db_task_name}" "${args[@]}")"
       
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			error "$command: value of the verification should be true or false - result: $skip"
@@ -277,22 +283,23 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %X') - $command - skipping..."
 		else
-			if [ ! -z "$local_db_file" ] \
-			|| [ ! -z "$remote_db_file" ] \
-			|| [ ! -z "$remote_bucket_path_db_dir" ] \
-			|| [ ! -z "$remote_bucket_path_db_file" ]; then
+			if [ ! -z "${local_db_file:-}" ] \
+			|| [ ! -z "${remote_db_file:-}" ] \
+			|| [ ! -z "${remote_bucket_path_db_dir:-}" ] \
+			|| [ ! -z "${remote_bucket_path_db_file:-}" ]; then
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - remote${NC}"
-				setup_db_sql_file="$("$pod_script_env_file" "args:db" "setup:db:remote:file" "${args[@]}")"
+				setup_db_sql_file="$("$pod_script_env_file" \
+          "setup:db:remote:file:${db_task_name}" "${args[@]}")"
 
-				if [ -z "$setup_db_sql_file" ]; then
+				if [ -z "${setup_db_sql_file:-}" ]; then
 					error "$command: unknown db file to restore"
 				fi
 				
 				echo -e "${CYAN}$(date '+%F %X') - $command - db restore - local${NC}"
-				"$pod_script_env_file" "args:db" "setup:db:local:file" "${args[@]}" \
-          --db_sql_file="$setup_db_sql_file"
+				"$pod_script_env_file" "setup:db:local:file:${db_task_name}" \
+          "${args[@]}" --db_sql_file="$setup_db_sql_file"
 			else
-		    "$pod_script_env_file" "args:db" "setup:db:new"
+		    "$pod_script_env_file" "setup:db:new:${db_task_name}"
 			fi
 		fi
 		;;
@@ -303,23 +310,23 @@ case "$command" in
 		restore_remote_src_db=""
 		restore_local_dest_db=""
 
-		if [ ! -z "$local_db_file" ]; then
-			setup_db_file="$local_db_file"
-		elif [ ! -z "$remote_db_file" ]; then
+		if [ ! -z "${local_db_file:-}" ]; then
+			setup_db_file="${local_db_file:-}"
+		elif [ ! -z "${remote_db_file:-}" ]; then
 			setup_db_file_name="db-$key.zip"
 			setup_db_file="$db_restore_dir/$setup_db_file_name"
-		elif [ ! -z "$remote_bucket_path_db_dir" ]; then
+		elif [ ! -z "${remote_bucket_path_db_dir:-}" ]; then
 			setup_db_file="$db_restore_dir/$db_name.sql"
 
-			backup_bucket_path="$backup_bucket_prefix/$remote_bucket_path_db_dir"
+			backup_bucket_path="$backup_bucket_prefix/${remote_bucket_path_db_dir:-}"
 			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
 			restore_remote_src_db="s3://$backup_bucket_path"
-		elif [ ! -z "$remote_bucket_path_db_file" ]; then
+		elif [ ! -z "${remote_bucket_path_db_file:-}" ]; then
 			setup_db_file_name="db-$key.zip"
 			setup_db_file="$db_restore_dir/$setup_db_file_name"
 
-			backup_bucket_path="$backup_bucket_prefix/$remote_bucket_path_db_file"
+			backup_bucket_path="$backup_bucket_prefix/${remote_bucket_path_db_file:-}"
 			backup_bucket_path=$(echo "$backup_bucket_path" | tr -s /)
 			
 			restore_remote_src_db="s3://$backup_bucket_path"
@@ -345,41 +352,41 @@ case "$command" in
 			rm -rf "/$db_restore_dir"
 			mkdir -p "/$db_restore_dir"
 		
-			if [ ! -z "$local_db_file" ]; then
+			if [ ! -z "${local_db_file:-}" ]; then
 				>&2 echo -e "${CYAN}$(date '+%F %X') - $command - restore db from local file${NC}"
-			elif [ ! -z "$remote_db_file" ]; then
+			elif [ ! -z "${remote_db_file:-}" ]; then
 				>&2 echo -e "${CYAN}$(date '+%F %X') - $command - restore db from remote file${NC}"
-				curl -L -o "/$setup_db_file" -k "$remote_db_file"
-			elif [ ! -z "$remote_bucket_path_db_dir" ]; then
+				curl -L -o "/$setup_db_file" -k "${remote_db_file:-}"
+			elif [ ! -z "${remote_bucket_path_db_dir:-}" ]; then
 				msg="$command - restore db from remote bucket dir"
 				msg="\$msg [$restore_remote_src_db -> $db_restore_dir]"
 				>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 
-				if [ "$use_aws_s3" = 'true' ]; then
+				if [ "${use_aws_s3:-}" = 'true' ]; then
 					msg="$command - $backup_service - aws_s3 - sync bucket db dir to local path"
 					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 sync \
 						--endpoint="$s3_endpoint" \
 						"$restore_remote_src_db" "/$db_restore_dir"
-				elif [ "$use_s3cmd" = 'true' ]; then
+				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - sync bucket db dir to local path"
 					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "$restore_remote_src_db" "/$db_restore_dir"
 				else
 					error "$command - $backup_service - not able to sync bucket db dir to local path"
 				fi
-			elif [ ! -z "$remote_bucket_path_db_file" ]; then
+			elif [ ! -z "${remote_bucket_path_db_file:-}" ]; then
 				msg="$command - restore db from remote bucket"
 				msg="\$msg [$restore_remote_src_db -> $restore_local_dest_db]"
 				>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 
-				if [ "$use_aws_s3" = 'true' ]; then
+				if [ "${use_aws_s3:-}" = 'true' ]; then
 					msg="$command - $backup_service - aws_s3 - copy bucket file to local path"
 					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					aws s3 cp \
 						--endpoint="$s3_endpoint" \
 						"$restore_remote_src_db" "$restore_local_dest_db"
-				elif [ "$use_s3cmd" = 'true' ]; then
+				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - copy bucket file to local path"
 					>&2 echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd cp "$restore_remote_src_db" "$restore_local_dest_db"
@@ -390,7 +397,7 @@ case "$command" in
 				error "$command - db file to restore not specified"
 			fi
 
-			if [ -z "$remote_bucket_path_db_dir" ]; then
+			if [ -z "${remote_bucket_path_db_dir:-}" ]; then
 				rm -f "/$db_restore_dir/$db_name.sql"
 			fi
 
@@ -435,7 +442,7 @@ case "$command" in
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - db backup${NC}"
-		"$pod_script_env_file" "args:db" "backup:db:local" "${args[@]}"
+		"$pod_script_env_file" "backup:db:local:$db_task_name" "${args[@]}"
 	
 		echo -e "${CYAN}$(date '+%F %X') - $command - main backup${NC}"
 		"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
@@ -457,7 +464,7 @@ case "$command" in
 			fi
 
 			if [ ! -z "$backup_bucket_name" ]; then
-				if [ "$use_aws_s3" = 'true' ]; then
+				if [ "${use_aws_s3:-}" = 'true' ]; then
 					error_log_file="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
 
 					if ! aws s3 --endpoint="$s3_endpoint" ls "s3://$backup_bucket_name" 2> "\$error_log_file"; then
@@ -494,7 +501,7 @@ case "$command" in
 							"/$db_backup_dir/" \
 							"s3://$backup_bucket_db_sync_dir_full/"
 					fi
-				elif [ "$use_s3cmd" = 'true' ]; then
+				elif [ "${use_s3cmd:-}" = 'true' ]; then
 					msg="$command - $backup_service - s3cmd - sync local backup with bucket"
 					echo -e "${CYAN}\$(date '+%F %X') - \${msg}${NC}"
 					s3cmd sync "/$main_backup_base_dir/" "s3://$backup_bucket_prefix"
@@ -522,31 +529,7 @@ case "$command" in
 		SHELL
 
 		echo -e "${CYAN}$(date '+%F %X') - $command - generated backup file(s) at '/$main_backup_dir'${NC}"
-		;;
-  "args:db")
-    opts=()
-
-    if [ ! -z "${db_name:-}" ]; then
-      opts+=( "--db_name=${db_name:-}" )
-    fi
-    if [ ! -z "${db_service:-}" ]; then
-      opts+=( "--db_service=${db_service:-}" )
-    fi
-    if [ ! -z "${db_user:-}" ]; then
-      opts+=( "--db_user=${db_user:-}" )
-    fi
-    if [ ! -z "${db_pass:-}" ]; then
-      opts+=( "--db_pass=${db_pass:-}" )
-    fi
-    if [ ! -z "${db_backup_dir:-}" ]; then
-      opts+=( "--db_backup_dir=${db_backup_dir:-}" )
-    fi
-    if [ ! -z "${db_sql_file:-}" ]; then
-      opts+=( "--db_sql_file=${db_sql_file:-}" )
-    fi
-
-		"$pod_script_env_file" "$inner_cmd" "${opts[@]}"
-    ;;
+		;;  
 	*)
 		error "$command: invalid command"
     ;;

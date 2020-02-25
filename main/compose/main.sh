@@ -6,13 +6,11 @@ pod_layer_dir="$POD_LAYER_DIR"
 pod_full_dir="$POD_FULL_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-pod_shared_file="$pod_layer_dir/main/scripts/main.sh"
-
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 		>&2 echo -e "${RED}${msg}${NC}"
 		exit 2
 }

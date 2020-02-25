@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -17,7 +17,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 		>&2 echo -e "${RED}${msg}${NC}"
 		exit 2
 }
@@ -33,6 +33,40 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+inner_cmd=''
+
+case "$command" in
+  "args:db")
+    inner_cmd="${1:-}"
+
+		if [ -z "$inner_cmd" ]; then
+			error "[$command] command not specified"
+		fi
+
+    shift;
+esac
+
+case "$command" in
+  "main"|"args"|"args:db")
+    die() { error "$*"; }  # complain to STDERR and exit with error
+    needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+    while getopts ':-:' OPT; do
+      if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+        OPT="${OPTARG%%=*}"       # extract long option name
+        OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+        OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+      fi
+      case "$OPT" in
+        db_sql_file ) needs_arg; db_sql_file="$OPTARG" ;;
+        ??* ) ;;  # bad long option
+        \? )  ;;  # bad short option (error reported via getopts)
+      esac
+    done
+    shift $((OPTIND-1))
+		;;
+esac
   
 start="$(date '+%F %X')"
 
@@ -43,40 +77,9 @@ case "$command" in
 esac
 
 case "$command" in
-  "setup:uploads"|"setup:db")
-    "$pod_script_run_file" rm wordpress 
-    "$pod_script_main_file" "$command" "$@"
-    ;;
-  "setup:db:new")
-    # Deploy a brand-new Wordpress site (with possibly seeded data)
-    echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
-    "$pod_script_run_file" run --rm wordpress \
-      wp --allow-root core install \
-      --url="$var_setup_url" \
-      --title="$var_setup_title" \
-      --admin_user="$var_setup_admin_user" \
-      --admin_password="$var_setup_admin_password" \
-      --admin_email="$var_setup_admin_email"
-
-    if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
-      echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-      "$pod_script_env_file" deploy "$@"
-
-      if [ ! -z "$var_setup_local_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
-        "$pod_script_run_file" run --rm wordpress \
-          wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
-      fi
-
-      if [ ! -z "$var_setup_remote_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
-        "$pod_script_run_file" run --rm wordpress sh -c \
-          "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
-          && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
-          && rm -f ./tmp/tmp-seed-data.xml"
-      fi
-    fi
-    ;;
+  "main")
+		"$pod_script_env_file" args migrate "$@"
+		;;
   "deploy")
     echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - remove old container${NC}"
     "$pod_script_run_file" rm wordpress
@@ -95,10 +98,7 @@ case "$command" in
             search-replace "$var_old_domain_host" "$var_new_domain_host"
     fi
     ;;
-  "setup:db:verify"|"setup:db:local:file"|"backup:db:local")
-		"$pod_script_db_file" "$command:mysql" "$@"
-		;;
-  "main")
+  "args")
     cmd="${1:-}"
 
 		if [ -z "$cmd" ]; then
@@ -153,15 +153,6 @@ case "$command" in
     if [ ! -z "${var_db_service:-}" ]; then
       opts+=( "--db_service=${var_db_service:-}" )
     fi
-    if [ ! -z "${var_db_user:-}" ]; then
-      opts+=( "--db_user=${var_db_user:-}" )
-    fi
-    if [ ! -z "${var_db_pass:-}" ]; then
-      opts+=( "--db_pass=${var_db_pass:-}" )
-    fi
-    if [ ! -z "${var_db_backup_dir:-}" ]; then
-      opts+=( "--db_backup_dir=${var_db_backup_dir:-}" )
-    fi
     if [ ! -z "${var_setup_local_db_file:-}" ]; then
       opts+=( "--local_db_file=${var_setup_local_db_file:-}" )
     fi
@@ -189,6 +180,12 @@ case "$command" in
     if [ ! -z "${var_backup_bucket_db_sync_dir:-}" ]; then
       opts+=( "--backup_bucket_db_sync_dir=${var_backup_bucket_db_sync_dir:-}" )
     fi
+    if [ ! -z "${var_setup_uploads_task_names:-}" ]; then
+      opts+=( "--setup_uploads_task_names=${var_setup_uploads_task_names:-}" )
+    fi
+    if [ ! -z "${var_setup_dbs_task_names:-}" ]; then
+      opts+=( "--setup_dbs_task_names=${var_setup_dbs_task_names:-}" )
+    fi
     
     if [ ${#@} -ne 0 ]; then
       opts+=( "${@}" )
@@ -196,14 +193,81 @@ case "$command" in
 
 		"$pod_script_main_file" "$cmd" "${opts[@]}"
 		;;
-  "migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup" \
-    |"setup:uploads"|"setup:uploads:verify"|"setup:uploads:remote" \
-    |"setup:db"|"setup:db:remote:file"|"backup"|"args:db")
+  "args:db")
+    opts=()
 
+    if [ ! -z "${var_db_name:-}" ]; then
+      opts+=( "--db_name=${var_db_name:-}" )
+    fi
+    if [ ! -z "${var_db_service:-}" ]; then
+      opts+=( "--db_service=${var_db_service:-}" )
+    fi
+    if [ ! -z "${var_db_user:-}" ]; then
+      opts+=( "--db_user=${var_db_user:-}" )
+    fi
+    if [ ! -z "${var_db_pass:-}" ]; then
+      opts+=( "--db_pass=${var_db_pass:-}" )
+    fi
+    if [ ! -z "${var_db_backup_dir:-}" ]; then
+      opts+=( "--db_backup_dir=${var_db_backup_dir:-}" )
+    fi
+    if [ ! -z "${db_sql_file:-}" ]; then
+      opts+=( "--db_sql_file=${db_sql_file:-}" )
+    fi
+
+		"$pod_script_db_file" "$inner_cmd" "${opts[@]}"
+    ;;
+  "setup:uploads:wp"|"setup:uploads:verify:wp"|"setup:uploads:remote:wp")
+    "$pod_script_main_file" "${command%:*}" "$@"
+    ;;
+  "setup:db:wp")
+    "$pod_script_run_file" rm wordpress 
+    "$pod_script_main_file" "${command%:*}" "$@"
+    ;;
+  "setup:db:remote:file:wp")
+    "$pod_script_main_file" "${command%:*}" "$@"
+    ;;
+  "setup:db:verify:wp"|"setup:db:local:file:wp"|"backup:db:local:wp")
+		"$pod_script_env_file" "args:db" "${command%:*}:mysql" "$@"
+		;;
+  "setup:db:new:mysql")
+    # Deploy a brand-new Wordpress site (with possibly seeded data)
+    echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
+    "$pod_script_run_file" run --rm wordpress \
+      wp --allow-root core install \
+      --url="$var_setup_url" \
+      --title="$var_setup_title" \
+      --admin_user="$var_setup_admin_user" \
+      --admin_password="$var_setup_admin_password" \
+      --admin_email="$var_setup_admin_email"
+
+    if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
+      echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+      "$pod_script_env_file" deploy "$@"
+
+      if [ ! -z "$var_setup_local_seed_data" ]; then
+        echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+        "$pod_script_run_file" run --rm wordpress \
+          wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
+      fi
+
+      if [ ! -z "$var_setup_remote_seed_data" ]; then
+        echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
+        "$pod_script_run_file" run --rm wordpress sh -c \
+          "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
+          && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
+          && rm -f ./tmp/tmp-seed-data.xml"
+      fi
+    fi
+    ;;
+  "migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup"|"backup")
     "$pod_script_main_file" "$command" "$@"
     ;;
-  *)
+	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec"|"restart"|"logs"|"ps"|"sh"|"bash")
     "$pod_script_run_file" "$command" "$@"
+		;;
+  *)
+		error "$command: invalid command"
     ;;
 esac
 

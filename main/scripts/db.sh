@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: $command: ${1:-}"
+		msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 		>&2 echo -e "${RED}${msg}${NC}"
 		exit 2
 }
@@ -20,8 +20,6 @@ if [ -z "$command" ]; then
 fi
 
 shift;
-
-args=( "$@" )
 
 die() { error "$*"; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }

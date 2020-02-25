@@ -71,7 +71,7 @@ esac
 start="$(date '+%F %X')"
 
 case "$command" in
-  "setup:uploads"|"setup:db"|"setup:db:new"|"deploy")
+  "setup:db:new"|"deploy")
     echo -e "${CYAN}$(date '+%F %X') - env (shared) - $command - start${NC}"
     ;;
 esac
@@ -274,7 +274,7 @@ esac
 end="$(date '+%F %X')"
 
 case "$command" in
-  "setup:uploads"|"setup:db"|"setup:db:new"|"deploy")
+  "setup:db:new"|"deploy")
     echo -e "${CYAN}$(date '+%F %X') - env (shared) - $command - end${NC}"
     echo -e "${CYAN}env (shared) - $command - $start - $end${NC}"
     ;;

@@ -9,6 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 . "${pod_vars_dir}/vars.sh"
 
 pod_script_run_file="$pod_layer_dir/main/compose/main.sh"
+pod_script_main_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
 
 CYAN='\033[0;36m'
@@ -44,7 +45,7 @@ esac
 case "$command" in
   "setup:uploads"|"setup:db")
     "$pod_script_run_file" rm wordpress 
-    "$pod_script_run_file" "$command" "$@"
+    "$pod_script_main_file" "$command" "$@"
     ;;
   "setup:db:new")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
@@ -59,7 +60,7 @@ case "$command" in
 
     if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
       echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
-      "$pod_script_env_file" args deploy 
+      "$pod_script_env_file" deploy "$@"
 
       if [ ! -z "$var_setup_local_seed_data" ]; then
         echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
@@ -193,8 +194,14 @@ case "$command" in
       opts+=( "${@}" )
     fi
 
-		"$pod_script_run_file" "$cmd" "${opts[@]}"
+		"$pod_script_main_file" "$cmd" "${opts[@]}"
 		;;
+  "migrate"|"m"|"update"|"u"|"fast-update"|"f"|"setup"|"fast-setup" \
+    |"setup:uploads"|"setup:uploads:verify"|"setup:uploads:remote" \
+    |"setup:db"|"setup:db:remote:file"|"backup"|"args:db")
+
+    "$pod_script_main_file" "$command" "$@"
+    ;;
   *)
     "$pod_script_run_file" "$command" "$@"
     ;;

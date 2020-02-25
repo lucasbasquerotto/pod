@@ -121,11 +121,14 @@ case "$command" in
 		"$pod_script_env_file" up
 		echo -e "${CYAN}$(date '+%F %X') - $command - ended${NC}"
 		;;
-	"setup")
+	"setup"|"fast-setup")
 		cd "$pod_full_dir/"
 		"$pod_script_env_file" "setup:uploads" "${args[@]}"
 		"$pod_script_env_file" "setup:db" "${args[@]}"
-		"$pod_script_env_file" deploy "${args[@]}" 
+
+		if [ "$command" = "setup" ]; then
+			"$pod_script_env_file" deploy "${args[@]}" 
+		fi
 		;;
 	"setup:uploads")
 		"$pod_script_env_file" up "$restore_service"

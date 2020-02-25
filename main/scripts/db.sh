@@ -19,6 +19,10 @@ fi
 
 shift;
 
+args=( "$@" )
+
+>&2 echo "args2=${args[@]}"
+
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 

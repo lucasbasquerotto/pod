@@ -300,14 +300,14 @@ children:
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_password, '') }}
       var_setup_admin_email: >-
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_email, '') }}
-      var_setup_local_db_file: "{{ setup_local_db_file }}"
       var_setup_local_uploads_zip_file: "{{ setup_local_uploads_file }}"
-      var_setup_remote_db_file: "{{ setup_remote_db_file }}"
       var_setup_remote_uploads_zip_file: "{{ setup_remote_uploads_file }}"
-      var_setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
       var_setup_remote_bucket_path_uploads_dir: "{{ setup_remote_bucket_path_uploads_dir }}"
-      var_setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
       var_setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
+      var_setup_local_db_zip_file: "{{ setup_local_db_file }}"
+      var_setup_remote_db_zip_file: "{{ setup_remote_db_file }}"
+      var_setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
+      var_setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
       var_setup_local_seed_data: >-
         {{ 
         (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
@@ -333,7 +333,7 @@ children:
       var_db_user: "{{ params.credentials.wordpress.db.user }}"
       var_db_pass: "{{ params.credentials.wordpress.db.password }}"
       var_db_name: "{{ params.credentials.wordpress.db.name }}"
-      var_restore_service: "toolbox"
+      var_setup_service: "toolbox"
       var_backup_service: "toolbox"
       var_db_service: "mysql"
       var_uploads_service_dir: "tmp/data/wordpress/uploads"

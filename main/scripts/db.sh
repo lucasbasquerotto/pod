@@ -46,7 +46,9 @@ shift $((OPTIND-1))
 re_number='^[0-9]+$'
 
 case "$command" in
-	"setup:db:verify:mysql")
+	"setup:verify:mysql")
+		"$pod_script_env_file" up "$db_service"
+		
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$db_name'"
 		sql_output="$("$pod_script_env_file" exec-nontty "$db_service" \
 			mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
@@ -81,10 +83,12 @@ case "$command" in
 			echo "false"
 		fi
 		;;
-  "setup:db:local:file:mysql")
+  "setup:local:file:mysql")
 		if [ -z "$db_sql_file" ]; then
 			error "[$command] db_sql_file not specified"
 		fi
+
+		"$pod_script_env_file" up "$db_service"
 
 		"$pod_script_env_file" exec-nontty "$db_service" /bin/bash <<-SHELL
 			set -eou pipefail
@@ -103,7 +107,7 @@ case "$command" in
 			pv "$db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
 		SHELL
 		;;
-  "backup:db:local:mysql")
+  "backup:local:mysql")
 		"$pod_script_env_file" up "$db_service"
 
 		"$pod_script_env_file" exec-nontty "$db_service" /bin/bash <<-SHELL

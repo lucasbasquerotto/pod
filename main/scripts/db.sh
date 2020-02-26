@@ -21,9 +21,6 @@ fi
 
 shift;
 
-die() { error "$*"; }  # complain to STDERR and exit with error
-needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
-
 while getopts n:s:u:p:d:-: OPT; do
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -31,12 +28,12 @@ while getopts n:s:u:p:d:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    n | db_name ) needs_arg; db_name="$OPTARG" ;;
-    s | db_service ) needs_arg; db_service="$OPTARG" ;;
-    u | db_user ) needs_arg; db_user="$OPTARG" ;;
-    p | db_pass ) needs_arg; db_pass="$OPTARG";;
-    d | db_backup_dir ) needs_arg; db_backup_dir="$OPTARG" ;;
-    f | db_sql_file ) needs_arg; db_sql_file="$OPTARG" ;;
+    n | db_name ) db_name="${OPTARG:-}" ;;
+    s | db_service ) db_service="${OPTARG:-}" ;;
+    u | db_user ) db_user="${OPTARG:-}" ;;
+    p | db_pass ) db_pass="${OPTARG:-}";;
+    d | db_backup_dir ) db_backup_dir="${OPTARG:-}" ;;
+    f | db_sql_file ) db_sql_file="${OPTARG:-}" ;;
     ??* ) die "Illegal option --$OPT" ;;  # bad long option
     \? )  exit 2 ;;  # bad short option (error reported via getopts)
   esac

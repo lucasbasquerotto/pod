@@ -30,9 +30,6 @@ shift;
 
 args=( "$@" )
 
-die() { error "$*"; }  # complain to STDERR and exit with error
-needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
-
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
@@ -40,50 +37,50 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		setup_task_names ) needs_arg; setup_task_names="$OPTARG";;
-		setup_task_name ) needs_arg; setup_task_name="$OPTARG";; 
-		setup_task_name_verify ) needs_arg; setup_task_name_verify="$OPTARG";; 
-		setup_task_name_remote ) needs_arg; setup_task_name_remote="$OPTARG";; 
-		setup_task_name_local ) needs_arg; setup_task_name_local="$OPTARG";; 
-		setup_task_name_new ) needs_arg; setup_task_name_new="$OPTARG";; 
-		setup_local_zip_file ) needs_arg; setup_local_zip_file="$OPTARG" ;;
-		setup_remote_zip_file ) needs_arg; setup_remote_zip_file="$OPTARG" ;;
-		setup_remote_bucket_path_dir ) needs_arg; setup_remote_bucket_path_dir="$OPTARG" ;;
-		setup_remote_bucket_path_file ) needs_arg; setup_remote_bucket_path_file="$OPTARG";;
-		setup_dest_dir ) needs_arg; setup_dest_dir="$OPTARG";;
-		setup_tmp_dir ) needs_arg; setup_tmp_dir="$OPTARG" ;;
-		setup_kind ) needs_arg; setup_kind="$OPTARG";;
-		setup_zip_inner_dir ) needs_arg; setup_zip_inner_dir="$OPTARG";;
-		setup_zip_inner_file ) needs_arg; setup_zip_inner_file="$OPTARG";;
-		setup_name ) needs_arg; setup_name="$OPTARG";;
-		setup_bucket_name ) needs_arg; setup_bucket_name="$OPTARG" ;;
-		setup_bucket_path ) needs_arg; setup_bucket_path="$OPTARG";;
-		setup_service ) needs_arg; setup_service="$OPTARG" ;;
+		setup_task_names ) setup_task_names="${OPTARG:-}";;
+		setup_task_name ) setup_task_name="${OPTARG:-}";; 
+		setup_task_name_verify ) setup_task_name_verify="${OPTARG:-}";; 
+		setup_task_name_remote ) setup_task_name_remote="${OPTARG:-}";; 
+		setup_task_name_local ) setup_task_name_local="${OPTARG:-}";; 
+		setup_task_name_new ) setup_task_name_new="${OPTARG:-}";; 
+		setup_local_zip_file ) setup_local_zip_file="${OPTARG:-}" ;;
+		setup_remote_zip_file ) setup_remote_zip_file="${OPTARG:-}" ;;
+		setup_remote_bucket_path_dir ) setup_remote_bucket_path_dir="${OPTARG:-}" ;;
+		setup_remote_bucket_path_file ) setup_remote_bucket_path_file="${OPTARG:-}";;
+		setup_dest_dir ) setup_dest_dir="${OPTARG:-}";;
+		setup_tmp_dir ) setup_tmp_dir="${OPTARG:-}" ;;
+		setup_kind ) setup_kind="${OPTARG:-}";;
+		setup_zip_inner_dir ) setup_zip_inner_dir="${OPTARG:-}";;
+		setup_zip_inner_file ) setup_zip_inner_file="${OPTARG:-}";;
+		setup_name ) setup_name="${OPTARG:-}";;
+		setup_bucket_name ) setup_bucket_name="${OPTARG:-}" ;;
+		setup_bucket_path ) setup_bucket_path="${OPTARG:-}";;
+		setup_service ) setup_service="${OPTARG:-}" ;;
 
-		backup_task_names ) needs_arg; backup_task_names="$OPTARG";;
-		backup_task_name ) needs_arg; backup_task_name="$OPTARG";;
-		backup_bucket_name ) needs_arg; backup_bucket_name="$OPTARG" ;;
-		backup_bucket_path ) needs_arg; backup_bucket_path="$OPTARG";;
-		backup_service ) needs_arg; backup_service="$OPTARG";;
+		backup_task_names ) backup_task_names="${OPTARG:-}";;
+		backup_task_name ) backup_task_name="${OPTARG:-}";;
+		backup_bucket_name ) backup_bucket_name="${OPTARG:-}" ;;
+		backup_bucket_path ) backup_bucket_path="${OPTARG:-}";;
+		backup_service ) backup_service="${OPTARG:-}";;
 
-		s3_endpoint ) needs_arg; s3_endpoint="$OPTARG";;
-		use_aws_s3 ) needs_arg; use_aws_s3="$OPTARG";;
-		use_s3cmd ) needs_arg; use_s3cmd="$OPTARG";;
-		db_name ) needs_arg; db_name="$OPTARG";;
-		db_service ) needs_arg; db_service="$OPTARG" ;;
-		local_db_file ) needs_arg; local_db_file="$OPTARG" ;;
-		remote_db_file ) needs_arg; remote_db_file="$OPTARG" ;;
-		remote_bucket_path_db_dir ) needs_arg; remote_bucket_path_db_dir="$OPTARG" ;;
-		remote_bucket_path_db_file ) needs_arg; remote_bucket_path_db_file="$OPTARG";;
-		db_restore_dir ) needs_arg; db_restore_dir="$OPTARG";;
-		backup_delete_old_days ) needs_arg; backup_delete_old_days="$OPTARG";;
-		main_backup_base_dir ) needs_arg; main_backup_base_dir="$OPTARG";;
-		backup_bucket_sync_dir ) needs_arg; backup_bucket_sync_dir="$OPTARG";;    
-		backup_task_name_local ) needs_arg; backup_task_name_local="$OPTARG";;  
-		backup_kind ) needs_arg; backup_kind="$OPTARG";;  
-		backup_name ) needs_arg; backup_name="$OPTARG";;  
-		backup_service_dir ) needs_arg; backup_service_dir="$OPTARG";;  
-		backup_intermediate_dir ) needs_arg; backup_intermediate_dir="$OPTARG";; 
+		s3_endpoint ) s3_endpoint="${OPTARG:-}";;
+		use_aws_s3 ) use_aws_s3="${OPTARG:-}";;
+		use_s3cmd ) use_s3cmd="${OPTARG:-}";;
+		db_name ) db_name="${OPTARG:-}";;
+		db_service ) db_service="${OPTARG:-}" ;;
+		local_db_file ) local_db_file="${OPTARG:-}" ;;
+		remote_db_file ) remote_db_file="${OPTARG:-}" ;;
+		remote_bucket_path_db_dir ) remote_bucket_path_db_dir="${OPTARG:-}" ;;
+		remote_bucket_path_db_file ) remote_bucket_path_db_file="${OPTARG:-}";;
+		db_restore_dir ) db_restore_dir="${OPTARG:-}";;
+		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
+		main_backup_base_dir ) main_backup_base_dir="${OPTARG:-}";;
+		backup_bucket_sync_dir ) backup_bucket_sync_dir="${OPTARG:-}";;    
+		backup_task_name_local ) backup_task_name_local="${OPTARG:-}";;  
+		backup_kind ) backup_kind="${OPTARG:-}";;  
+		backup_name ) backup_name="${OPTARG:-}";;  
+		backup_service_dir ) backup_service_dir="${OPTARG:-}";;  
+		backup_intermediate_dir ) backup_intermediate_dir="${OPTARG:-}";; 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac

@@ -95,7 +95,7 @@ case "$command" in
 					zip -j "/$tmp_dir/$task_short_name.zip" "/$backup_src_dir/$backup_src_file"
 					mv "/$tmp_dir/$task_short_name.zip" "/$main_dir/$task_short_name.zip"
 				else
-					error "[$command] $task_kind: kind invalid value"
+					error "$command: $task_kind: task_kind invalid value"
 				fi
 			fi
 
@@ -139,7 +139,7 @@ case "$command" in
 						s3cmd sync "/$backup_src_dir/" "s3://$backup_bucket_sync_dir_full/"
 					fi
 				else
-					error "$command - $task_service - not able to sync local backup with bucket"
+					error "$command: $task_service: not able to sync local backup with bucket"
 				fi
 			fi
 		SHELL
@@ -208,7 +208,7 @@ case "$command" in
 					>&2 echo -e "${CYAN}\$(date '+%F %T') - \${msg}${NC}"
 					>&2 s3cmd cp "$restore_remote_src" "$restore_local_dest"
 				else
-					error "$command - $task_service - not able to copy bucket file to local path"
+					error "$command: $task_service: not able to copy bucket file to local path"
 				fi
 			fi
 
@@ -230,7 +230,7 @@ case "$command" in
 					>&2 echo -e "${CYAN}\$(date '+%F %T') - \${msg}${NC}"
 					>&2 s3cmd sync "$restore_remote_src" "/$restore_dest_dir"
 				else
-					error "$command - $task_service - not able to sync bucket dir to local path"
+					error "$command: $task_service: not able to sync bucket dir to local path"
 				fi
 
 				restore_path="/$restore_dest_dir"
@@ -254,7 +254,7 @@ case "$command" in
 
 					restore_path="/$restore_dest_dir/${restore_zip_inner_file:-}"
 				else
-					error "[$command] $task_kind: invalid value for kind"
+					error "$command: $task_kind: invalid value for kind"
 				fi
 			fi
 

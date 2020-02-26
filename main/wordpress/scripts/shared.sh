@@ -42,7 +42,7 @@ case "$command" in
     inner_cmd="${1:-}"
 
 		if [ -z "$inner_cmd" ]; then
-			error "[$command] command not specified"
+			error "$command: inner command not specified"
 		fi
 
     shift;

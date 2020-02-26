@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }
@@ -63,7 +63,7 @@ case "$command" in
 		fi
 
 		if [ -z "$tables" ]; then
-			>&2 echo "$(date '+%F %X') - $command - wait for db to be ready"
+			>&2 echo "$(date '+%F %T') - $command - wait for db to be ready"
 			sleep 60
 			sql_output="$("$pod_script_env_file" exec-nontty "$db_service" \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:

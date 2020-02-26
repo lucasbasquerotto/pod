@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090
 set -eou pipefail
 
 pod_vars_dir="$1"
@@ -10,7 +11,7 @@ NC='\033[0m' # No Color
 
 if [ -z "$pod_vars_dir" ]; then
 	msg="[error] enter the vars directory parameter"
-	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
@@ -18,31 +19,31 @@ shift;
 
 if [ ! -f "$pod_vars_dir/vars.sh" ]; then
 	msg="[error] there is no such file $pod_vars_dir/vars.sh"
-	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
-start="$(date '+%F %X')"
+start="$(date '+%F %T')"
 msg="[run-env] [${1:-}] start ($pod_vars_dir)"
-echo -e "${CYAN}$(date '+%F %X') ${msg}${NC}"
+echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
 . "${pod_vars_dir}/vars.sh"
 
 if [ -z "${var_pod_inner_dir:-}" ]; then
 	msg="[error] var_pod_inner_dir not specified in the $pod_vars_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
 if [ -z "${var_scripts_dir:-}" ]; then
 	msg="[error] var_scripts_dir not specified in the $pod_vars_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
 if [ -z "${var_script_env_file:-}" ]; then
 	msg="[error] var_script_env_file not specified in the $pod_vars_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %X') ${msg}${NC}"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
@@ -56,10 +57,10 @@ export "POD_LAYER_DIR=$pod_layer_dir"
 export "POD_FULL_DIR=$pod_full_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
 
-"${pod_script_env_file}" ${@}
+"${pod_script_env_file}" "${@}"
 
-end="$(date '+%F %X')"
+end="$(date '+%F %T')"
 msg="[run-env] [${1:-}] end ($pod_vars_dir)"
-echo -e "${CYAN}$(date '+%F %X') ${msg}${NC}"
+echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
 echo -e "${GREEN}[run-env] [${1:-}] summary - $start to $end ${NC}"

@@ -3,4 +3,4 @@ set -eou pipefail
 
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-"${pod_layer_dir}/run-env" "$pod_layer_dir" ${@}
+"${pod_layer_dir}/run-env" "$pod_layer_dir" "${@}"

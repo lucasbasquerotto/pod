@@ -17,7 +17,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }
@@ -87,11 +87,11 @@ case "$command" in
 		;;
 esac
   
-start="$(date '+%F %X')"
+start="$(date '+%F %T')"
 
 case "$command" in
   "setup:db:new"|"deploy")
-    echo -e "${CYAN}$(date '+%F %X') - env (shared) - $command - start${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - start${NC}"
     ;;
 esac
 
@@ -100,19 +100,19 @@ case "$command" in
 		"$pod_script_env_file" args migrate "$@"
 		;;
   "deploy")
-    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - remove old container${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - remove old container${NC}"
     "$pod_script_run_file" rm wordpress
 
-    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update database${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - update database${NC}"
     "$pod_script_run_file" run --rm wordpress wp --allow-root \
         core update-db
 
-    echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - activate plugins${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - activate plugins${NC}"
     "$pod_script_run_file" run --rm wordpress wp --allow-root \
         plugin activate --all
 
     if [ ! -z "$var_old_domain_host" ] && [ ! -z "$var_new_domain_host" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - upgrade (app) - update domain${NC}"
+        echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - update domain${NC}"
         "$pod_script_run_file" run --rm wordpress wp --allow-root \
             search-replace "$var_old_domain_host" "$var_new_domain_host"
     fi
@@ -123,95 +123,6 @@ case "$command" in
     if [ ! -z "${var_setup_task_names:-}" ]; then
       opts+=( "--setup_task_names=${var_setup_task_names:-}" )
     fi
-    
-    if [ ${#@} -ne 0 ]; then
-      opts+=( "${@}" )
-    fi
-
-		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
-		;;
-  "args:main:wp")
-    opts=()
-
-    if [ ! -z "${var_setup_local_uploads_zip_file:-}" ]; then
-      opts+=( "--local_uploads_zip_file=${var_setup_local_uploads_zip_file:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_uploads_zip_file:-}" ]; then
-      opts+=( "--remote_uploads_zip_file=${var_setup_remote_uploads_zip_file:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_bucket_path_uploads_dir:-}" ]; then
-      opts+=( "--remote_bucket_path_uploads_dir=${var_setup_remote_bucket_path_uploads_dir:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_bucket_path_uploads_file:-}" ]; then
-      opts+=( "--remote_bucket_path_uploads_file=${var_setup_remote_bucket_path_uploads_file:-}" )
-    fi
-    if [ ! -z "${var_setup_service:-}" ]; then
-      opts+=( "--setup_service=${var_setup_service:-}" )
-    fi
-    if [ ! -z "${var_uploads_service_dir:-}" ]; then
-      opts+=( "--uploads_service_dir=${var_uploads_service_dir:-}" )
-    fi
-    if [ ! -z "${var_backup_bucket_name:-}" ]; then
-      opts+=( "--backup_bucket_name=${var_backup_bucket_name:-}" )
-    fi
-    if [ ! -z "${var_backup_bucket_path:-}" ]; then
-      opts+=( "--backup_bucket_path=${var_backup_bucket_path:-}" )
-    fi
-    if [ ! -z "${var_uploads_main_dir:-}" ]; then
-      opts+=( "--uploads_main_dir=${var_uploads_main_dir:-}" )
-    fi
-    if [ ! -z "${var_backup_service:-}" ]; then
-      opts+=( "--backup_service=${var_backup_service:-}" )
-    fi
-    if [ ! -z "${var_s3_endpoint:-}" ]; then
-      opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
-    fi
-    if [ ! -z "${var_use_aws_s3:-}" ]; then
-      opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
-    fi
-    if [ ! -z "${var_use_s3cmd:-}" ]; then
-      opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
-    fi
-    if [ ! -z "${var_db_name:-}" ]; then
-      opts+=( "--db_name=${var_db_name:-}" )
-    fi
-    if [ ! -z "${var_db_service:-}" ]; then
-      opts+=( "--db_service=${var_db_service:-}" )
-    fi
-    if [ ! -z "${var_setup_local_db_file:-}" ]; then
-      opts+=( "--local_db_file=${var_setup_local_db_file:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_db_file:-}" ]; then
-      opts+=( "--remote_db_file=${var_setup_remote_db_file:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_bucket_path_db_dir:-}" ]; then
-      opts+=( "--remote_bucket_path_db_dir=${var_setup_remote_bucket_path_db_dir:-}" )
-    fi
-    if [ ! -z "${var_setup_remote_bucket_path_db_file:-}" ]; then
-      opts+=( "--remote_bucket_path_db_file=${var_setup_remote_bucket_path_db_file:-}" )
-    fi
-    if [ ! -z "${var_db_restore_dir:-}" ]; then
-      opts+=( "--db_restore_dir=${var_db_restore_dir:-}" )
-    fi
-    if [ ! -z "${var_backup_delete_old_days:-}" ]; then
-      opts+=( "--backup_delete_old_days=${var_backup_delete_old_days:-}" )
-    fi
-    if [ ! -z "${var_main_backup_base_dir:-}" ]; then
-      opts+=( "--main_backup_base_dir=${var_main_backup_base_dir:-}" )
-    fi
-    if [ ! -z "${var_backup_bucket_uploads_sync_dir:-}" ]; then
-      opts+=( "--backup_bucket_uploads_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
-    fi
-    if [ ! -z "${var_backup_bucket_db_sync_dir:-}" ]; then
-      opts+=( "--backup_bucket_db_sync_dir=${var_backup_bucket_db_sync_dir:-}" )
-    fi
-
-    if [ ! -z "${uploads_task_name:-}" ]; then
-      opts+=( "--uploads_task_name=${uploads_task_name:-}" )
-    fi
-    if [ ! -z "${db_task_name:-}" ]; then
-      opts+=( "--db_task_name=${db_task_name:-}" )
-    fi    
     
     if [ ${#@} -ne 0 ]; then
       opts+=( "${@}" )
@@ -364,6 +275,7 @@ case "$command" in
       opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
     fi  
     
+    opts+=( "--backup_task_name=$backup_task_name" )
     opts+=( "--backup_kind=dir" )
     opts+=( "--backup_name=wp-uploads" )
     
@@ -379,7 +291,7 @@ case "$command" in
     if [ ! -z "${var_db_backup_dir:-}" ]; then
       opts+=( "--backup_service_dir=${var_db_backup_dir:-}" )
     fi
-    if [ ! -z "${var_uploads_main_dir:-}" ]; then
+    if [ ! -z "${var_db_backup_dir:-}" ]; then
       opts+=( "--backup_intermediate_dir=${var_db_backup_dir:-}" )
     fi
     if [ ! -z "${var_db_name:-}" ]; then
@@ -413,6 +325,7 @@ case "$command" in
       opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
     fi
     
+    opts+=( "--backup_task_name=$backup_task_name" )
     opts+=( "--backup_task_name_local=backup:local:wp" )
     opts+=( "--backup_kind=file" )
     opts+=( "--backup_name=wp-db" )
@@ -468,7 +381,7 @@ case "$command" in
 		;;
   "setup:new:wp:db")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
-    echo -e "${CYAN}$(date '+%F %X') - $command - installation${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - $command - installation${NC}"
     "$pod_script_run_file" run --rm wordpress \
       wp --allow-root core install \
       --url="$var_setup_url" \
@@ -478,17 +391,17 @@ case "$command" in
       --admin_email="$var_setup_admin_email"
 
     if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
-      echo -e "${CYAN}$(date '+%F %X') - $command - deploy...${NC}"
+      echo -e "${CYAN}$(date '+%F %T') - $command - deploy...${NC}"
       "$pod_script_env_file" deploy "$@"
 
       if [ ! -z "$var_setup_local_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - $command - import local seed data${NC}"
+        echo -e "${CYAN}$(date '+%F %T') - $command - import local seed data${NC}"
         "$pod_script_run_file" run --rm wordpress \
           wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
       fi
 
       if [ ! -z "$var_setup_remote_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %X') - $command - import remote seed data${NC}"
+        echo -e "${CYAN}$(date '+%F %T') - $command - import remote seed data${NC}"
         "$pod_script_run_file" run --rm wordpress sh -c \
           "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
           && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
@@ -516,11 +429,11 @@ case "$command" in
     ;;
 esac
 
-end="$(date '+%F %X')"
+end="$(date '+%F %T')"
 
 case "$command" in
   "setup:db:new"|"deploy")
-    echo -e "${CYAN}$(date '+%F %X') - env (shared) - $command - end${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - end${NC}"
     echo -e "${CYAN}env (shared) - $command - $start - $end${NC}"
     ;;
 esac

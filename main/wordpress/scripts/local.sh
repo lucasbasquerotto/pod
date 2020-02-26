@@ -19,7 +19,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function error {
-	msg="$(date '+%F %X') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }
@@ -42,11 +42,11 @@ fi
 
 shift;
 
-start="$(date '+%F %X')"
+start="$(date '+%F %T')"
 
 case "$command" in
   "prepare"|"setup"|"deploy"|"stop"|"rm"|"clear")
-    echo -e "${CYAN}$(date '+%F %X') - env (local) - $command - start${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - env (local) - $command - start${NC}"
     ;;
 esac
 
@@ -88,11 +88,11 @@ case "$command" in
     ;;
 esac
 
-end="$(date '+%F %X')"
+end="$(date '+%F %T')"
 
 case "$command" in
   "prepare"|"setup"|"deploy"|"stop"|"rm"|"clear")
-    echo -e "${CYAN}$(date '+%F %X') - env (local) - $command - end${NC}"
+    echo -e "${CYAN}$(date '+%F %T') - env (local) - $command - end${NC}"
     echo -e "${CYAN}env (local) - $command - $start - $end${NC}"
     ;;
 esac

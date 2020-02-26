@@ -71,7 +71,7 @@ case "$command" in
 		fi
 
 		if ! [[ $tables =~ $re_number ]] ; then
-			error "Could nor verify number of tables in database - output: $sql_output"
+			error "$command: Could nor verify number of tables in database - output: $sql_output"
 		fi
 
 		if [ "$tables" != "0" ]; then
@@ -82,7 +82,7 @@ case "$command" in
 		;;
   "setup:local:file:mysql")
 		if [ -z "$db_sql_file" ]; then
-			error "[$command] db_sql_file not specified"
+			error "$command: db_sql_file not specified"
 		fi
 
 		"$pod_script_env_file" up "$db_service"
@@ -113,6 +113,6 @@ case "$command" in
 		SHELL
     ;;
   *)
-		error "Invalid command: $command"
+		error "$command: Invalid command"
     ;;
 esac

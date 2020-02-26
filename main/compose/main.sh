@@ -20,6 +20,7 @@ if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
 fi
 
 command="${1:-}"
+run_file="docker-compose.run.yml"
 
 if [ -z "$command" ]; then
 	error "No command entered (compose)."
@@ -31,10 +32,6 @@ case "$command" in
 	"up")
 		cd "$pod_full_dir/"
 		sudo docker-compose up -d --remove-orphans "${@}"
-		;;
-	"rm")
-		cd "$pod_full_dir/"
-		sudo docker-compose rm --stop -v --force "${@}"
 		;;
 	"exec-nontty")
 		cd "$pod_full_dir/"
@@ -49,9 +46,36 @@ case "$command" in
 
 		sudo docker exec -i "$("$pod_script_env_file" ps -q "$service")" "${@}"
 		;;
-	"build"|"run"|"stop"|"exec"|"restart"|"logs"|"ps")
+	"run")
+		cd "$pod_full_dir/"
+		sudo docker-compose -f "$run_file" run --rm "${@}"
+		;;
+	"rm")
+		cd "$pod_full_dir/"
+		sudo docker-compose rm --stop -v --force "${@}"
+
+		if [ -f "$run_file" ]; then
+			sudo docker-compose -f "$run_file" rm --stop -v --force "${@}"
+		fi
+		;;
+	"build"|"stop")
 		cd "$pod_full_dir/"
 		sudo docker-compose "$command" "${@}"
+
+		if [ -f "$run_file" ]; then
+			sudo docker-compose -f "$run_file" "$command" "${@}"
+		fi
+		;;
+	"exec"|"restart"|"logs"|"ps")
+		cd "$pod_full_dir/"
+		sudo docker-compose "$command" "${@}"
+		;;
+	"ps-run")
+		cd "$pod_full_dir/"
+		
+		if [ -f "$run_file" ]; then
+			sudo docker-compose -f "$run_file" ps "${@}"
+		fi
 		;;
 	"sh"|"bash")
 		cd "$pod_full_dir/"

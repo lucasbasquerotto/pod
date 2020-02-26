@@ -341,5 +341,6 @@ children:
       var_main_backup_base_dir: "tmp/main/backup"
       var_db_backup_dir: "tmp/main/mysql/backup"
       var_db_restore_dir: "tmp/main/mysql/backup"
-      var_setup_task_names: "wp:uploads,wp:db"
-      var_backup_task_names: "wp:db,wp:uploads"
+      var_setup_task_names: "setup:task:wp:uploads,setup:task:wp:db"
+      var_backup_task_names: "backup:task:wp:db,backup:task:wp:uploads"
+      var_setup_run_new_task_wp_db: "false"

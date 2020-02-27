@@ -344,3 +344,5 @@ children:
       var_setup_task_names: "setup:task:wp:uploads,setup:task:wp:db"
       var_backup_task_names: "backup:task:wp:db,backup:task:wp:uploads"
       var_setup_run_new_task_wp_db: "false"
+      var_db_connect_wait_secs: 90
+      var_uploads_zip_inner_dir: "uploads"

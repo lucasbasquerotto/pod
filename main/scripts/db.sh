@@ -33,6 +33,7 @@ while getopts n:s:u:p:d:-: OPT; do
     u | db_user ) db_user="${OPTARG:-}" ;;
     p | db_pass ) db_pass="${OPTARG:-}";;
     d | db_backup_dir ) db_backup_dir="${OPTARG:-}" ;;
+		w | db_connect_wait_secs) db_connect_wait_secs="${OPTARG:-}" ;;
     f | db_sql_file ) db_sql_file="${OPTARG:-}" ;;
     ??* ) die "Illegal option --$OPT" ;;  # bad long option
     \? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -61,7 +62,7 @@ case "$command" in
 
 		if [ -z "$tables" ]; then
 			>&2 echo "$(date '+%F %T') - $command - wait for db to be ready"
-			sleep 60
+			sleep "$db_connect_wait_secs"
 			sql_output="$("$pod_script_env_file" exec-nontty "$db_service" \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
 

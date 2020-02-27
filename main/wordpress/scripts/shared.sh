@@ -15,6 +15,7 @@ pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 
 CYAN='\033[0;36m'
 RED='\033[0;31m'
+PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 function error {
@@ -87,8 +88,11 @@ esac
 start="$(date '+%F %T')"
 
 case "$command" in
-  "setup:new:wp:db"|"upgrade")
-    echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - start${NC}"
+	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+    ;;
+  *)
+    >&2 echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - start${NC}"
     ;;
 esac
 
@@ -115,7 +119,7 @@ case "$command" in
     "$pod_script_env_file" "args:backup" "$command" "$@"
     ;;
   "backup:task:wp:uploads"|"backup:task:wp:db")
-    "$pod_script_env_file" "args:main:${command}" "backup:default" "$@"
+    "$pod_script_env_file" "args:${command}" "backup:default" "$@"
     ;;
   "backup:remote:wp:uploads"|"backup:remote:wp:db")
     "$pod_script_env_file" "args:${command}" backup "$@"
@@ -182,12 +186,12 @@ case "$command" in
     ;;
   "args")
     opts=()
-    opts+=( "--task_names=${var_setup_task_names:-}" )
+    opts+=( "--task_names=$var_setup_task_names" )
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
   "args:backup")
     opts=()
-    opts+=( "--task_names=${var_backup_task_names:-}" )
+    opts+=( "--task_names=$var_backup_task_names" )
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
   "args:setup:task:wp:uploads")
@@ -197,8 +201,8 @@ case "$command" in
     opts+=( "--task_name_verify=setup:verify:wp:uploads" )
     opts+=( "--task_name_remote=setup:remote:wp:uploads" )
 
-    opts+=( "--setup_service=${var_setup_service:-}" )
-    opts+=( "--setup_dest_dir=${var_uploads_service_dir:-}" )
+    opts+=( "--setup_service=$var_setup_service" )
+    opts+=( "--setup_dest_dir=$var_uploads_service_dir" )
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
@@ -209,18 +213,18 @@ case "$command" in
     opts+=( "--task_kind=dir" )
     opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
     opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
-    opts+=( "--task_service=${var_setup_service:-}" )
-    opts+=( "--tmp_dir=${var_uploads_main_dir:-}" )
+    opts+=( "--task_service=$var_setup_service" )
+    opts+=( "--tmp_dir=$var_uploads_main_dir" )
     opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
     opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
     opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
 
-    opts+=( "--restore_dest_dir=${var_uploads_service_dir:-}" )
+    opts+=( "--restore_dest_dir=$var_uploads_service_dir" )
     opts+=( "--restore_local_zip_file=${var_setup_local_uploads_zip_file:-}" )
     opts+=( "--restore_remote_zip_file=${var_setup_remote_uploads_zip_file:-}" )
     opts+=( "--restore_remote_bucket_path_dir=${var_setup_remote_bucket_path_uploads_dir:-}" )
     opts+=( "--restore_remote_bucket_path_file=${var_setup_remote_bucket_path_uploads_file:-}" )
-    opts+=( "--restore_zip_inner_dir=uploads" )
+    opts+=( "--restore_zip_inner_dir=$var_uploads_zip_inner_dir" )
 
 		"$pod_script_remote_file" "$inner_cmd" "${opts[@]}"
 		;;
@@ -233,8 +237,8 @@ case "$command" in
     opts+=( "--task_name_local=setup:local:file:wp:db" )
     opts+=( "--task_name_new=setup:new:wp:db" )
         
-    opts+=( "--setup_service=${var_setup_service:-}" )
-    opts+=( "--setup_dest_dir=${var_db_restore_dir:-}" )
+    opts+=( "--setup_service=$var_setup_service" )
+    opts+=( "--setup_dest_dir=$var_db_restore_dir" )
     opts+=( "--setup_run_new_task=${var_setup_run_new_task_wp_db:-}" )
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
@@ -246,13 +250,13 @@ case "$command" in
     opts+=( "--task_kind=file" )
     opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
     opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
-    opts+=( "--task_service=${var_setup_service:-}" )
-    opts+=( "--tmp_dir=${var_db_restore_dir:-}" )
+    opts+=( "--task_service=$var_setup_service" )
+    opts+=( "--tmp_dir=$var_db_restore_dir" )
     opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
     opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
     opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
 
-    opts+=( "--restore_dest_dir=${var_db_restore_dir:-}" )
+    opts+=( "--restore_dest_dir=$var_db_restore_dir" )
     opts+=( "--restore_local_zip_file=${var_setup_local_db_zip_file:-}" )
     opts+=( "--restore_remote_zip_file=${var_setup_remote_db_zip_file:-}" )
     opts+=( "--restore_remote_bucket_path_dir=${var_setup_remote_bucket_path_db_dir:-}" )
@@ -267,9 +271,9 @@ case "$command" in
     opts+=( "--task_name=$task_name" )
     opts+=( "--task_name_remote=backup:remote:wp:uploads" )
 
-    opts+=( "--backup_service=${var_backup_service:-}" )
-    opts+=( "--backup_base_dir=${var_main_backup_base_dir:-}" )
-    opts+=( "--backup_delete_old_days=${var_backup_delete_old_days:-}" )
+    opts+=( "--backup_service=$var_backup_service" )
+    opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
+    opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
@@ -280,14 +284,14 @@ case "$command" in
     opts+=( "--task_kind=dir" )
     opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
     opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
-    opts+=( "--task_service=${var_backup_service:-}" )
-    opts+=( "--tmp_dir=${var_uploads_main_dir:-}" )
+    opts+=( "--task_service=$var_backup_service" )
+    opts+=( "--tmp_dir=$var_uploads_main_dir" )
     opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
     opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
     opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
 
-    opts+=( "--backup_src_dir=${var_uploads_service_dir:-}" )
-    opts+=( "--backup_base_dir=${var_main_backup_base_dir:-}" )
+    opts+=( "--backup_src_dir=$var_uploads_service_dir" )
+    opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
     opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
 
 		"$pod_script_remote_file" "$inner_cmd" "${opts[@]}"
@@ -299,9 +303,9 @@ case "$command" in
     opts+=( "--task_name_local=backup:local:wp" )
     opts+=( "--task_name_remote=backup:remote:wp:db" )
 
-    opts+=( "--backup_service=${var_backup_service:-}" )
-    opts+=( "--backup_base_dir=${var_main_backup_base_dir:-}" )
-    opts+=( "--backup_delete_old_days=${var_backup_delete_old_days:-}" )
+    opts+=( "--backup_service=$var_backup_service" )
+    opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
+    opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
@@ -313,15 +317,15 @@ case "$command" in
     opts+=( "--task_kind=file" )
     opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
     opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
-    opts+=( "--task_service=${var_backup_service:-}" )
-    opts+=( "--tmp_dir=${var_db_backup_dir:-}" )
+    opts+=( "--task_service=$var_backup_service" )
+    opts+=( "--tmp_dir=$var_db_backup_dir" )
     opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
     opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
     opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
     
-    opts+=( "--backup_src_dir=${var_db_backup_dir:-}" )
-    opts+=( "--backup_src_file=${var_db_name:-}.sql" )
-    opts+=( "--backup_base_dir=${var_main_backup_base_dir:-}" )
+    opts+=( "--backup_src_dir=$var_db_backup_dir" )
+    opts+=( "--backup_src_file=$var_db_name.sql" )
+    opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
     opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
 
 		"$pod_script_remote_file" "$inner_cmd" "${opts[@]}"
@@ -330,12 +334,13 @@ case "$command" in
   "args:db:wp")
     opts=()
 
-    opts+=( "--db_name=${var_db_name:-}" )
-    opts+=( "--db_service=${var_db_service:-}" )
-    opts+=( "--db_user=${var_db_user:-}" )
-    opts+=( "--db_pass=${var_db_pass:-}" )
-    opts+=( "--db_backup_dir=${var_db_backup_dir:-}" )
-    opts+=( "--db_sql_file=${setup_restored_path:-}" )
+    opts+=( "--db_name=$var_db_name" )
+    opts+=( "--db_service=$var_db_service" )
+    opts+=( "--db_user=$var_db_user" )
+    opts+=( "--db_pass=$var_db_pass" )
+    opts+=( "--db_backup_dir=$var_db_backup_dir" )
+    opts+=( "--db_connect_wait_secs=$var_db_connect_wait_secs" )
+    opts+=( "--db_sql_file=${setup_restored_path:-}" )    
 
 		"$pod_script_db_file" "$inner_cmd" "${opts[@]}"
     ;;
@@ -347,8 +352,11 @@ esac
 end="$(date '+%F %T')"
 
 case "$command" in
-  "setup:new:wp:db"|"upgrade")
-    echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - end${NC}"
-    echo -e "${CYAN}env (shared) - $command - $start - $end${NC}"
+	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+    ;;
+  *)
+    >&2 echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - end${NC}"
+    >&2 echo -e "${PURPLE}env (shared) - $command - $start - $end${NC}"
     ;;
 esac

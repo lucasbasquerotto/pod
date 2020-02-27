@@ -12,11 +12,18 @@ pod_script_run_file="$pod_layer_dir/main/compose/main.sh"
 pod_script_main_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
+pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 
 CYAN='\033[0;36m'
-RED='\033[0;31m'
 PURPLE='\033[0;35m'
+GRAY="\033[0;90m"
+RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -66,25 +73,25 @@ case "$command" in
     ;;
 esac
 
-case "$command" in
-  "args"|"args:"*)
-    while getopts ':-:' OPT; do
-      if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
-        OPT="${OPTARG%%=*}"       # extract long option name
-        OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
-        OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
-      fi
-      case "$OPT" in
-        task_name ) task_name="${OPTARG:-}";;
-        setup_restored_path ) setup_restored_path="${OPTARG:-}";;
-        ??* ) ;;  # bad long option
-        \? )  ;;  # bad short option (error reported via getopts)
-      esac
-    done
-    shift $((OPTIND-1))
-		;;
-esac
-  
+args=("$@")
+
+while getopts ':-:' OPT; do
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    setup_restored_path ) setup_restored_path="${OPTARG:-}";;
+    s3_cmd ) s3_cmd="${OPTARG:-}";;
+    s3_src ) s3_src="${OPTARG:-}";;
+    s3_dest ) s3_dest="${OPTARG:-}";;
+    ??* ) ;;  # bad long option
+    \? )  ;;  # bad short option (error reported via getopts)
+  esac
+done
+shift $((OPTIND-1))
+
 start="$(date '+%F %T')"
 
 case "$command" in
@@ -98,46 +105,46 @@ esac
 
 case "$command" in
   "main")
-		"$pod_script_env_file" args migrate "$@"
+		"$pod_script_env_file" args migrate "${args[@]}"
 		;;
   "setup:task:wp:uploads"|"setup:task:wp:db")
-    "$pod_script_env_file" "args:${command}" "setup:default" "$@"
+    "$pod_script_env_file" "args:${command}" "setup:default" "${args[@]}"
     ;;
   "setup:verify:wp:uploads")
-    "$pod_script_main_file" "setup:verify" "$@"
+    "$pod_script_main_file" "setup:verify" "${args[@]}"
     ;;
   "setup:remote:wp:uploads"|"setup:remote:wp:db")
-    "$pod_script_env_file" "args:${command}" restore "$@"
+    "$pod_script_env_file" "args:${command}" restore "${args[@]}"
     ;;
   "setup:verify:wp:db")
-		"$pod_script_env_file" "args:db:wp" "setup:verify:mysql" "$@"
+		"$pod_script_env_file" "args:db:wp" "setup:verify:mysql" "${args[@]}"
 		;;
   "setup:local:file:wp:db")
-		"$pod_script_env_file" "args:db:wp" "setup:local:file:mysql" "$@"
+		"$pod_script_env_file" "args:db:wp" "setup:local:file:mysql" "${args[@]}"
 		;;
   "backup")
-    "$pod_script_env_file" "args:backup" "$command" "$@"
+    "$pod_script_env_file" "args:backup" "$command" "${args[@]}"
     ;;
   "backup:task:wp:uploads"|"backup:task:wp:db")
-    "$pod_script_env_file" "args:${command}" "backup:default" "$@"
+    "$pod_script_env_file" "args:${command}" "backup:default" "${args[@]}"
     ;;
   "backup:remote:wp:uploads"|"backup:remote:wp:db")
-    "$pod_script_env_file" "args:${command}" backup "$@"
+    "$pod_script_env_file" "args:${command}" backup "${args[@]}"
     ;;
   "backup:local:wp")
-		"$pod_script_env_file" "args:db:wp" "backup:local:mysql" "$@"
+		"$pod_script_env_file" "args:db:wp" "backup:local:mysql" "${args[@]}"
 		;;
-	"migrate"|"update"|"fast-update"|"setup"|"fast-setup")
-    "$pod_script_main_file" "$command" "$@"
+  "migrate"|"update"|"fast-update"|"setup"|"fast-setup")
+    "$pod_script_main_file" "$command" "${args[@]}"
     ;;
 	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
     |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
     
-    "$pod_script_run_file" "$command" "$@"
+    "$pod_script_run_file" "$command" "${args[@]}"
 		;;
   "setup:new:wp:db")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
-    echo -e "${CYAN}$(date '+%F %T') - $command - installation${NC}"
+    info "$command - installation"
     "$pod_script_run_file" run wordpress \
       wp --allow-root core install \
       --url="$var_setup_url" \
@@ -147,17 +154,17 @@ case "$command" in
       --admin_email="$var_setup_admin_email"
 
     if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
-      echo -e "${CYAN}$(date '+%F %T') - $command - upgrade...${NC}"
-      "$pod_script_env_file" upgrade "$@"
+      info "$command - upgrade..."
+      "$pod_script_env_file" upgrade "${args[@]}"
 
       if [ ! -z "$var_setup_local_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %T') - $command - import local seed data${NC}"
+        info "$command - import local seed data"
         "$pod_script_run_file" run wordpress \
           wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
       fi
 
       if [ ! -z "$var_setup_remote_seed_data" ]; then
-        echo -e "${CYAN}$(date '+%F %T') - $command - import remote seed data${NC}"
+        info "$command - import remote seed data"
         "$pod_script_run_file" run wordpress sh -c \
           "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
           && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
@@ -166,25 +173,51 @@ case "$command" in
     fi
     ;;
   "upgrade")
-    >&2 echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - start container${NC}"
+    info "upgrade (app) - start container"
     "$pod_script_run_file" up wordpress
 
     "$pod_script_run_file" exec-nontty wordpress /bin/bash <<-SHELL
 			set -eou pipefail
 
-      >&2 echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - update database${NC}"
+      info "upgrade (app) - update database"
       wp --allow-root core update-db
 
-      >&2 echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - activate plugins${NC}"
+      info "upgrade (app) - activate plugins"
       wp --allow-root plugin activate --all
 
       if [ ! -z "$var_old_domain_host" ] && [ ! -z "$var_new_domain_host" ]; then
-        >&2 echo -e "${CYAN}$(date '+%F %T') - upgrade (app) - update domain${NC}"
+        info "upgrade (app) - update domain"
         wp --allow-root search-replace "$var_old_domain_host" "$var_new_domain_host"
       fi
 		SHELL
     ;;
-  "args")
+  "s3:task:wp:uploads")
+    opts=()
+    
+    opts+=( "--s3_service=$var_s3_service" )
+    opts+=( "--s3_endpoint=$var_s3_endpoint_uploads" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
+    opts+=( "--s3_src=${s3_src:-}" )
+    opts+=( "--s3_dest=${s3_dest:-}" )
+
+    inner_cmd="s3:$var_s3_cli:$var_s3_cli_cmd:$s3_cmd"
+    info "$command - $inner_cmd"
+		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
+		;;
+  "s3:task:wp:db")
+    opts=()
+    
+    opts+=( "--s3_service=$var_s3_service" )
+    opts+=( "--s3_endpoint=$var_s3_endpoint_db" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
+    opts+=( "--s3_src=${s3_src:-}" )
+    opts+=( "--s3_dest=${s3_dest:-}" )
+
+    inner_cmd="s3:$var_s3_cli:$var_s3_cli_cmd:$s3_cmd"
+    info "$command - $inner_cmd"
+		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
+		;;
+	"args")
     opts=()
     opts+=( "--task_names=$var_setup_task_names" )
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
@@ -197,7 +230,7 @@ case "$command" in
   "args:setup:task:wp:uploads")
     opts=()
     
-    opts+=( "--task_name=$task_name" )
+    opts+=( "--task_name=$command" )
     opts+=( "--task_name_verify=setup:verify:wp:uploads" )
     opts+=( "--task_name_remote=setup:remote:wp:uploads" )
 
@@ -211,13 +244,11 @@ case "$command" in
     
     opts+=( "--task_short_name=wp-uploads" )
     opts+=( "--task_kind=dir" )
-    opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
-    opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
     opts+=( "--task_service=$var_setup_service" )
     opts+=( "--tmp_dir=$var_uploads_main_dir" )
-    opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
-    opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
-    opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    opts+=( "--s3_task_name=s3:task:wp:uploads" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
+    opts+=( "--s3_bucket_path=${var_s3_bucket_path_uploads:-}" )
 
     opts+=( "--restore_dest_dir=$var_uploads_service_dir" )
     opts+=( "--restore_local_zip_file=${var_setup_local_uploads_zip_file:-}" )
@@ -231,7 +262,7 @@ case "$command" in
   "args:setup:task:wp:db")
     opts=()
     
-    opts+=( "--task_name=$task_name" )
+    opts+=( "--task_name=$command" )
     opts+=( "--task_name_verify=setup:verify:wp:db" )
     opts+=( "--task_name_remote=setup:remote:wp:db" )
     opts+=( "--task_name_local=setup:local:file:wp:db" )
@@ -248,13 +279,11 @@ case "$command" in
     
     opts+=( "--task_short_name=wp-db" )
     opts+=( "--task_kind=file" )
-    opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
-    opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
     opts+=( "--task_service=$var_setup_service" )
     opts+=( "--tmp_dir=$var_db_restore_dir" )
-    opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
-    opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
-    opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    opts+=( "--s3_task_name=s3:task:wp:db" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
+    opts+=( "--s3_bucket_path=${var_s3_bucket_path_db:-}" )
 
     opts+=( "--restore_dest_dir=$var_db_restore_dir" )
     opts+=( "--restore_local_zip_file=${var_setup_local_db_zip_file:-}" )
@@ -268,7 +297,7 @@ case "$command" in
   "args:backup:task:wp:uploads")
     opts=()
 
-    opts+=( "--task_name=$task_name" )
+    opts+=( "--task_name=$command" )
     opts+=( "--task_name_remote=backup:remote:wp:uploads" )
 
     opts+=( "--backup_service=$var_backup_service" )
@@ -282,13 +311,11 @@ case "$command" in
 
     opts+=( "--task_short_name=wp-uploads" )
     opts+=( "--task_kind=dir" )
-    opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
-    opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
     opts+=( "--task_service=$var_backup_service" )
     opts+=( "--tmp_dir=$var_uploads_main_dir" )
-    opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
-    opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
-    opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    opts+=( "--s3_task_name=s3:task:wp:uploads" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
+    opts+=( "--s3_bucket_path=${var_s3_bucket_path_uploads:-}" )
 
     opts+=( "--backup_src_dir=$var_uploads_service_dir" )
     opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
@@ -299,7 +326,7 @@ case "$command" in
   "args:backup:task:wp:db")
     opts=()
 
-    opts+=( "--task_name=$task_name" )
+    opts+=( "--task_name=$command" )
     opts+=( "--task_name_local=backup:local:wp" )
     opts+=( "--task_name_remote=backup:remote:wp:db" )
 
@@ -308,25 +335,22 @@ case "$command" in
     opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
 
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
-		;;
-  
+		;;  
   "args:backup:remote:wp:db")
     opts=()
 
     opts+=( "--task_short_name=wp-db" )
     opts+=( "--task_kind=file" )
-    opts+=( "--bucket_name=${var_backup_bucket_name:-}" )
-    opts+=( "--bucket_path=${var_backup_bucket_path:-}" )
     opts+=( "--task_service=$var_backup_service" )
     opts+=( "--tmp_dir=$var_db_backup_dir" )
-    opts+=( "--s3_endpoint=${var_s3_endpoint:-}" )
-    opts+=( "--use_aws_s3=${var_use_aws_s3:-}" )
-    opts+=( "--use_s3cmd=${var_use_s3cmd:-}" )
+    opts+=( "--s3_task_name=s3:task:wp:db" )
+    opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
+    opts+=( "--s3_bucket_path=${var_s3_bucket_path_db:-}" )
     
     opts+=( "--backup_src_dir=$var_db_backup_dir" )
     opts+=( "--backup_src_file=$var_db_name.sql" )
     opts+=( "--backup_base_dir=$var_main_backup_base_dir" )
-    opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
+    opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_db_sync_dir:-}" )
 
 		"$pod_script_remote_file" "$inner_cmd" "${opts[@]}"
 		;;
@@ -357,6 +381,6 @@ case "$command" in
     ;;
   *)
     >&2 echo -e "${CYAN}$(date '+%F %T') - env (shared) - $command - end${NC}"
-    >&2 echo -e "${PURPLE}env (shared) - $command - $start - $end${NC}"
+    >&2 echo -e "${PURPLE}[summary] env (shared) - $command - $start - $end${NC}"
     ;;
 esac

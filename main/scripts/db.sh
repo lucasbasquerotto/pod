@@ -4,8 +4,14 @@ set -eou pipefail
 
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
+GRAY="\033[0;90m"
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -61,7 +67,7 @@ case "$command" in
 		fi
 
 		if [ -z "$tables" ]; then
-			>&2 echo "$(date '+%F %T') - $command - wait for db to be ready"
+			info "$command - wait for db to be ready"
 			sleep "$db_connect_wait_secs"
 			sql_output="$("$pod_script_env_file" exec-nontty "$db_service" \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
@@ -108,9 +114,12 @@ case "$command" in
   "backup:local:mysql")
 		"$pod_script_env_file" up "$db_service"
 
+		backup_file="/$db_backup_dir/$db_name.sql"
+
+		info "$command: $db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$db_service" /bin/bash <<-SHELL
 			set -eou pipefail
-			mysqldump -u "$db_user" -p"$db_pass" "$db_name" > "/$db_backup_dir/$db_name.sql"
+			mysqldump -u "$db_user" -p"$db_pass" "$db_name" > "$backup_file"
 		SHELL
     ;;
   *)

@@ -318,11 +318,8 @@ children:
         (var_web and (var_run.setup.restore_seed | default(false) | bool)) 
         | ternary(var_run.setup.remote_seed_data | default(''), '') 
         }}
-      var_s3_endpoint: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
       var_use_aws_s3: "{{ var_containers_dict.toolbox.use_aws_s3_cli | default(false) | lower }}"
       var_use_s3cmd: "{{ var_containers_dict.toolbox.use_s3cmd | default(false) | lower }}"
-      var_backup_bucket_name: "{{ var_run.backup.bucket_name | default('') }}"
-      var_backup_bucket_path: "{{ var_run.backup.bucket_path | default('') }}"
       var_backup_bucket_db_sync_dir: >-
         {{ var_db | ternary(var_run.backup.bucket_db_sync_dir, '') }}
       var_backup_bucket_uploads_sync_dir: >-
@@ -346,3 +343,12 @@ children:
       var_setup_run_new_task_wp_db: "false"
       var_db_connect_wait_secs: 90
       var_uploads_zip_inner_dir: "uploads"
+      var_s3_service: "toolbox"
+      var_s3_cli: "awscli"
+      var_s3_cli_cmd: "exec"
+      var_s3_endpoint_uploads: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
+      var_s3_bucket_name_uploads: "{{ var_run.backup.bucket_name | default('') }}"
+      var_s3_bucket_path_uploads: "{{ var_run.backup.bucket_path | default('') }}"
+      var_s3_endpoint_db: "{{ var_containers_dict.toolbox.s3_endpoint | default('') }}"
+      var_s3_bucket_name_db: "{{ var_run.backup.bucket_name | default('') }}"
+      var_s3_bucket_path_db: "{{ var_run.backup.bucket_path | default('') }}"

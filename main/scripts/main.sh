@@ -5,10 +5,14 @@ set -eou pipefail
 pod_layer_dir="$POD_LAYER_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
+GRAY="\033[0;90m"
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -73,32 +77,24 @@ function run_tasks {
   fi
 }
 
-start="$(date '+%F %T')"
-
-case "$command" in
-	"migrate"|"update"|"fast-update"|"setup"|"fast-setup"|"setup:uploads"|"setup:db"|"backup")
-    echo -e "${CYAN}$(date '+%F %T') - $command - start${NC}"
-    ;;
-esac
-
 case "$command" in
 	"migrate"|"update"|"fast-update")
-		echo -e "${CYAN}$(date '+%F %T') - $command - prepare...${NC}"
+		info "$command - prepare..."
 		"$pod_script_env_file" prepare
-		echo -e "${CYAN}$(date '+%F %T') - $command - build...${NC}"
+		info "$command - build..."
 		"$pod_script_env_file" build
 
 		if [[ "$command" = @("migrate"|"m") ]]; then
-			echo -e "${CYAN}$(date '+%F %T') - $command - setup...${NC}"
+			info "$command - setup..."
 			"$pod_script_env_file" setup "${args[@]}"
 		elif [[ "$command" != @("fast-update"|"f") ]]; then
-			echo -e "${CYAN}$(date '+%F %T') - $command - upgrade...${NC}"
+			info "$command - upgrade..."
 			"$pod_script_env_file" upgrade "${args[@]}" 
 		fi
 		
-		echo -e "${CYAN}$(date '+%F %T') - $command - run...${NC}"
+		info "$command - run..."
 		"$pod_script_env_file" up
-		echo -e "${CYAN}$(date '+%F %T') - $command - ended${NC}"
+		info "$command - ended"
 		;;
 	"setup"|"fast-setup")    
 		run_tasks "${task_names:-}" "task_name"
@@ -108,11 +104,11 @@ case "$command" in
     fi
 		;;
 	"setup:default")
-		echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - start needed services${NC}"
+		info "$command ($task_name) - start needed services"
 		"$pod_script_env_file" up "$setup_service"
 
 		msg="verify if the setup should be done"
-		echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - $msg ${NC}"
+		info "$command ($task_name) - $msg "
 		skip="$("$pod_script_env_file" "${task_name_verify}" "${args[@]}")"
       
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
@@ -126,18 +122,16 @@ case "$command" in
 		elif [ "${setup_run_new_task:-}" = "true" ]; then
 			"$pod_script_env_file" "${task_name_new}"
 		else 
-			echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - restore - remote${NC}"
+			info "$command ($task_name) - restore - remote"
 			setup_restored_file="$("$pod_script_env_file" \
 				"${task_name_remote}" "${args[@]}")"
-
-			>&2 echo "setup_restored_file=$setup_restored_file"
 
 			if [ -z "${setup_restored_file:-}" ]; then
 				error "$command ($task_name): unknown file/directory to restore"
 			fi
 			
 			if [ ! -z "${task_name_local:-}" ]; then
-				echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - restore - local${NC}"
+				info "$command ($task_name) - restore - local"
 				"$pod_script_env_file" "${task_name_local}" \
 					"${args[@]}" --setup_restored_path="$setup_restored_file"
 			fi
@@ -145,7 +139,7 @@ case "$command" in
 		;;
 	"setup:verify")
 		msg="verify if the directory ${setup_dest_dir:-} is empty"
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - $msg ${NC}"
+		info "$command ($task_name) - $msg"
 
 		dir_ls="$("$pod_script_env_file" exec-nontty "$setup_service" \
 			find /"${setup_dest_dir}"/ -type f | wc -l)"
@@ -164,7 +158,7 @@ case "$command" in
 		run_tasks "${task_names:-}" "task_name"
 		;;  
 	"backup:default")
-		echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - started${NC}"
+		info "$command ($task_name) - started"
 
     re_number='^[0-9]+$'
 
@@ -177,8 +171,7 @@ case "$command" in
 		if [ -z "${task_name_verify:-}" ]; then
 			skip="false"
 		else
-			msg="verify if the backup should be done"
-			echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - $msg ${NC}"
+			info "$command ($task_name) - verify if the backup should be done"
 			skip="$("$pod_script_env_file" "${task_name_verify}" "${args[@]}")"
 		fi
       
@@ -192,19 +185,19 @@ case "$command" in
 			echo "$(date '+%F %T') - $command ($task_name) - skipping..."
 		else 			
 			if [ ! -z "${task_name_local:-}" ]; then
-				echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - backup - local${NC}"
+				info "$command ($task_name) - backup - local"
 				"$pod_script_env_file" "${task_name_local}" "${args[@]}"
 			fi
 			
 			if [ ! -z "${task_name_remote:-}" ]; then
-				echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - backup - remote${NC}"
+				info "$command ($task_name) - backup - remote"
 				"$pod_script_env_file" "${task_name_remote}" "${args[@]}"
 			fi
 
-			echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - start needed services${NC}"
+			info "$command ($task_name) - start needed services"
 			"$pod_script_env_file" up "$backup_service"
 
-			echo -e "${CYAN}$(date '+%F %T') - $command ($task_name) - clear old files${NC}"
+			info "$command ($task_name) - clear old files"
 			"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
 				set -eou pipefail			
 
@@ -216,14 +209,5 @@ case "$command" in
 		;;
 	*)
 		error "$command: invalid command"
-    ;;
-esac
-
-end="$(date '+%F %T')"
-
-case "$command" in
-	"migrate"|"update"|"fast-update"|"setup"|"fast-setup"|"setup:uploads"|"setup:db"|"backup")
-    echo -e "${CYAN}$(date '+%F %T') - $command - end${NC}"
-    echo -e "${CYAN}$command - $start - $end${NC}"
     ;;
 esac

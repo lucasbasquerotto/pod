@@ -50,11 +50,21 @@ fi
 pod_vars_dir="$(cd "$(dirname "$pod_vars_dir")"; pwd -P)/$(basename "$pod_vars_dir")"
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pod_full_dir="$pod_layer_dir/$var_pod_inner_dir"
+pod_tmp_dir="$pod_layer_dir/tmp/$var_pod_inner_dir"
 pod_script_env_file="$pod_layer_dir/$var_scripts_dir/$var_script_env_file"
+
+if [ ! -d "$pod_full_dir" ]; then
+	mkdir -p "$pod_full_dir"
+fi
+
+if [ ! -d "$pod_tmp_dir" ]; then
+	mkdir -p "$pod_tmp_dir"
+fi
 
 export "POD_VARS_DIR=$pod_vars_dir"
 export "POD_LAYER_DIR=$pod_layer_dir"
 export "POD_FULL_DIR=$pod_full_dir"
+export "POD_TMP_DIR=$pod_tmp_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
 
 "${pod_script_env_file}" "${@}"

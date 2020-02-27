@@ -4,10 +4,14 @@ set -eou pipefail
 
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
+GRAY="\033[0;90m"
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -34,13 +38,11 @@ while getopts ':-:' OPT; do
 	case "$OPT" in
 		task_short_name ) task_short_name="${OPTARG:-}";;
 		task_kind ) task_kind="${OPTARG:-}";;
-		bucket_name ) bucket_name="${OPTARG:-}" ;;
-		bucket_path ) bucket_path="${OPTARG:-}";;
 		task_service ) task_service="${OPTARG:-}";;
 		tmp_dir ) tmp_dir="${OPTARG:-}" ;;
-		s3_endpoint ) s3_endpoint="${OPTARG:-}";;
-		use_aws_s3 ) use_aws_s3="${OPTARG:-}";;
-		use_s3cmd ) use_s3cmd="${OPTARG:-}";;
+		s3_task_name ) s3_task_name="${OPTARG:-}";;
+		s3_bucket_name ) s3_bucket_name="${OPTARG:-}" ;;
+		s3_bucket_path ) s3_bucket_path="${OPTARG:-}";;
 
 		backup_src_dir ) backup_src_dir="${OPTARG:-}";;
 		backup_src_file ) backup_src_file="${OPTARG:-}";;
@@ -63,19 +65,19 @@ shift $((OPTIND-1))
 
 case "$command" in
 	"backup")
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command - started${NC}"
+		info "$command - started"
 
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command - start needed services${NC}"
+		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$task_service"
 
 		main_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
 		main_dir="$backup_base_dir/$main_name"
-		bucket_prefix="$bucket_name/$bucket_path"
+		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
 		bucket_prefix="$(echo "$bucket_prefix" | tr -s /)"
-		backup_bucket_sync_dir_full="$bucket_name/$bucket_path/$backup_bucket_sync_dir"
+		backup_bucket_sync_dir_full="$s3_bucket_name/$s3_bucket_path/${backup_bucket_sync_dir:-}"
 		backup_bucket_sync_dir_full="$(echo "$backup_bucket_sync_dir_full" | tr -s /)"
 
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command - create and clean directories${NC}"
+		info "$command - create and clean directories"
 		>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			rm -rf "/$tmp_dir"
@@ -83,9 +85,9 @@ case "$command" in
 			mkdir -p "/$main_dir"
 		SHELL
 
-		if [ -z "$backup_bucket_sync_dir" ]; then
+		if [ -z "${backup_bucket_sync_dir:-}" ]; then
 			if [ "$task_kind" = "dir" ]; then
-				>&2 echo -e "${CYAN}$(date '+%F %T') - $command - backup directory ($backup_src_dir)${NC}"
+				info "$command - backup directory ($backup_src_dir)"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 					set -eou pipefail
 					cp -r "/$backup_src_dir" "/$tmp_dir"
@@ -94,73 +96,59 @@ case "$command" in
 					mv "/$tmp_dir/$task_short_name.zip" "/$main_dir/$task_short_name.zip"
 				SHELL
 			elif [ "$task_kind" = "file" ]; then
+				src_file_full="/$backup_src_dir/$backup_src_file"
+				intermediate_file_full="/$tmp_dir/$task_short_name.zip"
+				dest_file_full="/$main_dir/$task_short_name.zip"
+
+				msg="$src_file_full to $dest_file_full (inside service)"
+				info "$command - backup file - $task_service - $msg"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 					set -eou pipefail
-					zip -j "/$tmp_dir/$task_short_name.zip" "/$backup_src_dir/$backup_src_file"
-					mv "/$tmp_dir/$task_short_name.zip" "/$main_dir/$task_short_name.zip"
+					zip -j "$intermediate_file_full" "$src_file_full"
+					mv "$intermediate_file_full" "$dest_file_full"
 				SHELL
 			else
 				error "$command: $task_kind: task_kind invalid value"
 			fi
 		fi
 
-		if [ ! -z "$bucket_name" ]; then
-			if [ "${use_aws_s3:-}" = 'true' ]; then
-				error_log_file="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
+		if [ ! -z "${s3_bucket_name:-}" ]; then
+			empty_bucket="$("$pod_script_env_file" "$s3_task_name" --s3_cmd=is_empty_bucket)"
 
-				if ! aws s3 --endpoint="$s3_endpoint" ls "s3://$bucket_name" 2> "$error_log_file"; then
-					if grep -q 'NoSuchBucket' "$error_log_file"; then
-						msg="$command - $task_service - aws_s3 - create bucket $bucket_name"
-						>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-						>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-							aws s3api create-bucket --endpoint="$s3_endpoint" \
-							--bucket "$bucket_name" 
-					fi
-				fi
+			if [ "$empty_bucket" = "true" ]; then
+				info "$command - $task_service - $s3_task_name - create bucket $s3_bucket_name"
+				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=create-bucket
+			fi
 
-				msg="$command - $task_service - aws_s3 - sync local backup with bucket"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					aws s3 sync --endpoint="$s3_endpoint" \
-					"/$backup_base_dir/" "s3://$bucket_prefix"
+			if [ -z "${backup_bucket_sync_dir:-}" ]; then
+				src="/$main_dir/"
+				dest="s3://$bucket_prefix/$main_name/"
 
-				if [ ! -z "$backup_bucket_sync_dir" ]; then
-					msg="$command - $task_service - aws_s3 - sync local directory with bucket"
-					>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-					>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-						aws s3 sync --endpoint="$s3_endpoint" \
-						"/$backup_src_dir/" \
-						"s3://$backup_bucket_sync_dir_full/"
-				fi
-			elif [ "${use_s3cmd:-}" = 'true' ]; then
-				msg="$command - $task_service - s3cmd - sync local backup with bucket"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					s3cmd sync "/$backup_base_dir/" "s3://$bucket_prefix"
-
-				if [ ! -z "$backup_bucket_sync_dir" ]; then
-					msg="$command - $task_service - s3cmd - sync local directory with bucket"
-					>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-					>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-						s3cmd sync "/$backup_src_dir/" "s3://$backup_bucket_sync_dir_full/"
-				fi
+			  msg="sync local tmp directory with bucket - $src to $dest"
+				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
+					"--s3_src=/$main_dir/" "--s3_dest=s3://$bucket_prefix/$main_name/"
 			else
-				error "$command: $task_service: not able to sync local backup with bucket"
+				src="/$backup_src_dir/"
+				dest="s3://$backup_bucket_sync_dir_full/"
+
+			  msg="sync local src directory with bucket - $src to $dest"
+				info "$command - $task_service - $s3_task_name - $msg"
+				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
+					"--s3_src=$src" "--s3_dest=$dest"
 			fi
 		fi
 
-		msg="generated backup file(s) at '/$main_dir'"
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command - $msg${NC}"
+		info "$command - generated backup file(s) at '/$main_dir'"
 		;;  
 	"restore")		
-		bucket_prefix="$bucket_name/$bucket_path"
+		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
 		key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
     
 		zip_file=""
 		restore_remote_src=""
 		restore_local_dest=""
 
-		>&2 echo -e "${CYAN}$(date '+%F %T') - $command - $task_service - restore${NC}"
+		info "$command - $task_service - restore"
 		>&2 "$pod_script_env_file" up "$task_service"
 		>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 			set -eou pipefail
@@ -169,10 +157,10 @@ case "$command" in
 		SHELL
 
 		if [ ! -z "${restore_local_zip_file:-}" ]; then
-			>&2 echo -e "${CYAN}$(date '+%F %T') - $command - restore from local dir${NC}"
+			info "$command - restore from local dir"
 			zip_file="$restore_local_zip_file"
 		elif [ ! -z "${restore_remote_zip_file:-}" ]; then
-			>&2 echo -e "${CYAN}$(date '+%F %T') - $command - restore from remote dir${NC}"
+			info "$command - restore from remote dir"
 
 			zip_file_name="$task_short_name-$key.zip"
 			zip_file="/$tmp_dir/$zip_file_name"
@@ -180,39 +168,27 @@ case "$command" in
 			>&2 "$pod_script_env_file" exec-nontty "$task_service" \
 				curl -L -o "$zip_file" -k "$restore_remote_zip_file"
 		elif [ ! -z "${restore_remote_bucket_path_dir:-}" ]; then
-			bucket_path="$bucket_prefix/$restore_remote_bucket_path_dir"
-			bucket_path=$(echo "$bucket_path" | tr -s /)
+			s3_bucket_path="$bucket_prefix/$restore_remote_bucket_path_dir"
+			s3_bucket_path=$(echo "$s3_bucket_path" | tr -s /)
 			
-			restore_remote_src="s3://$bucket_path"
+			restore_remote_src="s3://$s3_bucket_path"
 		elif [ ! -z "${restore_remote_bucket_path_file:-}" ]; then
 			msg="$command - restore zip file from remote bucket"
-			msg="$msg [$restore_remote_src -> $restore_local_dest]"
-			>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
+			info "$msg [$restore_remote_src -> $restore_local_dest]"
 		
 			zip_file_name="$task_short_name-$key.zip"
 			zip_file="$tmp_dir/$zip_file_name"
 
-			bucket_path="$bucket_prefix/$restore_remote_bucket_path_file"
-			bucket_path=$(echo "$bucket_path" | tr -s /)
+			s3_bucket_path="$bucket_prefix/$restore_remote_bucket_path_file"
+			s3_bucket_path=$(echo "$s3_bucket_path" | tr -s /)
 			
-			restore_remote_src="s3://$bucket_path"
+			restore_remote_src="s3://$s3_bucket_path"
 			restore_local_dest="/$zip_file"
 			restore_local_dest=$(echo "$restore_local_dest" | tr -s /)
-			
-			if [ "${use_aws_s3:-}" = 'true' ]; then
-				msg="$command - $task_service - aws_s3 - copy bucket file to local path"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					aws s3 cp --endpoint="$s3_endpoint" \
-					"$restore_remote_src" "$restore_local_dest"
-			elif [ "${use_s3cmd:-}" = 'true' ]; then
-				msg="$command - $task_service - s3cmd - copy bucket file to local path"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					s3cmd cp "$restore_remote_src" "$restore_local_dest"
-			else
-				error "$command: $task_service: not able to copy bucket file to local path"
-			fi
+
+			info "$command - $task_service - $s3_task_name - copy bucket file to local path"
+			>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=cp \
+				"--s3_src=$restore_remote_src" "--s3_dest=$restore_local_dest"
 		else
 			error "$command: no source provided"
 		fi
@@ -221,43 +197,26 @@ case "$command" in
 
 		if [ ! -z "${restore_remote_bucket_path_dir:-}" ]; then
 			msg="$command - restore from remote bucket directly to local directory"
-			msg="$msg [$restore_remote_src -> /$restore_dest_dir]"
-			>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-		
-			if [ "${use_aws_s3:-}" = 'true' ]; then
-				msg="$command - $task_service - aws_s3 - sync bucket dir to local path"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					aws s3 sync --endpoint="$s3_endpoint" \
-					"$restore_remote_src" "/$restore_dest_dir"
-			elif [ "${use_s3cmd:-}" = 'true' ]; then
-				msg="$command - $task_service - s3cmd - sync bucket dir to local path"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - ${msg}${NC}"
-				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					s3cmd sync "$restore_remote_src" "/$restore_dest_dir"
-			else
-				error "$command: $task_service: not able to sync bucket dir to local path"
-			fi
+			info "$msg [$restore_remote_src -> /$restore_dest_dir]"
+			>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
+				"--s3_src=$restore_remote_src" "--s3_dest=/$restore_dest_dir"
 
 			restore_path="/$restore_dest_dir"
 		else
-			msg="unzip at $tmp_dir"
-			>&2 echo -e "${CYAN}$(date '+%F %T') - $command - $msg${NC}"
+			info "$command - unzip at $tmp_dir"
 
 			if [ "$task_kind" = "dir" ]; then
-				msg="unzip to directory $tmp_dir"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - $command - $msg${NC}"
+				info "$command - unzip to directory $tmp_dir"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
 					unzip "/$zip_file" -d "/$tmp_dir"
 
-				>&2 echo -e "${CYAN}$(date '+%F %T') - $command - restore - main${NC}"
+				info "$command - restore - main"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
 					cp -r "/$tmp_dir/${restore_zip_inner_dir:-}"/. "/$restore_dest_dir/"
 				
 				restore_path="/$restore_dest_dir"
 			elif [ "$task_kind" = "file" ]; then
-				msg="unzip to directory $restore_dest_dir"
-				>&2 echo -e "${CYAN}$(date '+%F %T') - $command - $msg${NC}"
+				info "$command - unzip to directory $restore_dest_dir"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
 					unzip "/$zip_file" -d "/$restore_dest_dir"
 

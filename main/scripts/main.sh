@@ -54,7 +54,7 @@ while getopts ':-:' OPT; do
 		setup_run_new_task ) setup_run_new_task="${OPTARG:-}";;
 
 		backup_service ) backup_service="${OPTARG:-}";;
-		backup_base_dir ) backup_base_dir="${OPTARG:-}";;
+		backup_tmp_base_dir ) backup_tmp_base_dir="${OPTARG:-}";;
 		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -183,7 +183,15 @@ case "$command" in
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($task_name) - skipping..."
-		else 			
+		else
+			info "$command ($task_name) - clear old files"
+			"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
+				set -eou pipefail
+				find /$backup_tmp_base_dir/* -ctime +$backup_delete_old_days -delete;
+				find /$backup_tmp_base_dir/* -maxdepth 0 -type d -ctime \
+					+$backup_delete_old_days -exec rm -rf {} \;
+			SHELL
+
 			if [ ! -z "${task_name_local:-}" ]; then
 				info "$command ($task_name) - backup - local"
 				"$pod_script_env_file" "${task_name_local}" "${args[@]}"
@@ -196,15 +204,6 @@ case "$command" in
 
 			info "$command ($task_name) - start needed services"
 			"$pod_script_env_file" up "$backup_service"
-
-			info "$command ($task_name) - clear old files"
-			"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
-				set -eou pipefail			
-
-				find /$backup_base_dir/* -ctime +$backup_delete_old_days -delete;
-				find /$backup_base_dir/* -maxdepth 0 -type d -ctime \
-					+$backup_delete_old_days -exec rm -rf {} \;
-			SHELL
 		fi
 		;;
 	*)

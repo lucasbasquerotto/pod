@@ -39,17 +39,17 @@ while getopts ':-:' OPT; do
 		task_short_name ) task_short_name="${OPTARG:-}";;
 		task_kind ) task_kind="${OPTARG:-}";;
 		task_service ) task_service="${OPTARG:-}";;
-		tmp_dir ) tmp_dir="${OPTARG:-}" ;;
 		s3_task_name ) s3_task_name="${OPTARG:-}";;
 		s3_bucket_name ) s3_bucket_name="${OPTARG:-}" ;;
 		s3_bucket_path ) s3_bucket_path="${OPTARG:-}";;
 
 		backup_src_dir ) backup_src_dir="${OPTARG:-}";;
 		backup_src_file ) backup_src_file="${OPTARG:-}";;
-		backup_base_dir ) backup_base_dir="${OPTARG:-}";;
+		backup_tmp_base_dir ) backup_tmp_base_dir="${OPTARG:-}";;
 		backup_bucket_sync_dir ) backup_bucket_sync_dir="${OPTARG:-}";;
 
 		restore_dest_dir ) restore_dest_dir="${OPTARG:-}";;
+		restore_tmp_dir ) restore_tmp_dir="${OPTARG:-}";;
 		restore_local_zip_file ) restore_local_zip_file="${OPTARG:-}" ;;
 		restore_remote_zip_file ) restore_remote_zip_file="${OPTARG:-}" ;;
 		restore_remote_bucket_path_dir ) restore_remote_bucket_path_dir="${OPTARG:-}" ;;
@@ -70,19 +70,19 @@ case "$command" in
 		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$task_service"
 
-		main_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
-		main_dir="$backup_base_dir/$main_name"
+		tmp_dir_name="backup-$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
+		tmp_dir="$backup_tmp_base_dir/$tmp_dir_name"
 		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
 		bucket_prefix="$(echo "$bucket_prefix" | tr -s /)"
 		backup_bucket_sync_dir_full="$s3_bucket_name/$s3_bucket_path/${backup_bucket_sync_dir:-}"
 		backup_bucket_sync_dir_full="$(echo "$backup_bucket_sync_dir_full" | tr -s /)"
 
-		info "$command - clean tmp directory ($tmp_dir) and create main directory ($main_dir)"
+		info "$command - clean tmp directory ($tmp_dir) and create main directory ($tmp_dir)"
 		>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			rm -rf "/$tmp_dir"
 			mkdir -p "/$tmp_dir"
-			mkdir -p "/$main_dir"
+			mkdir -p "/$tmp_dir"
 		SHELL
 
 		if [ -z "${backup_bucket_sync_dir:-}" ]; then
@@ -93,12 +93,12 @@ case "$command" in
 					cp -r "/$backup_src_dir" "/$tmp_dir"
 					cd "/$tmp_dir"
 					zip -r $task_short_name.zip ./*
-					mv "/$tmp_dir/$task_short_name.zip" "/$main_dir/$task_short_name.zip"
+					mv "/$tmp_dir/$task_short_name.zip" "/$tmp_dir/$task_short_name.zip"
 				SHELL
 			elif [ "$task_kind" = "file" ]; then
 				src_file_full="/$backup_src_dir/$backup_src_file"
 				intermediate_file_full="/$tmp_dir/$task_short_name.zip"
-				dest_file_full="/$main_dir/$task_short_name.zip"
+				dest_file_full="/$tmp_dir/$task_short_name.zip"
 
 				msg="$src_file_full to $dest_file_full (inside service)"
 				info "$command - backup file - $task_service - $msg"
@@ -121,12 +121,12 @@ case "$command" in
 			fi
 
 			if [ -z "${backup_bucket_sync_dir:-}" ]; then
-				src="/$main_dir/"
-				dest="s3://$bucket_prefix/$main_name/"
+				src="/$tmp_dir/"
+				dest="s3://$bucket_prefix/$tmp_dir_name/"
 
 			  msg="sync local tmp directory with bucket - $src to $dest"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-					"--s3_src=/$main_dir/" "--s3_dest=s3://$bucket_prefix/$main_name/"
+					"--s3_src=/$tmp_dir/" "--s3_dest=s3://$bucket_prefix/$tmp_dir_name/"
 			else
 				src="/$backup_src_dir/"
 				dest="s3://$backup_bucket_sync_dir_full/"
@@ -138,9 +138,9 @@ case "$command" in
 			fi
 		fi
 
-		info "$command - generated backup file(s) at '/$main_dir'"
+		info "$command - generated backup file(s) at '/$tmp_dir'"
 		;;  
-	"restore")		
+	"restore")
 		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
 		key="$(date '+%Y%m%d_%H%M%S')-$(date '+%s')"
     
@@ -152,8 +152,8 @@ case "$command" in
 		>&2 "$pod_script_env_file" up "$task_service"
 		>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 			set -eou pipefail
-			rm -rf "/$tmp_dir"
-			mkdir -p "/$tmp_dir"
+			rm -rf "/$restore_tmp_dir"
+			mkdir -p "/$restore_tmp_dir"
 		SHELL
 
 		if [ ! -z "${restore_local_zip_file:-}" ]; then
@@ -163,7 +163,7 @@ case "$command" in
 			info "$command - restore from remote dir"
 
 			zip_file_name="$task_short_name-$key.zip"
-			zip_file="/$tmp_dir/$zip_file_name"
+			zip_file="/$restore_tmp_dir/$zip_file_name"
 
 			>&2 "$pod_script_env_file" exec-nontty "$task_service" \
 				curl -L -o "$zip_file" -k "$restore_remote_zip_file"
@@ -177,7 +177,7 @@ case "$command" in
 			info "$msg [$restore_remote_src -> $restore_local_dest]"
 		
 			zip_file_name="$task_short_name-$key.zip"
-			zip_file="$tmp_dir/$zip_file_name"
+			zip_file="$restore_tmp_dir/$zip_file_name"
 
 			s3_bucket_path="$bucket_prefix/$restore_remote_bucket_path_file"
 			s3_bucket_path=$(echo "$s3_bucket_path" | tr -s /)
@@ -203,16 +203,16 @@ case "$command" in
 
 			restore_path="/$restore_dest_dir"
 		else
-			info "$command - unzip at $tmp_dir"
+			info "$command - unzip at $restore_tmp_dir"
 
 			if [ "$task_kind" = "dir" ]; then
-				info "$command - unzip to directory $tmp_dir"
+				info "$command - unzip to directory $restore_tmp_dir"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					unzip "/$zip_file" -d "/$tmp_dir"
+					unzip "/$zip_file" -d "/$restore_tmp_dir"
 
 				info "$command - restore - main"
 				>&2 "$pod_script_env_file" exec-nontty "$task_service" \
-					cp -r "/$tmp_dir/${restore_zip_inner_dir:-}"/. "/$restore_dest_dir/"
+					cp -r "/$restore_tmp_dir/${restore_zip_inner_dir:-}"/. "/$restore_dest_dir/"
 				
 				restore_path="/$restore_dest_dir"
 			elif [ "$task_kind" = "file" ]; then

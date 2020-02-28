@@ -77,7 +77,7 @@ case "$command" in
 		backup_bucket_sync_dir_full="$s3_bucket_name/$s3_bucket_path/${backup_bucket_sync_dir:-}"
 		backup_bucket_sync_dir_full="$(echo "$backup_bucket_sync_dir_full" | tr -s /)"
 
-		info "$command - create and clean directories"
+		info "$command - clean tmp directory ($tmp_dir) and create main directory ($main_dir)"
 		>&2 "$pod_script_env_file" exec-nontty "$task_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			rm -rf "/$tmp_dir"

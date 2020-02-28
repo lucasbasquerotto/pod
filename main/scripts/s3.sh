@@ -98,6 +98,12 @@ case "$command" in
   "s3:awscli:run:create-bucket")
 		awscli_run s3api create-bucket --endpoint="$s3_endpoint"--bucket "$s3_bucket_name"
 		;;
+  "s3:awscli:exec:rb")
+		awscli_exec s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name"
+		;;
+  "s3:awscli:run:rb")
+		awscli_run s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name"
+		;;
 	"s3:awscli:exec:cp")
 		awscli_exec s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
 		;;
@@ -105,6 +111,7 @@ case "$command" in
 		awscli_run s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
 		;;
   "s3:awscli:exec:sync")
+		>&2 "$pod_script_env_file" exec-nontty "$s3_service" ls -la "$s3_src"
 		awscli_exec s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
 		;;
   "s3:awscli:run:sync")

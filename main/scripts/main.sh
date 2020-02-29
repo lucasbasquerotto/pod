@@ -50,8 +50,9 @@ while getopts ':-:' OPT; do
 		task_name_new ) task_name_new="${OPTARG:-}";; 
 		toolbox_service ) toolbox_service="${OPTARG:-}";;
 
-		setup_dest_dir ) setup_dest_dir="${OPTARG:-}";;
 		setup_run_new_task ) setup_run_new_task="${OPTARG:-}";;
+    
+		setup_dest_dir_to_verify ) setup_dest_dir_to_verify="${OPTARG:-}";;
 
 		backup_tmp_base_dir ) backup_tmp_base_dir="${OPTARG:-}";;
 		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
@@ -122,26 +123,20 @@ case "$command" in
 			"$pod_script_env_file" "${task_name_new}"
 		else 
 			info "$command ($task_name) - restore - remote"
-			setup_restored_file="$("$pod_script_env_file" \
-				"${task_name_remote}" "${args[@]}")"
-
-			if [ -z "${setup_restored_file:-}" ]; then
-				error "$command ($task_name): unknown file/directory to restore"
-			fi
+			"$pod_script_env_file" "${task_name_remote}" "${args[@]}"
 			
 			if [ ! -z "${task_name_local:-}" ]; then
 				info "$command ($task_name) - restore - local"
-				"$pod_script_env_file" "${task_name_local}" \
-					"${args[@]}" --setup_restored_path="$setup_restored_file"
+				"$pod_script_env_file" "${task_name_local}" "${args[@]}"
 			fi
 		fi
 		;;
 	"setup:verify")
-		msg="verify if the directory ${setup_dest_dir:-} is empty"
+		msg="verify if the directory ${setup_dest_dir_to_verify:-} is empty"
 		info "$command ($task_name) - $msg"
 
 		dir_ls="$("$pod_script_env_file" exec-nontty "$toolbox_service" \
-			find /"${setup_dest_dir}"/ -type f | wc -l)"
+			find /"${setup_dest_dir_to_verify}"/ -type f | wc -l)"
 
 		if [ -z "$dir_ls" ]; then
 			dir_ls="0"

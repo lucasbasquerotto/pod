@@ -300,12 +300,12 @@ children:
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_password, '') }}
       var_setup_admin_email: >-
         {{ var_web | ternary(params.credentials.wordpress.setup.admin_email, '') }}
-      var_setup_local_uploads_zip_file: "{{ setup_local_uploads_file }}"
-      var_setup_remote_uploads_zip_file: "{{ setup_remote_uploads_file }}"
+      var_setup_local_uploads_file: "{{ setup_local_uploads_file }}"
+      var_setup_remote_uploads_file: "{{ setup_remote_uploads_file }}"
       var_setup_remote_bucket_path_uploads_dir: "{{ setup_remote_bucket_path_uploads_dir }}"
       var_setup_remote_bucket_path_uploads_file: "{{ setup_remote_bucket_path_uploads_file }}"
-      var_setup_local_db_zip_file: "{{ setup_local_db_file }}"
-      var_setup_remote_db_zip_file: "{{ setup_remote_db_file }}"
+      var_setup_local_db_file: "{{ setup_local_db_file }}"
+      var_setup_remote_db_file: "{{ setup_remote_db_file }}"
       var_setup_remote_bucket_path_db_dir: "{{ setup_remote_bucket_path_db_dir }}"
       var_setup_remote_bucket_path_db_file: "{{ setup_remote_bucket_path_db_file }}"
       var_setup_local_seed_data: >-
@@ -334,10 +334,11 @@ children:
       var_db_service: "mysql"
       var_wp_uploads_base_dir: "tmp/data/wordpress"
       var_wp_uploads_dir: "uploads"
-      var_uploads_restore_dir: "tmp/main/wordpress/uploads"
+      var_uploads_restore_tmp_dir: "tmp/main/restore/wordpress/uploads"
       var_backup_tmp_base_dir: "tmp/main/backup"
       var_db_backup_dir: "tmp/main/mysql/backup"
-      var_db_restore_dir: "tmp/main/mysql/backup"
+      var_db_restore_dir: "tmp/main/mysql/restore"
+      var_db_restore_tmp_dir: "tmp/main/restore/mysql"
       var_setup_task_names: "setup:task:wp:uploads,setup:task:wp:db"
       var_backup_task_names: "backup:task:wp:db,backup:task:wp:uploads"
       var_setup_run_new_task_wp_db: "false"

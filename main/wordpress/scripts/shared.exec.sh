@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
@@ -33,7 +33,29 @@ fi
 
 shift;
 
-args=("$@")
+args=( "$@" )
+
+while getopts ':-:' OPT; do
+	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+		OPT="${OPTARG%%=*}"       # extract long option name
+		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+	fi
+	case "$OPT" in
+    setup_url ) setup_url="${OPTARG:-}";;
+    setup_title ) setup_title="${OPTARG:-}";;
+    setup_admin_user ) setup_admin_user="${OPTARG:-}";;
+    setup_admin_password ) setup_admin_password="${OPTARG:-}";;
+    setup_admin_email ) setup_admin_email="${OPTARG:-}";;
+    setup_local_seed_data ) setup_local_seed_data="${OPTARG:-}";;
+    setup_remote_seed_data ) setup_remote_seed_data="${OPTARG:-}";;
+		old_domain_host ) old_domain_host="${OPTARG:-}";;
+		new_domain_host ) new_domain_host="${OPTARG:-}";; 
+		??* ) error "Illegal option --$OPT" ;;  # bad long option
+		\? )  exit 2 ;;  # bad short option (error reported via getopts)
+	esac
+done
+shift $((OPTIND-1))
 
 case "$command" in
   "setup:new:wp:db")
@@ -41,26 +63,26 @@ case "$command" in
     info "$command - installation"
     "$pod_script_run_file" run wordpress \
       wp --allow-root core install \
-      --url="$var_setup_url" \
-      --title="$var_setup_title" \
-      --admin_user="$var_setup_admin_user" \
-      --admin_password="$var_setup_admin_password" \
-      --admin_email="$var_setup_admin_email"
+      --url="$setup_url" \
+      --title="$setup_title" \
+      --admin_user="$setup_admin_user" \
+      --admin_password="$setup_admin_password" \
+      --admin_email="$setup_admin_email"
 
-    if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
+    if [ ! -z "$setup_local_seed_data" ] || [ ! -z "$setup_remote_seed_data" ]; then
       info "$command - upgrade..."
       "$pod_script_env_file" upgrade "${args[@]}"
 
-      if [ ! -z "$var_setup_local_seed_data" ]; then
+      if [ ! -z "$setup_local_seed_data" ]; then
         info "$command - import local seed data"
         "$pod_script_run_file" run wordpress \
-          wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
+          wp --allow-root import ./"$setup_local_seed_data" --authors=create
       fi
 
-      if [ ! -z "$var_setup_remote_seed_data" ]; then
+      if [ ! -z "$setup_remote_seed_data" ]; then
         info "$command - import remote seed data"
         "$pod_script_run_file" run wordpress sh -c \
-          "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
+          "curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' \
           && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
           && rm -f ./tmp/tmp-seed-data.xml"
       fi
@@ -73,15 +95,20 @@ case "$command" in
     "$pod_script_run_file" exec-nontty wordpress /bin/bash <<-SHELL
 			set -eou pipefail
 
+      function info {
+        msg="\$(date '+%F %T') - \${1:-}"
+        >&2 echo -e "${GRAY}\${msg}${NC}"
+      }
+
       info "upgrade (app) - update database"
       wp --allow-root core update-db
 
       info "upgrade (app) - activate plugins"
       wp --allow-root plugin activate --all
 
-      if [ ! -z "$var_old_domain_host" ] && [ ! -z "$var_new_domain_host" ]; then
+      if [ ! -z "${old_domain_host:-}" ] && [ ! -z "${new_domain_host:-}" ]; then
         info "upgrade (app) - update domain"
-        wp --allow-root search-replace "$var_old_domain_host" "$var_new_domain_host"
+        wp --allow-root search-replace "$old_domain_host" "$new_domain_host"
       fi
 		SHELL
     ;;

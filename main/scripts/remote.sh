@@ -157,7 +157,7 @@ case "$command" in
 				msg="sync local src directory with bucket - $src to $dest"
 				info "$command - $toolbox_service - $s3_task_name - $msg"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-					"--s3_src=$src" "--s3_dest=$dest" --s3_opts=${s3_opts[@]+"${s3_opts[@]}"}
+					"--s3_src=$src" "--s3_dest=$dest" ${s3_opts[@]+"--s3_opts=${s3_opts[@]}"}
 			fi
 		fi
 

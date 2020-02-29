@@ -50,7 +50,7 @@ shift $((OPTIND-1))
 re_number='^[0-9]+$'
 
 case "$command" in
-	"setup:verify:mysql")
+	"restore:verify:mysql")
 		"$pod_script_env_file" up "$db_service"
 		
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$db_name'"
@@ -87,7 +87,7 @@ case "$command" in
 			echo "false"
 		fi
 		;;
-  "setup:local:file:mysql")
+  "restore:file:mysql")
 		if [ -z "$db_sql_file" ]; then
 			error "$command: db_sql_file not specified"
 		fi
@@ -111,7 +111,7 @@ case "$command" in
 			pv "$db_sql_file" | mysql -u "$db_user" -p"$db_pass" "$db_name"
 		SHELL
 		;;
-  "backup:local:mysql")
+  "backup:file:mysql")
 		"$pod_script_env_file" up "$db_service"
 
 		backup_file="/$db_backup_dir/$db_name.sql"

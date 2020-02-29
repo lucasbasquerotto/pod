@@ -8,6 +8,8 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
+pod_env_shared_exec_file="$pod_layer_dir/$var_scripts_dir/shared.exec.sh"
+
 pod_script_run_file="$pod_layer_dir/main/compose/main.sh"
 pod_script_main_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
@@ -107,6 +109,22 @@ case "$command" in
   "main")
 		"$pod_script_env_file" args migrate "${args[@]}"
 		;;
+  "migrate"|"update"|"fast-update"|"setup"|"fast-setup")
+    "$pod_script_main_file" "$command" "${args[@]}"
+    ;;
+	"upgrade")
+    "$pod_env_shared_exec_file" upgrade "${args[@]}"
+    ;;
+  "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+    
+    "$pod_script_run_file" "$command" "${args[@]}"
+		;;
+	"args")
+    opts=()
+    opts+=( "--task_names=$var_setup_task_names" )
+		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
+		;;
   "setup:task:wp:uploads")
     opts=()
     
@@ -125,7 +143,7 @@ case "$command" in
     opts+=( "--task_name=$command" )
     opts+=( "--task_name_verify=setup:verify:wp:db" )
     opts+=( "--task_name_remote=setup:remote:wp:db" )
-    opts+=( "--task_name_local=setup:local:file:wp:db" )
+    opts+=( "--task_name_local=setup:local:wp:db" )
     opts+=( "--task_name_new=setup:new:wp:db" )
         
     opts+=( "--setup_service=$var_setup_service" )
@@ -158,7 +176,7 @@ case "$command" in
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
   "setup:verify:wp:db")
-		"$pod_script_env_file" "args:db:wp" "setup:verify:mysql" "${args[@]}"
+		"$pod_script_env_file" "args:db:wp" "restore:verify:mysql" "${args[@]}"
 		;;
   "setup:remote:wp:db")
     opts=()
@@ -180,9 +198,12 @@ case "$command" in
 
 		"$pod_script_remote_file" restore "${opts[@]}"
     ;;
-  "setup:local:file:wp:db")
-		"$pod_script_env_file" "args:db:wp" "setup:local:file:mysql" "${args[@]}"
+  "setup:local:wp:db")
+		"$pod_script_env_file" "args:db:wp" "restore:file:mysql" "${args[@]}"
 		;;
+  "setup:new:wp:db")
+    "$pod_env_shared_exec_file" "setup:new:wp:db" "${args[@]}"
+    ;;
   "backup")
 		"$pod_script_main_file" backup --task_names="$var_backup_task_names"
 		;;
@@ -198,19 +219,6 @@ case "$command" in
 
 		"$pod_script_main_file" "backup:default" "${opts[@]}"
 		;;
-  "backup:task:wp:db")
-    opts=()
-
-    opts+=( "--task_name=$command" )
-    opts+=( "--task_name_local=backup:local:wp" )
-    opts+=( "--task_name_remote=backup:remote:wp:db" )
-
-    opts+=( "--backup_service=$var_backup_service" )
-    opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
-    opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
-
-		"$pod_script_main_file" "backup:default" "${opts[@]}"
-    ;;
   "backup:remote:wp:uploads")
     opts=()
 
@@ -226,6 +234,19 @@ case "$command" in
     opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
 
 		"$pod_script_remote_file" backup "${opts[@]}"
+    ;;
+  "backup:task:wp:db")
+    opts=()
+
+    opts+=( "--task_name=$command" )
+    opts+=( "--task_name_local=backup:local:wp" )
+    opts+=( "--task_name_remote=backup:remote:wp:db" )
+
+    opts+=( "--backup_service=$var_backup_service" )
+    opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
+    opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
+
+		"$pod_script_main_file" "backup:default" "${opts[@]}"
     ;;
   "backup:remote:wp:db")
     opts=()
@@ -245,65 +266,8 @@ case "$command" in
 		"$pod_script_remote_file" backup "${opts[@]}"
     ;;
   "backup:local:wp")
-		"$pod_script_env_file" "args:db:wp" "backup:local:mysql" "${args[@]}"
+		"$pod_script_env_file" "args:db:wp" "backup:file:mysql" "${args[@]}"
 		;;
-  "migrate"|"update"|"fast-update"|"setup"|"fast-setup")
-    "$pod_script_main_file" "$command" "${args[@]}"
-    ;;
-	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
-    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
-    
-    "$pod_script_run_file" "$command" "${args[@]}"
-		;;
-  "setup:new:wp:db")
-    # Deploy a brand-new Wordpress site (with possibly seeded data)
-    info "$command - installation"
-    "$pod_script_run_file" run wordpress \
-      wp --allow-root core install \
-      --url="$var_setup_url" \
-      --title="$var_setup_title" \
-      --admin_user="$var_setup_admin_user" \
-      --admin_password="$var_setup_admin_password" \
-      --admin_email="$var_setup_admin_email"
-
-    if [ ! -z "$var_setup_local_seed_data" ] || [ ! -z "$var_setup_remote_seed_data" ]; then
-      info "$command - upgrade..."
-      "$pod_script_env_file" upgrade "${args[@]}"
-
-      if [ ! -z "$var_setup_local_seed_data" ]; then
-        info "$command - import local seed data"
-        "$pod_script_run_file" run wordpress \
-          wp --allow-root import ./"$var_setup_local_seed_data" --authors=create
-      fi
-
-      if [ ! -z "$var_setup_remote_seed_data" ]; then
-        info "$command - import remote seed data"
-        "$pod_script_run_file" run wordpress sh -c \
-          "curl -L -o ./tmp/tmp-seed-data.xml -k '$var_setup_remote_seed_data' \
-          && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
-          && rm -f ./tmp/tmp-seed-data.xml"
-      fi
-    fi
-    ;;
-  "upgrade")
-    info "upgrade (app) - start container"
-    "$pod_script_run_file" up wordpress
-
-    "$pod_script_run_file" exec-nontty wordpress /bin/bash <<-SHELL
-			set -eou pipefail
-
-      info "upgrade (app) - update database"
-      wp --allow-root core update-db
-
-      info "upgrade (app) - activate plugins"
-      wp --allow-root plugin activate --all
-
-      if [ ! -z "$var_old_domain_host" ] && [ ! -z "$var_new_domain_host" ]; then
-        info "upgrade (app) - update domain"
-        wp --allow-root search-replace "$var_old_domain_host" "$var_new_domain_host"
-      fi
-		SHELL
-    ;;
   "s3:task:wp:uploads")
     opts=()
     
@@ -329,11 +293,6 @@ case "$command" in
     inner_cmd="s3:$var_s3_cli:$var_s3_cli_cmd:$s3_cmd"
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
-		;;
-	"args")
-    opts=()
-    opts+=( "--task_names=$var_setup_task_names" )
-		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"
 		;;
   "args:db:wp")
     opts=()

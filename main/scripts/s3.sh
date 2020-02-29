@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
 pod_tmp_dir="$POD_TMP_DIR"
@@ -21,8 +21,6 @@ if [ -z "$command" ]; then
 fi
 
 shift;
-
-args=( "$@" )
 
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG

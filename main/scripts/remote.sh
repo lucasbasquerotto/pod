@@ -27,8 +27,6 @@ fi
 
 shift;
 
-args=( "$@" )
-
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name

@@ -48,12 +48,11 @@ while getopts ':-:' OPT; do
 		task_name_remote ) task_name_remote="${OPTARG:-}";; 
 		task_name_local ) task_name_local="${OPTARG:-}";; 
 		task_name_new ) task_name_new="${OPTARG:-}";; 
+		toolbox_service ) toolbox_service="${OPTARG:-}";;
 
-		setup_service ) setup_service="${OPTARG:-}";;
 		setup_dest_dir ) setup_dest_dir="${OPTARG:-}";;
 		setup_run_new_task ) setup_run_new_task="${OPTARG:-}";;
 
-		backup_service ) backup_service="${OPTARG:-}";;
 		backup_tmp_base_dir ) backup_tmp_base_dir="${OPTARG:-}";;
 		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
@@ -105,7 +104,7 @@ case "$command" in
 		;;
 	"setup:default")
 		info "$command ($task_name) - start needed services"
-		"$pod_script_env_file" up "$setup_service"
+		"$pod_script_env_file" up "$toolbox_service"
 
 		msg="verify if the setup should be done"
 		info "$command ($task_name) - $msg "
@@ -141,7 +140,7 @@ case "$command" in
 		msg="verify if the directory ${setup_dest_dir:-} is empty"
 		info "$command ($task_name) - $msg"
 
-		dir_ls="$("$pod_script_env_file" exec-nontty "$setup_service" \
+		dir_ls="$("$pod_script_env_file" exec-nontty "$toolbox_service" \
 			find /"${setup_dest_dir}"/ -type f | wc -l)"
 
 		if [ -z "$dir_ls" ]; then
@@ -185,7 +184,7 @@ case "$command" in
 			echo "$(date '+%F %T') - $command ($task_name) - skipping..."
 		else
 			info "$command ($task_name) - clear old files"
-			"$pod_script_env_file" exec-nontty "$backup_service" /bin/bash <<-SHELL
+			"$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 				find /$backup_tmp_base_dir/* -ctime +$backup_delete_old_days -delete;
 				find /$backup_tmp_base_dir/* -maxdepth 0 -type d -ctime \
@@ -203,7 +202,7 @@ case "$command" in
 			fi
 
 			info "$command ($task_name) - start needed services"
-			"$pod_script_env_file" up "$backup_service"
+			"$pod_script_env_file" up "$toolbox_service"
 		fi
 		;;
 	*)

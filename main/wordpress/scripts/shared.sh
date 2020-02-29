@@ -132,7 +132,7 @@ case "$command" in
     opts+=( "--task_name_verify=setup:verify:wp:uploads" )
     opts+=( "--task_name_remote=setup:remote:wp:uploads" )
 
-    opts+=( "--setup_service=$var_setup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--setup_dest_dir=$var_wp_uploads_dir" )
 
 		"$pod_script_main_file" "setup:default" "${opts[@]}"
@@ -146,7 +146,7 @@ case "$command" in
     opts+=( "--task_name_local=setup:local:wp:db" )
     opts+=( "--task_name_new=setup:new:wp:db" )
         
-    opts+=( "--setup_service=$var_setup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--setup_dest_dir=$var_db_restore_dir" )
     opts+=( "--setup_run_new_task=${var_setup_run_new_task_wp_db:-}" )
 
@@ -160,7 +160,7 @@ case "$command" in
     
     opts+=( "--task_short_name=wp-uploads" )
     opts+=( "--task_kind=dir" )
-    opts+=( "--task_service=$var_setup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--s3_task_name=s3:task:wp:uploads" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
     opts+=( "--s3_bucket_path=${var_s3_bucket_path_uploads:-}" )
@@ -169,9 +169,11 @@ case "$command" in
     opts+=( "--restore_tmp_dir=$var_uploads_restore_dir" )
     opts+=( "--restore_local_zip_file=${var_setup_local_uploads_zip_file:-}" )
     opts+=( "--restore_remote_zip_file=${var_setup_remote_uploads_zip_file:-}" )
-    opts+=( "--restore_remote_bucket_path_dir=${var_setup_remote_bucket_path_uploads_dir:-}" )
     opts+=( "--restore_remote_bucket_path_file=${var_setup_remote_bucket_path_uploads_file:-}" )
-    opts+=( "--restore_zip_inner_dir=$var_uploads_zip_inner_dir" )
+    opts+=( "--restore_remote_bucket_path_dir=${var_setup_remote_bucket_path_uploads_dir:-}" )
+    opts+=( "--restore_is_zip_file=${var_setup_uploads_is_zip_file:-}" )
+    opts+=( "--restore_zip_pass=${var_setup_uploads_zip_pass:-}" )
+    opts+=( "--restore_zip_inner_dir=${var_setup_uploads_zip_inner_dir:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
@@ -183,7 +185,7 @@ case "$command" in
     
     opts+=( "--task_short_name=wp-db" )
     opts+=( "--task_kind=file" )
-    opts+=( "--task_service=$var_setup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--s3_task_name=s3:task:wp:db" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
     opts+=( "--s3_bucket_path=${var_s3_bucket_path_db:-}" )
@@ -194,7 +196,10 @@ case "$command" in
     opts+=( "--restore_remote_zip_file=${var_setup_remote_db_zip_file:-}" )
     opts+=( "--restore_remote_bucket_path_dir=${var_setup_remote_bucket_path_db_dir:-}" )
     opts+=( "--restore_remote_bucket_path_file=${var_setup_remote_bucket_path_db_file:-}" )
-    opts+=( "--restore_zip_inner_file=$var_db_name.sql" )
+    opts+=( "--restore_dest_file=$var_db_name.sql" )
+    opts+=( "--restore_is_zip_file=${var_setup_db_is_zip_file:-}" )
+    opts+=( "--restore_zip_pass=${var_setup_db_zip_pass:-}" )
+    opts+=( "--restore_zip_inner_file=${var_setup_db_zip_inner_file:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
     ;;
@@ -213,7 +218,7 @@ case "$command" in
     opts+=( "--task_name=$command" )
     opts+=( "--task_name_remote=backup:remote:wp:uploads" )
 
-    opts+=( "--backup_service=$var_backup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
     opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
 
@@ -224,11 +229,12 @@ case "$command" in
 
     opts+=( "--task_short_name=wp-uploads" )
     opts+=( "--task_kind=dir" )
-    opts+=( "--task_service=$var_backup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--s3_task_name=s3:task:wp:uploads" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
     opts+=( "--s3_bucket_path=${var_s3_bucket_path_uploads:-}" )
 
+    opts+=( "--backup_src_base_dir=$var_wp_uploads_dir_base" )
     opts+=( "--backup_src_dir=$var_wp_uploads_dir" )
     opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
     opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_uploads_sync_dir:-}" )
@@ -242,7 +248,7 @@ case "$command" in
     opts+=( "--task_name_local=backup:local:wp" )
     opts+=( "--task_name_remote=backup:remote:wp:db" )
 
-    opts+=( "--backup_service=$var_backup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
     opts+=( "--backup_delete_old_days=$var_backup_delete_old_days" )
 
@@ -253,12 +259,12 @@ case "$command" in
 
     opts+=( "--task_short_name=wp-db" )
     opts+=( "--task_kind=file" )
-    opts+=( "--task_service=$var_backup_service" )
+    opts+=( "--toolbox_service=$var_toolbox_service" )
     opts+=( "--s3_task_name=s3:task:wp:db" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
     opts+=( "--s3_bucket_path=${var_s3_bucket_path_db:-}" )
     
-    opts+=( "--backup_src_dir=$var_db_backup_dir" )
+    opts+=( "--backup_src_base_dir=$var_db_backup_dir" )
     opts+=( "--backup_src_file=$var_db_name.sql" )
     opts+=( "--backup_tmp_base_dir=$var_backup_tmp_base_dir" )
     opts+=( "--backup_bucket_sync_dir=${var_backup_bucket_db_sync_dir:-}" )

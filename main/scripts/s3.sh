@@ -34,6 +34,7 @@ while getopts ':-:' OPT; do
 		s3_bucket_name ) s3_bucket_name="${OPTARG:-}";;
 		s3_src ) s3_src="${OPTARG:-}" ;;
 		s3_dest ) s3_dest="${OPTARG:-}";;
+    s3_opts ) s3_opts="${OPTARG:-}";;
 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -85,47 +86,46 @@ function s3cmd_run {
 
 case "$command" in
 	"s3:awscli:exec:is_empty_bucket")
-		awscli_is_empty_bucket exec-nontty
+		awscli_is_empty_bucket exec-nontty "$s3_opts"
 	  ;;
 	"s3:awscli:run:is_empty_bucket")	  
-		awscli_is_empty_bucket run
+		awscli_is_empty_bucket run "$s3_opts"
 	  ;;
   "s3:awscli:exec:create-bucket")
-		awscli_exec s3api create-bucket --endpoint="$s3_endpoint" --bucket "$s3_bucket_name"
+		awscli_exec s3api create-bucket --endpoint="$s3_endpoint" --bucket "$s3_bucket_name" "$s3_opts"
 		;;
   "s3:awscli:run:create-bucket")
-		awscli_run s3api create-bucket --endpoint="$s3_endpoint"--bucket "$s3_bucket_name"
+		awscli_run s3api create-bucket --endpoint="$s3_endpoint"--bucket "$s3_bucket_name" "$s3_opts"
 		;;
   "s3:awscli:exec:rb")
-		awscli_exec s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name"
+		awscli_exec s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name" "$s3_opts"
 		;;
   "s3:awscli:run:rb")
-		awscli_run s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name"
+		awscli_run s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name" "$s3_opts"
 		;;
 	"s3:awscli:exec:cp")
-		awscli_exec s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
+		awscli_exec s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:awscli:run:cp")
-		awscli_run s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
+		awscli_run s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:awscli:exec:sync")
-		>&2 "$pod_script_env_file" exec-nontty "$s3_service" ls -la "$s3_src"
-		awscli_exec s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
+		awscli_exec s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:awscli:run:sync")
-		awscli_run s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest"
+		awscli_run s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:s3cmd:exec:cp")
-		s3cmd_exec cp "$s3_src" "$s3_dest"
+		s3cmd_exec cp "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:s3cmd:run:cp")
-		s3cmd_run cp "$s3_src" "$s3_dest"
+		s3cmd_run cp "$s3_src" "$s3_dest" "$s3_opts"
 		;;
   "s3:s3cmd::exec:sync")
-		s3cmd_exec sync "$s3_src" "$s3_dest"
+		s3cmd_exec sync "$s3_src" "$s3_dest" "$s3_opts"
     ;;
   "s3:s3cmd::run:sync")
-		s3cmd_run sync "$s3_src" "$s3_dest"
+		s3cmd_run sync "$s3_src" "$s3_dest" "$s3_opts"
     ;;
   *)
 		error "Invalid command: $command"

@@ -83,6 +83,9 @@ case "$command" in
     sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
+  "test:a::b:::c::d:e:")
+    echo "$command" | tr : - 
+    ;;
 	*)
 		"$pod_env_shared_file" "$command" "$@"
     ;;

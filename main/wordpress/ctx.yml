@@ -335,7 +335,7 @@ children:
       var_wp_uploads_base_dir: "tmp/data/wordpress"
       var_wp_uploads_dir: "uploads"
       var_uploads_restore_tmp_dir: "tmp/main/restore/wordpress/uploads"
-      var_backup_tmp_base_dir: "tmp/main/backup"
+      var_backup_local_base_dir: "tmp/main/backup"
       var_db_backup_dir: "tmp/main/mysql/backup"
       var_db_restore_dir: "tmp/main/mysql/restore"
       var_db_restore_tmp_dir: "tmp/main/restore/mysql"

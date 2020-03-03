@@ -69,17 +69,17 @@ case "$command" in
       --admin_password="$setup_admin_password" \
       --admin_email="$setup_admin_email"
 
-    if [ ! -z "$setup_local_seed_data" ] || [ ! -z "$setup_remote_seed_data" ]; then
+    if [ -n "$setup_local_seed_data" ] || [ -n "$setup_remote_seed_data" ]; then
       info "$command - upgrade..."
       "$pod_script_env_file" upgrade "${args[@]}"
 
-      if [ ! -z "$setup_local_seed_data" ]; then
+      if [ -n "$setup_local_seed_data" ]; then
         info "$command - import local seed data"
         "$pod_script_run_file" run wordpress \
           wp --allow-root import ./"$setup_local_seed_data" --authors=create
       fi
 
-      if [ ! -z "$setup_remote_seed_data" ]; then
+      if [ -n "$setup_remote_seed_data" ]; then
         info "$command - import remote seed data"
         "$pod_script_run_file" run wordpress sh -c \
           "curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' \
@@ -106,7 +106,7 @@ case "$command" in
       info "upgrade (app) - activate plugins"
       wp --allow-root plugin activate --all
 
-      if [ ! -z "${old_domain_host:-}" ] && [ ! -z "${new_domain_host:-}" ]; then
+      if [ -n "${old_domain_host:-}" ] && [ -n "${new_domain_host:-}" ]; then
         info "upgrade (app) - update domain"
         wp --allow-root search-replace "$old_domain_host" "$new_domain_host"
       fi

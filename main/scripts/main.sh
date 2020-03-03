@@ -50,11 +50,10 @@ while getopts ':-:' OPT; do
 		task_name_new ) task_name_new="${OPTARG:-}";; 
 		toolbox_service ) toolbox_service="${OPTARG:-}";;
 
-		setup_run_new_task ) setup_run_new_task="${OPTARG:-}";;
-    
+		setup_run_new_task ) setup_run_new_task="${OPTARG:-}";;    
 		setup_dest_dir_to_verify ) setup_dest_dir_to_verify="${OPTARG:-}";;
-
-		backup_tmp_base_dir ) backup_tmp_base_dir="${OPTARG:-}";;
+		
+		backup_local_dir ) backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -64,15 +63,14 @@ shift $((OPTIND-1))
 
 function run_tasks {
   task_names="${1:-}" 
-  task_parameter_name="${2:-}"
 
-  if [ ! -z "${task_names:-}" ]; then
+  if [ -n "${task_names:-}" ]; then
     IFS=',' read -r -a tmp <<< "${task_names}"
     arr=("${tmp[@]}")
 
     for task_name in "${arr[@]}"; do
       "$pod_script_env_file" "$task_name" "${args[@]}" \
-        "--$task_parameter_name=$task_name"
+        --task_name="$task_name"
     done
   fi
 }
@@ -97,7 +95,7 @@ case "$command" in
 		info "$command - ended"
 		;;
 	"setup"|"fast-setup")    
-		run_tasks "${task_names:-}" "task_name"
+		run_tasks "${task_names:-}"
 
     if [ "$command" = "setup" ]; then
       "$pod_script_env_file" upgrade "${args[@]}" 
@@ -122,10 +120,12 @@ case "$command" in
 		elif [ "${setup_run_new_task:-}" = "true" ]; then
 			"$pod_script_env_file" "${task_name_new}"
 		else 
-			info "$command ($task_name) - restore - remote"
-			"$pod_script_env_file" "${task_name_remote}" "${args[@]}"
+			if [ -n "${task_name_remote:-}" ]; then
+				info "$command ($task_name) - restore - remote"
+				"$pod_script_env_file" "${task_name_remote}" "${args[@]}"
+			fi
 			
-			if [ ! -z "${task_name_local:-}" ]; then
+			if [ -n "${task_name_local:-}" ]; then
 				info "$command ($task_name) - restore - local"
 				"$pod_script_env_file" "${task_name_local}" "${args[@]}"
 			fi
@@ -149,11 +149,6 @@ case "$command" in
 		fi
 		;;
 	"backup")	
-		run_tasks "${task_names:-}" "task_name"
-		;;  
-	"backup:default")
-		info "$command ($task_name) - started"
-
     re_number='^[0-9]+$'
 
 		if ! [[ $backup_delete_old_days =~ $re_number ]] ; then
@@ -161,6 +156,22 @@ case "$command" in
 			msg="\$msg (value=$backup_delete_old_days)"
 			error "$msg"
 		fi
+
+		info "$command ($task_name) - start needed services"
+		"$pod_script_env_file" up "$toolbox_service"
+		
+		info "$command ($task_name) - clear old files"
+		"$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+			find /$backup_local_dir/* -ctime +$backup_delete_old_days -delete;
+			find /$backup_local_dir/* -maxdepth 0 -type d -ctime \
+				+$backup_delete_old_days -exec rm -rf {} \;
+		SHELL
+
+		run_tasks "${task_names:-}"
+		;;  
+	"backup:default")
+		info "$command ($task_name) - started"
 
 		if [ -z "${task_name_verify:-}" ]; then
 			skip="false"
@@ -178,20 +189,12 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($task_name) - skipping..."
 		else
-			info "$command ($task_name) - clear old files"
-			"$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
-				set -eou pipefail
-				find /$backup_tmp_base_dir/* -ctime +$backup_delete_old_days -delete;
-				find /$backup_tmp_base_dir/* -maxdepth 0 -type d -ctime \
-					+$backup_delete_old_days -exec rm -rf {} \;
-			SHELL
-
-			if [ ! -z "${task_name_local:-}" ]; then
+			if [ -n "${task_name_local:-}" ]; then
 				info "$command ($task_name) - backup - local"
 				"$pod_script_env_file" "${task_name_local}" "${args[@]}"
 			fi
 			
-			if [ ! -z "${task_name_remote:-}" ]; then
+			if [ -n "${task_name_remote:-}" ]; then
 				info "$command ($task_name) - backup - remote"
 				"$pod_script_env_file" "${task_name_remote}" "${args[@]}"
 			fi

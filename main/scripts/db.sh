@@ -58,7 +58,7 @@ case "$command" in
 			mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
 		tables=""
 
-		if [ ! -z "$sql_output" ]; then
+		if [ -n "$sql_output" ]; then
 			tables="$(echo "$sql_output" | tail -n 1)"
 		fi
 
@@ -72,7 +72,7 @@ case "$command" in
 			sql_output="$("$pod_script_env_file" exec-nontty "$db_service" \
 				mysql -u "$db_user" -p"$db_pass" -N -e "$sql_tables")" ||:
 
-			if [ ! -z "$sql_output" ]; then
+			if [ -n "$sql_output" ]; then
 				tables="$(echo "$sql_output" | tail -n 1)"
 			fi
 		fi

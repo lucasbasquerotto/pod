@@ -105,19 +105,25 @@
   params: {{ item_params | to_json }}
 {% endif %}
 
-{% if item_src == 'toolbox'
+{% if item_src == 'toolbox' %}
+
+{% if (item_params.s3_cli | default('')) == 's3cmd' 
 %}- src: "{{ item_full_src }}/templates/s3cmd.cfg"
   dest: "{{ item_dest }}/s3cmd.cfg"
   params:
     access_key: "{{ item_params.bucket.access_key }}"
     secret_key: "{{ item_params.bucket.secret_key }}"
     host_base: "{{ item_params.s3_endpoint }}"
+{% endif %}
 
-- src: "{{ item_full_src }}/templates/aws/credentials.cfg"
+
+{% if (item_params.s3_cli | default('')) == 'awscli' 
+%}- src: "{{ item_full_src }}/templates/aws/credentials.cfg"
   dest: "{{ item_dest }}/aws/credentials"
   params:
     access_key: "{{ item_params.bucket.access_key }}"
     secret_key: "{{ item_params.bucket.secret_key }}"
+{% endif %}
 {% endif %}
 
 {% if item_src == 'wordpress' 

@@ -4,7 +4,7 @@ set -eou pipefail
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_env_shared_file="$pod_layer_dir/$var_scripts_dir/shared.sh"
+pod_env_shared_file="$pod_layer_dir/main/wordpress/scripts/shared.sh"
 
 command="${1:-}"
 

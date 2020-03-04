@@ -9,7 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_env_shared_file="$pod_layer_dir/$var_scripts_dir/shared.sh"
+pod_env_shared_file="$pod_layer_dir/main/wordpress/scripts/shared.sh"
 
 pod_layer_base_dir="$(dirname "$pod_layer_dir")"
 base_dir="$(dirname "$pod_layer_base_dir")"

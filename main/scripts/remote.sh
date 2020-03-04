@@ -52,8 +52,8 @@ while getopts ':-:' OPT; do
 		restore_tmp_dir ) restore_tmp_dir="${OPTARG:-}";;
 		restore_local_file ) restore_local_file="${OPTARG:-}" ;;
 		restore_remote_file ) restore_remote_file="${OPTARG:-}" ;;
-		restore_remote_bucket_path_dir ) restore_remote_bucket_path_dir="${OPTARG:-}" ;;
 		restore_remote_bucket_path_file ) restore_remote_bucket_path_file="${OPTARG:-}";;
+		restore_remote_bucket_path_dir ) restore_remote_bucket_path_dir="${OPTARG:-}" ;;
 		restore_is_zip_file ) restore_is_zip_file="${OPTARG:-}";;
 		restore_zip_tmp_file_name ) restore_zip_tmp_file_name="${OPTARG:-}";;
 		restore_zip_pass ) restore_zip_pass="${OPTARG:-}";;

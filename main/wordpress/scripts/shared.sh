@@ -8,7 +8,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_env_shared_exec_file="$pod_layer_dir/$var_scripts_dir/shared.exec.sh"
+pod_env_shared_exec_file="$pod_layer_dir/main/wordpress/scripts/shared.exec.sh"
 
 pod_script_run_file="$pod_layer_dir/main/compose/main.sh"
 pod_script_main_file="$pod_layer_dir/main/scripts/main.sh"
@@ -187,7 +187,7 @@ case "$command" in
     opts+=( "--task_name_new=setup:new:wp:db" )
         
     opts+=( "--toolbox_service=$var_toolbox_service" )
-    opts+=( "--setup_run_new_task=${var_setup_run_new_task_wp_db:-}" )
+    opts+=( "--setup_run_new_task=${var_setup_create_new_db:-}" )
 
 		"$pod_script_main_file" "setup:default" "${opts[@]}"
 		;;
@@ -294,26 +294,26 @@ case "$command" in
   "s3:task:wp:uploads")
     opts=()
     
-    opts+=( "--s3_service=$var_s3_service" )
+    opts+=( "--s3_service=$var_s3_service_uploads" )
     opts+=( "--s3_endpoint=$var_s3_endpoint_uploads" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_uploads" )
     opts+=( "--s3_src=${s3_src:-}" )
     opts+=( "--s3_dest=${s3_dest:-}" )
 
-    inner_cmd="s3:$var_s3_cli:$var_s3_cli_cmd:$s3_cmd"
+    inner_cmd="s3:$var_s3_cli_uploads:$var_s3_cli_cmd_uploads:$s3_cmd"
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;
   "s3:task:wp:db")
     opts=()
     
-    opts+=( "--s3_service=$var_s3_service" )
+    opts+=( "--s3_service=$var_s3_service_db" )
     opts+=( "--s3_endpoint=$var_s3_endpoint_db" )
     opts+=( "--s3_bucket_name=$var_s3_bucket_name_db" )
     opts+=( "--s3_src=${s3_src:-}" )
     opts+=( "--s3_dest=${s3_dest:-}" )
 
-    inner_cmd="s3:$var_s3_cli:$var_s3_cli_cmd:$s3_cmd"
+    inner_cmd="s3:$var_s3_cli_db:$var_s3_cli_cmd_db:$s3_cmd"
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;

@@ -32,7 +32,7 @@ if [ -z "$base_dir" ] || [ "$base_dir" = "/" ]; then
 fi
 
 ctl_layer_dir="$base_dir/ctl"
-app_layer_dir="$base_dir/apps/$var_wordpress_dev_repo_dir"
+app_layer_dir="$base_dir/apps/$var_dev_repo_dir_wordpress"
 
 command="${1:-}"
 
@@ -52,7 +52,7 @@ esac
 
 case "$command" in
   "prepare")
-    "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$var_env_local_repo/run" "${@}"
+    "$pod_env_shared_file" "local:prepare" "$var_env_local_repo/run" "${@}"
 
     sudo chmod +x "$app_layer_dir/"
     cp "$pod_full_dir/main/wordpress/.env" "$app_layer_dir/.env"
@@ -82,9 +82,6 @@ case "$command" in
     "$pod_script_env_file" rm
     sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
-    ;;
-  "test:a::b:::c::d:e:")
-    echo "$command" | tr : - 
     ;;
 	*)
 		"$pod_env_shared_file" "$command" "$@"

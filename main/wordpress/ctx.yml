@@ -283,7 +283,7 @@ children:
       var_scripts_dir: "main/wordpress/scripts"
       var_script_env_file: >-
         {{ var_local | ternary('local.sh', 'remote.sh') }}
-      var_wordpress_dev_repo_dir: >-
+      var_dev_repo_dir_wordpress: >-
         {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
       var_env_local_repo: "{{ params.pod.env_local_repo }}"
       var_setup_url: >-

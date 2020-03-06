@@ -42,15 +42,16 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-    setup_url ) setup_url="${OPTARG:-}";;
-    setup_title ) setup_title="${OPTARG:-}";;
-    setup_admin_user ) setup_admin_user="${OPTARG:-}";;
-    setup_admin_password ) setup_admin_password="${OPTARG:-}";;
-    setup_admin_email ) setup_admin_email="${OPTARG:-}";;
-    setup_local_seed_data ) setup_local_seed_data="${OPTARG:-}";;
-    setup_remote_seed_data ) setup_remote_seed_data="${OPTARG:-}";;
-		old_domain_host ) old_domain_host="${OPTARG:-}";;
-		new_domain_host ) new_domain_host="${OPTARG:-}";; 
+    setup_url ) arg_setup_url="${OPTARG:-}";;
+    setup_title ) arg_setup_title="${OPTARG:-}";;
+    setup_admin_user ) arg_setup_admin_user="${OPTARG:-}";;
+    setup_admin_password ) arg_setup_admin_password="${OPTARG:-}";;
+    setup_admin_email ) arg_setup_admin_email="${OPTARG:-}";;
+    setup_restore_seed ) arg_setup_restore_seed="${OPTARG:-}";;
+    setup_local_seed_data ) arg_setup_local_seed_data="${OPTARG:-}";;
+    setup_remote_seed_data ) arg_setup_remote_seed_data="${OPTARG:-}";;
+		old_domain_host ) arg_old_domain_host="${OPTARG:-}";;
+		new_domain_host ) arg_new_domain_host="${OPTARG:-}";; 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -63,28 +64,32 @@ case "$command" in
     info "$command - installation"
     "$pod_script_run_file" run wordpress \
       wp --allow-root core install \
-      --url="$setup_url" \
-      --title="$setup_title" \
-      --admin_user="$setup_admin_user" \
-      --admin_password="$setup_admin_password" \
-      --admin_email="$setup_admin_email"
+      --url="$arg_setup_url" \
+      --title="$arg_setup_title" \
+      --admin_user="$arg_setup_admin_user" \
+      --admin_password="$arg_setup_admin_password" \
+      --admin_email="$arg_setup_admin_email"
 
-    if [ -n "$setup_local_seed_data" ] || [ -n "$setup_remote_seed_data" ]; then
-      info "$command - upgrade..."
-      "$pod_script_env_file" upgrade "${args[@]}"
+    if [ "${arg_setup_restore_seed:-}" = "true" ]; then
+      if [ -z "$arg_setup_local_seed_data" ] && [ -z "$arg_setup_remote_seed_data" ]; then
+        error "$command - seed_data not provided"
+      else
+        info "$command - upgrade..."
+        "$pod_script_env_file" upgrade "${args[@]}"
 
-      if [ -n "$setup_local_seed_data" ]; then
-        info "$command - import local seed data"
-        "$pod_script_run_file" run wordpress \
-          wp --allow-root import ./"$setup_local_seed_data" --authors=create
-      fi
+        if [ -n "$arg_setup_local_seed_data" ]; then
+          info "$command - import local seed data"
+          "$pod_script_run_file" run wordpress \
+            wp --allow-root import ./"$arg_setup_local_seed_data" --authors=create
+        fi
 
-      if [ -n "$setup_remote_seed_data" ]; then
-        info "$command - import remote seed data"
-        "$pod_script_run_file" run wordpress sh -c \
-          "curl -L -o ./tmp/tmp-seed-data.xml -k '$setup_remote_seed_data' \
-          && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
-          && rm -f ./tmp/tmp-seed-data.xml"
+        if [ -n "$arg_setup_remote_seed_data" ]; then
+          info "$command - import remote seed data"
+          "$pod_script_run_file" run wordpress sh -c \
+            "curl -L -o ./tmp/tmp-seed-data.xml -k '$arg_setup_remote_seed_data' \
+            && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
+            && rm -f ./tmp/tmp-seed-data.xml"
+        fi
       fi
     fi
     ;;
@@ -106,9 +111,9 @@ case "$command" in
       info "upgrade (app) - activate plugins"
       wp --allow-root plugin activate --all
 
-      if [ -n "${old_domain_host:-}" ] && [ -n "${new_domain_host:-}" ]; then
+      if [ -n "${arg_old_domain_host:-}" ] && [ -n "${arg_new_domain_host:-}" ]; then
         info "upgrade (app) - update domain"
-        wp --allow-root search-replace "$old_domain_host" "$new_domain_host"
+        wp --allow-root search-replace "$arg_old_domain_host" "$arg_new_domain_host"
       fi
 		SHELL
     ;;

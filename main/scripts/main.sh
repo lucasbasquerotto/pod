@@ -62,10 +62,10 @@ done
 shift $((OPTIND-1))
 
 function run_tasks {
-  task_names="${1:-}" 
+  run_task_names="${1:-}" 
 
-  if [ -n "${task_names:-}" ]; then
-    IFS=',' read -r -a tmp <<< "${task_names}"
+  if [ -n "${run_task_names:-}" ]; then
+    IFS=',' read -r -a tmp <<< "${run_task_names}"
     arr=("${tmp[@]}")
 
     for task_name in "${arr[@]}"; do

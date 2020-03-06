@@ -84,10 +84,16 @@ while getopts ':-:' OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    s3_cmd ) s3_cmd="${OPTARG:-}";;
-    s3_src ) s3_src="${OPTARG:-}";;
-    s3_dest ) s3_dest="${OPTARG:-}";;
-    backup_local_dir ) backup_local_dir="${OPTARG:-}";;
+    s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
+    s3_src ) arg_s3_src="${OPTARG:-}";;
+    s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
+    s3_dest ) arg_s3_dest="${OPTARG:-}";;
+    s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
+    s3_file ) arg_s3_file="${OPTARG:-}";;
+    backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
+    db_task_name ) arg_db_task_name="${OPTARG:-}";; 
+    env_local_repo ) arg_env_local_repo="${OPTARG:-}";; 
+    ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";; 
     ??* ) ;;  # bad long option
     \? )  ;;  # bad short option (error reported via getopts)
   esac
@@ -113,8 +119,7 @@ case "$command" in
     "$pod_script_main_file" "$command" ${args[@]+"${args[@]}"}
     ;;
   "local:prepare")
-    env_local_repo="${args[0]}"
-    "$ctl_layer_dir/run" dev-cmd bash "/root/w/r/$env_local_repo/run" "${args[@]:1}"
+    "$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" "${@}"
     ;;
   "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
     |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
@@ -147,8 +152,14 @@ case "$command" in
 
 		"$pod_script_main_file" "setup:default" "${opts[@]}"
     ;;
-  "setup:verify:"*)
-    prefix="var_setup_verify_${command#setup:verify:}"
+  "setup:verify:db:"*)
+    ctx="${command#setup:verify:db:}"
+    prefix="var_setup_verify_${ctx}"
+    db_task_name="${prefix}_db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
+		;;
+  "setup:verify:default:"*)
+    prefix="var_setup_verify_${command#setup:verify:default:}"
     setup_dest_dir_to_verify="${prefix}_setup_dest_dir_to_verify"
     
     opts=()
@@ -161,8 +172,6 @@ case "$command" in
 
     task_kind="${prefix}_task_kind"
     s3_task_name="${prefix}_s3_task_name"
-    s3_bucket_name="${prefix}_s3_bucket_name"
-    s3_bucket_path="${prefix}_s3_bucket_path"
     restore_dest_dir="${prefix}_restore_dest_dir"
     restore_dest_file="${prefix}_restore_dest_file"
     restore_tmp_dir="${prefix}_restore_tmp_dir"
@@ -182,8 +191,6 @@ case "$command" in
 
     opts+=( "--task_kind=${!task_kind:-}" )
     opts+=( "--s3_task_name=${!s3_task_name:-}" )
-    opts+=( "--s3_bucket_name=${!s3_bucket_name:-}" )
-    opts+=( "--s3_bucket_path=${!s3_bucket_path:-}" )
     opts+=( "--restore_dest_dir=${!restore_dest_dir:-}" )
     opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
     opts+=( "--restore_tmp_dir=${!restore_tmp_dir:-}" )
@@ -198,27 +205,11 @@ case "$command" in
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
-  "setup:db:"*)
-    prefix="var_setup_db_${command#setup:db:}"
+  "setup:local:db:"*)
+    ctx="${command#setup:local:db:}"
+    prefix="var_setup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
-    
-    db_name="${prefix}_db_name"
-    db_service="${prefix}_db_service"
-    db_user="${prefix}_db_user"
-    db_pass="${prefix}_db_pass"
-    db_connect_wait_secs="${prefix}_db_connect_wait_secs"
-    db_sql_file="${prefix}_db_sql_file"
-
-    opts=()
-
-    opts+=( "--db_name=${!db_name:-}" )
-    opts+=( "--db_service=${!db_service:-}" )
-    opts+=( "--db_user=${!db_user:-}" )
-    opts+=( "--db_pass=${!db_pass:-}" )
-    opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
-    opts+=( "--db_sql_file=${!db_sql_file:-}" )
-
-		"$pod_script_db_file" "$db_task_name" "${opts[@]}"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
 		;;
   "backup")
     opts=()
@@ -240,7 +231,7 @@ case "$command" in
 
     opts+=( "--task_name=$command" )
     opts+=( "--toolbox_service=$var_main_toolbox_service" )
-    opts+=( "--backup_local_dir=$backup_local_dir" )
+    opts+=( "--backup_local_dir=$arg_backup_local_dir" )
 
     opts+=( "--task_name_verify=${!task_name_verify:-}" )
     opts+=( "--task_name_local=${!task_name_local:-}" )
@@ -252,8 +243,6 @@ case "$command" in
     prefix="var_backup_remote_${command#backup:remote:}"
     task_kind="${prefix}_task_kind"
     s3_task_name="${prefix}_s3_task_name"
-    s3_bucket_name="${prefix}_s3_bucket_name"
-    s3_bucket_path="${prefix}_s3_bucket_path"
     backup_src_base_dir="${prefix}_backup_src_base_dir"
     backup_src_dir="${prefix}_backup_src_dir"
     backup_src_file="${prefix}_backup_src_file"
@@ -263,12 +252,10 @@ case "$command" in
     opts=()
 
     opts+=( "--toolbox_service=$var_main_toolbox_service" )
-    opts+=( "--backup_local_dir=$backup_local_dir" )
+    opts+=( "--backup_local_dir=$arg_backup_local_dir" )
 
     opts+=( "--task_kind=${!task_kind:-}" )
     opts+=( "--s3_task_name=${!s3_task_name:-}" )
-    opts+=( "--s3_bucket_name=${!s3_bucket_name:-}" )
-    opts+=( "--s3_bucket_path=${!s3_bucket_path:-}" )
     opts+=( "--backup_src_base_dir=${!backup_src_base_dir:-}" )
     opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
     opts+=( "--backup_src_file=${!backup_src_file:-}" )
@@ -277,9 +264,14 @@ case "$command" in
 
 		"$pod_script_remote_file" backup "${opts[@]}"
     ;;
-  "backup:db:"*)
-    prefix="var_backup_db_${command#backup:db:}"
+  "backup:local:db:"*)
+    ctx="${command#backup:local:db:}"
+    prefix="var_backup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
+		;;
+  "db:task:"*)
+    prefix="var_db_${command#db:task:}"
     
     db_name="${prefix}_db_name"
     db_service="${prefix}_db_service"
@@ -287,6 +279,7 @@ case "$command" in
     db_pass="${prefix}_db_pass"
     db_backup_dir="${prefix}_db_backup_dir"
     db_connect_wait_secs="${prefix}_db_connect_wait_secs"
+    db_sql_file="${prefix}_db_sql_file"
 
     opts=()
 
@@ -296,8 +289,9 @@ case "$command" in
     opts+=( "--db_pass=${!db_pass:-}" )
     opts+=( "--db_backup_dir=${!db_backup_dir:-}" )
     opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
+    opts+=( "--db_sql_file=${!db_sql_file:-}" )
 
-		"$pod_script_db_file" "$db_task_name" "${opts[@]}"
+		"$pod_script_db_file" "$arg_db_task_name" "${opts[@]}"
 		;;
   "s3:task:"*)
     prefix="var_s3_${command#s3:task:}"
@@ -306,6 +300,35 @@ case "$command" in
     service="${prefix}_service"
     endpoint="${prefix}_endpoint"
     bucket_name="${prefix}_bucket_name"
+    bucket_path="${prefix}_bucket_path"
+  
+    bucket_prefix="$bucket_name"
+
+    if [ -n "${bucket_path:-}" ];then
+      bucket_prefix="$bucket_name/$bucket_path"
+    fi
+
+    s3_src="${arg_s3_src}"
+
+    if [ -n "${arg_s3_src_rel:-}" ];then
+      s3_src="$bucket_prefix/$arg_s3_src_rel"
+      s3_src=$(echo "$s3_src" | tr -s /)
+      s3_src="s3://$s3_src"
+    fi
+
+    s3_dest="${arg_s3_dest}"
+
+    if [ -n "${arg_s3_dest_rel:-}" ];then
+      s3_dest="$bucket_prefix/$arg_s3_dest_rel"
+      s3_dest=$(echo "$s3_dest" | tr -s /)
+      s3_dest="s3://$s3_dest"
+    fi	
+		
+    s3_opts=()
+
+    if [ -n "${arg_s3_file:-}" ]; then
+      s3_opts=( --exclude "*" --include "$arg_s3_file" )
+    fi
     
     opts=()
     
@@ -314,8 +337,9 @@ case "$command" in
     opts+=( "--s3_bucket_name=${!bucket_name:-}" )
     opts+=( "--s3_src=${s3_src:-}" )
     opts+=( "--s3_dest=${s3_dest:-}" )
+    opts+=( "${s3_opts[@]}" )
 
-    inner_cmd="s3:$cli_uploads:$cli_cmd_uploads:$s3_cmd"
+    inner_cmd="s3:$cli_uploads:$cli_cmd_uploads:$arg_s3_cmd"
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;

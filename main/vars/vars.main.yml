@@ -20,6 +20,28 @@
 {% set var_compose = var_main_params.orchestration in ['docker_compose', 'none'] %}
 {% set var_data_dir = var_pod_params.local_data_dir_inside | default(var_pod_params.data_dir, true) %}
 
+{% set var_run = params.run | default({}) %}
+{% set var_run_dict = params.run_dict | default({}) %}
+{% set var_run_custom = params.run_custom | default({}) %}
+
+{% set ns_run = namespace(vars={}) %}
+
+{% if (var_run | dict2items | list | length) > 0 %}
+  {% for var_run_item in var_run | dict2items | list %}
+    {% set var_run_item_obj = var_run_dict[var_run_item.value] %}
+
+    {% if (var_run_item_obj | dict2items | list | length) > 0 %}
+      {% for var_run_item_inner in var_run_item_obj | dict2items | list %}
+        {% set var_key = 'var_' + var_run_item.key + '_' + var_run_item_inner.key %}
+        {% set var_value = var_run_item_inner.value %}
+        {% set ns_run.vars = ns_run.vars | combine({ var_key: var_value }) %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set ns_run.vars = ns_run.vars | combine(var_run_custom) %}
+
 {% macro define_files(services, run_type) %}
 
 {% for name in services | list %}
@@ -185,12 +207,12 @@ templates:
 
 {{ define_templates(var_run_services, true) }}
 
-{% if (params.run | default({}) | dict2items | list | length) > 0 %}
+{% if (ns_run.vars | dict2items | list | length) > 0 %}
 
 - src: "main/vars/vars.tpl.sh"
   dest: "vars.sh"
   mode: '0755'
-  params: {{ params.run | to_json }}
+  params: {{ ns_run.vars | to_json }}
 
 {% endif %}
   

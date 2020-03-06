@@ -37,8 +37,6 @@ while getopts ':-:' OPT; do
 		task_kind ) task_kind="${OPTARG:-}";;
 		toolbox_service ) toolbox_service="${OPTARG:-}";;
 		s3_task_name ) s3_task_name="${OPTARG:-}";;
-		s3_bucket_name ) s3_bucket_name="${OPTARG:-}" ;;
-		s3_bucket_path ) s3_bucket_path="${OPTARG:-}";;
 
 		backup_src_base_dir ) backup_src_base_dir="${OPTARG:-}";;
 		backup_src_dir ) backup_src_dir="${OPTARG:-}";;
@@ -73,13 +71,7 @@ case "$command" in
 		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$toolbox_service"
 
-		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
-		bucket_prefix="$(echo "$bucket_prefix" | tr -s /)"
-		backup_bucket_sync_dir_full="$s3_bucket_name/$s3_bucket_path/${backup_bucket_sync_dir:-}"
-		backup_bucket_sync_dir_full="$(echo "$backup_bucket_sync_dir_full" | tr -s /)"
-
-		if [ -z "${backup_bucket_sync_dir:-}" ]; then
-			
+		if [ -z "${backup_bucket_sync_dir:-}" ]; then			
 			info "$command - create the backup directory ($backup_local_dir)"
 			>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" mkdir -p "/$backup_local_dir"
 
@@ -122,40 +114,41 @@ case "$command" in
 			fi
 		fi
 
-		if [ -n "${s3_bucket_name:-}" ]; then
+		if [ -n "${s3_task_name:-}" ]; then
 			empty_bucket="$("$pod_script_env_file" "$s3_task_name" --s3_cmd=is_empty_bucket)"
-			s3_opts=()
 
 			if [ "$empty_bucket" = "true" ]; then
-				info "$command - $toolbox_service - $s3_task_name - create bucket $s3_bucket_name"
+				info "$command - $toolbox_service - $s3_task_name - create bucket"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=create-bucket
 			fi
 
 			if [ -z "${backup_bucket_sync_dir:-}" ]; then
 				src="/$backup_local_dir/"
 				s3_dest_dir="$(basename "/$backup_local_dir")"
-				dest="s3://$bucket_prefix/$s3_dest_dir/"
-				s3_opts=( --exclude "*" --include "$backup_local_zip_file" )
 
-				msg="sync local backup directory with bucket - $src to $dest"
+				msg="sync local backup directory with bucket - $src to $s3_dest_dir (s3)"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-					"--s3_src=$src" "--s3_dest=$dest" ${s3_opts[@]+"--s3_opts=${s3_opts[@]}"}
+					--s3_src="$src" \
+					--s3_dest_rel="$s3_dest_dir" \
+					--s3_file="$backup_local_zip_file"
 			else
+				s3_file=''
+
 				if [ "$task_kind" = "dir" ]; then
 					src="/$backup_src_base_dir/$backup_src_dir/"
 				elif [ "$task_kind" = "file" ]; then
 					src="/$backup_src_base_dir/"
-					s3_opts=( --exclude "*" --include "$backup_src_file" )
+					s3_file="$backup_src_file"
 				else
 					error "$command: $task_kind: task_kind invalid value"
 				fi
 
-				dest="s3://$backup_bucket_sync_dir_full/"
-
-				msg="sync local src directory with bucket - $src to $dest"
+				msg="sync local src directory with bucket - $src to $backup_bucket_sync_dir (s3)"
 				info "$command - $toolbox_service - $s3_task_name - $msg"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-					"--s3_src=$src" "--s3_dest=$dest" ${s3_opts[@]+"--s3_opts=${s3_opts[@]}"}
+					--s3_src="$src" \
+					--s3_dest_rel="$backup_bucket_sync_dir" \
+					--s3_file="$s3_file"
 			fi
 		fi
 
@@ -165,33 +158,29 @@ case "$command" in
 		restore_path=''
 		restore_dest_dir_full="/$restore_dest_dir"
 
-		bucket_prefix="$s3_bucket_name/$s3_bucket_path"
 
 		if [ -n "${restore_remote_bucket_path_dir:-}" ]; then
 			info "$command - create the restore destination directory ($restore_dest_dir_full)"
 			>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
 				mkdir -p "$restore_dest_dir_full"
 
-			s3_bucket_path="$bucket_prefix/$restore_remote_bucket_path_dir"
-			s3_bucket_path=$(echo "$s3_bucket_path" | tr -s /)			
-			restore_remote_src="s3://$s3_bucket_path"
-			s3_opts=()
+			s3_file=''
 
 			if [ -n "${restore_dest_file:-}" ]; then
-				s3_opts=( --exclude "*" --include "$restore_dest_file" )
+				s3_file="$restore_dest_file"
 				restore_path="$restore_dest_dir_full/$restore_dest_file"
 			else
 				restore_path="$restore_dest_dir_full"
 			fi
 			
-			msg="$restore_remote_src to $restore_dest_dir_full"
+			msg="$restore_remote_bucket_path_dir (s3) to $restore_dest_dir_full"
 			info "$command - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-				"--s3_src=$restore_remote_src" "--s3_dest=$restore_dest_dir_full" \
-					${s3_opts[@]+"${s3_opts[@]}"}
+				--s3_src_rel="$restore_remote_bucket_path_dir" \
+				--s3_dest="$restore_dest_dir_full" \
+				--s3_file="$s3_file"
 		else
 			restore_file=""
-			restore_remote_src=""
 			restore_local_dest=""
 
 			info "$command - $toolbox_service - restore"
@@ -237,19 +226,15 @@ case "$command" in
 				>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
 					curl -L -o "$restore_file" -k "$restore_remote_file"
 			elif [ -n "${restore_remote_bucket_path_file:-}" ]; then
-				msg="$command - restore a file from remote bucket"
-				info "$msg [$restore_remote_src -> $restore_local_dest]"			
+				msg="$command - $toolbox_service - $s3_task_name"
+				msg="$msg - restore a file from remote bucket"
+				info "$msg [$restore_remote_bucket_path_file (s3) -> $restore_local_dest]"
+
 				restore_file="$restore_file_default"
 
-				s3_bucket_path="$bucket_prefix/$restore_remote_bucket_path_file"
-				s3_bucket_path=$(echo "$s3_bucket_path" | tr -s /)
-				
-				restore_remote_src="s3://$s3_bucket_path"
-
-				msg="$restore_remote_src to $restore_file"
-				info "$command - $toolbox_service - $s3_task_name - copy bucket file to local path - $msg"
 				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=cp \
-					"--s3_src=$restore_remote_src" "--s3_dest=$restore_file"
+					--s3_src_rel="$restore_remote_bucket_path_file" \
+					--s3_dest="$restore_file"
 			else
 				error "$command: no source provided"
 			fi

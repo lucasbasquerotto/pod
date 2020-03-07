@@ -94,6 +94,10 @@ while getopts ':-:' OPT; do
     db_task_name ) arg_db_task_name="${OPTARG:-}";; 
     env_local_repo ) arg_env_local_repo="${OPTARG:-}";; 
     ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";; 
+    setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
+    backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
+    db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
+    db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}";;
     ??* ) ;;  # bad long option
     \? )  ;;  # bad short option (error reported via getopts)
   esac
@@ -138,6 +142,7 @@ case "$command" in
     task_name_local="${prefix}_task_name_local"
     task_name_new="${prefix}_task_name_new"
     setup_run_new_task="${prefix}_setup_run_new_task"
+    setup_dest_base_dir="${prefix}_setup_dest_base_dir"
 
     opts=()
     
@@ -149,6 +154,7 @@ case "$command" in
     opts+=( "--task_name_local=${!task_name_local:-}" )
     opts+=( "--task_name_new=${!task_name_new:-}" )        
     opts+=( "--setup_run_new_task=${!setup_run_new_task:-}" )
+    opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir:-}" )
 
 		"$pod_script_main_file" "setup:default" "${opts[@]}"
     ;;
@@ -167,12 +173,11 @@ case "$command" in
 
     "$pod_script_main_file" "setup:verify" "${opts[@]}" ${args[@]+"${args[@]}"}
     ;;
-  "setup:remote:"*)
-    prefix="var_setup_remote_${command#setup:remote:}"
+  "setup:remote:default:"*)
+    prefix="var_setup_remote_${command#setup:remote:default:}"
 
     task_kind="${prefix}_task_kind"
-    s3_task_name="${prefix}_s3_task_name"
-    restore_dest_dir="${prefix}_restore_dest_dir"
+    task_name_s3="${prefix}_task_name_s3"
     restore_dest_file="${prefix}_restore_dest_file"
     restore_tmp_dir="${prefix}_restore_tmp_dir"
     restore_local_file="${prefix}_restore_local_file"
@@ -188,10 +193,10 @@ case "$command" in
     
     opts+=( "--toolbox_service=$var_main_toolbox_service" )
     opts+=( "--restore_zip_tmp_file_name=$cmd_path-$key.zip" )
+    opts+=( "--restore_dest_base_dir=${arg_setup_dest_base_dir:-}" )
 
     opts+=( "--task_kind=${!task_kind:-}" )
-    opts+=( "--s3_task_name=${!s3_task_name:-}" )
-    opts+=( "--restore_dest_dir=${!restore_dest_dir:-}" )
+    opts+=( "--task_name_s3=${!task_name_s3:-}" )
     opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
     opts+=( "--restore_tmp_dir=${!restore_tmp_dir:-}" )
     opts+=( "--restore_local_file=${!restore_local_file:-}" )
@@ -209,7 +214,16 @@ case "$command" in
     ctx="${command#setup:local:db:}"
     prefix="var_setup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
+    db_sql_file_name="${prefix}_db_sql_file_name"
+    
+    opts=()
+
+    opts+=( "--db_task_base_dir=${arg_setup_dest_base_dir}" )
+
+    opts+=( "--db_task_name=${!db_task_name}" )
+    opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
 		;;
   "backup")
     opts=()
@@ -226,6 +240,7 @@ case "$command" in
     task_name_verify="${prefix}_task_name_verify"
     task_name_local="${prefix}_task_name_local"
     task_name_remote="${prefix}_task_name_remote"
+    backup_src_base_dir="${prefix}_backup_src_base_dir"
 
     opts=()
 
@@ -236,14 +251,14 @@ case "$command" in
     opts+=( "--task_name_verify=${!task_name_verify:-}" )
     opts+=( "--task_name_local=${!task_name_local:-}" )
     opts+=( "--task_name_remote=${!task_name_remote:-}" )
+    opts+=( "--backup_src_base_dir=${!backup_src_base_dir}" )
 
 		"$pod_script_main_file" "backup:default" "${opts[@]}"
 		;;
-  "backup:remote:"*)
-    prefix="var_backup_remote_${command#backup:remote:}"
+  "backup:remote:default:"*)
+    prefix="var_backup_remote_${command#backup:remote:default:}"
     task_kind="${prefix}_task_kind"
-    s3_task_name="${prefix}_s3_task_name"
-    backup_src_base_dir="${prefix}_backup_src_base_dir"
+    task_name_s3="${prefix}_task_name_s3"
     backup_src_dir="${prefix}_backup_src_dir"
     backup_src_file="${prefix}_backup_src_file"
     backup_zip_file="${prefix}_backup_zip_file"
@@ -254,9 +269,9 @@ case "$command" in
     opts+=( "--toolbox_service=$var_main_toolbox_service" )
     opts+=( "--backup_local_dir=$arg_backup_local_dir" )
 
-    opts+=( "--task_kind=${!task_kind:-}" )
-    opts+=( "--s3_task_name=${!s3_task_name:-}" )
-    opts+=( "--backup_src_base_dir=${!backup_src_base_dir:-}" )
+    opts+=( "--task_kind=${!task_kind}" )
+    opts+=( "--task_name_s3=${!task_name_s3:-}" )
+    opts+=( "--backup_src_base_dir=${arg_backup_src_base_dir}" )
     opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
     opts+=( "--backup_src_file=${!backup_src_file:-}" )
     opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
@@ -268,7 +283,16 @@ case "$command" in
     ctx="${command#backup:local:db:}"
     prefix="var_backup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
+    db_sql_file_name="${prefix}_db_sql_file_name"
+    
+    opts=()
+
+    opts+=( "--db_task_base_dir=${arg_backup_src_base_dir}" )
+
+    opts+=( "--db_task_name=${!db_task_name}" )
+    opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
 		;;
   "db:task:"*)
     prefix="var_db_${command#db:task:}"
@@ -277,9 +301,7 @@ case "$command" in
     db_service="${prefix}_db_service"
     db_user="${prefix}_db_user"
     db_pass="${prefix}_db_pass"
-    db_backup_dir="${prefix}_db_backup_dir"
     db_connect_wait_secs="${prefix}_db_connect_wait_secs"
-    db_sql_file="${prefix}_db_sql_file"
 
     opts=()
 
@@ -287,9 +309,9 @@ case "$command" in
     opts+=( "--db_service=${!db_service:-}" )
     opts+=( "--db_user=${!db_user:-}" )
     opts+=( "--db_pass=${!db_pass:-}" )
-    opts+=( "--db_backup_dir=${!db_backup_dir:-}" )
+    opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
+    opts+=( "--db_sql_file_name=${arg_db_sql_file_name:-}" )
     opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
-    opts+=( "--db_sql_file=${!db_sql_file:-}" )
 
 		"$pod_script_db_file" "$arg_db_task_name" "${opts[@]}"
 		;;

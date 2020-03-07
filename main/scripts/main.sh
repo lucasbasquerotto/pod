@@ -55,7 +55,7 @@ while getopts ':-:' OPT; do
 		
 		backup_local_dir ) backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) backup_delete_old_days="${OPTARG:-}";;
-		??* ) error "Illegal option --$OPT" ;;  # bad long option
+		??* ) ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
 done

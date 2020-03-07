@@ -51,6 +51,6 @@ case "$command" in
     "$pod_env_shared_exec_file" "setup:new:wp:db" ${args[@]+"${args[@]}"}
     ;;
   *)
-		"$pod_script_run_vars_file" "$command" "${args[@]}"
+		"$pod_script_run_vars_file" "$command" ${args[@]+"${args[@]}"}
     ;;
 esac

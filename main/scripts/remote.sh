@@ -34,29 +34,29 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		task_kind ) task_kind="${OPTARG:-}";;
-		toolbox_service ) toolbox_service="${OPTARG:-}";;
-		s3_task_name ) s3_task_name="${OPTARG:-}";;
+		task_kind ) arg_task_kind="${OPTARG:-}";;
+		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
+		s3_task_name ) arg_s3_task_name="${OPTARG:-}";;
 
-		backup_src_base_dir ) backup_src_base_dir="${OPTARG:-}";;
-		backup_src_dir ) backup_src_dir="${OPTARG:-}";;
-		backup_src_file ) backup_src_file="${OPTARG:-}";;
-		backup_local_dir ) backup_local_dir="${OPTARG:-}";;
-		backup_local_zip_file ) backup_local_zip_file="${OPTARG:-}";;
-		backup_bucket_sync_dir ) backup_bucket_sync_dir="${OPTARG:-}";;
+		backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
+		backup_src_dir ) arg_backup_src_dir="${OPTARG:-}";;
+		backup_src_file ) arg_backup_src_file="${OPTARG:-}";;
+		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
+		backup_local_zip_file ) arg_backup_local_zip_file="${OPTARG:-}";;
+		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
 
-		restore_dest_dir ) restore_dest_dir="${OPTARG:-}";;
-		restore_dest_file ) restore_dest_file="${OPTARG:-}";;
-		restore_tmp_dir ) restore_tmp_dir="${OPTARG:-}";;
-		restore_local_file ) restore_local_file="${OPTARG:-}" ;;
-		restore_remote_file ) restore_remote_file="${OPTARG:-}" ;;
-		restore_remote_bucket_path_file ) restore_remote_bucket_path_file="${OPTARG:-}";;
-		restore_remote_bucket_path_dir ) restore_remote_bucket_path_dir="${OPTARG:-}" ;;
-		restore_is_zip_file ) restore_is_zip_file="${OPTARG:-}";;
-		restore_zip_tmp_file_name ) restore_zip_tmp_file_name="${OPTARG:-}";;
-		restore_zip_pass ) restore_zip_pass="${OPTARG:-}";;
-		restore_zip_inner_dir ) restore_zip_inner_dir="${OPTARG:-}";;
-		restore_zip_inner_file ) restore_zip_inner_file="${OPTARG:-}";;
+		restore_dest_dir ) arg_restore_dest_dir="${OPTARG:-}";;
+		restore_dest_file ) arg_restore_dest_file="${OPTARG:-}";;
+		restore_tmp_dir ) arg_restore_tmp_dir="${OPTARG:-}";;
+		restore_local_file ) arg_restore_local_file="${OPTARG:-}" ;;
+		restore_remote_file ) arg_restore_remote_file="${OPTARG:-}" ;;
+		restore_remote_bucket_path_file ) arg_restore_remote_bucket_path_file="${OPTARG:-}";;
+		restore_remote_bucket_path_dir ) arg_restore_remote_bucket_path_dir="${OPTARG:-}" ;;
+		restore_is_zip_file ) arg_restore_is_zip_file="${OPTARG:-}";;
+		restore_zip_tmp_file_name ) arg_restore_zip_tmp_file_name="${OPTARG:-}";;
+		restore_zip_pass ) arg_restore_zip_pass="${OPTARG:-}";;
+		restore_zip_inner_dir ) arg_restore_zip_inner_dir="${OPTARG:-}";;
+		restore_zip_inner_file ) arg_restore_zip_inner_file="${OPTARG:-}";;
 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -69,85 +69,85 @@ case "$command" in
 		info "$command - started"
 
 		info "$command - start needed services"
-		>&2 "$pod_script_env_file" up "$toolbox_service"
+		>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
-		if [ -z "${backup_bucket_sync_dir:-}" ]; then			
-			info "$command - create the backup directory ($backup_local_dir)"
-			>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" mkdir -p "/$backup_local_dir"
+		if [ -z "${arg_backup_bucket_sync_dir:-}" ]; then			
+			info "$command - create the backup directory ($arg_backup_local_dir)"
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" mkdir -p "/$arg_backup_local_dir"
 
-			extension=${backup_local_zip_file##*.}
+			extension=${arg_backup_local_zip_file##*.}
 
 			if [ "$extension" != "zip" ]; then
-				msg="found: $extension ($backup_local_zip_file)"
+				msg="found: $extension ($arg_backup_local_zip_file)"
 				error "$command: backup local file extension should be zip - $msg"
 			fi
 
-			dest_full_path="/$backup_local_dir/$backup_local_zip_file"
+			dest_full_path="/$arg_backup_local_dir/$arg_backup_local_zip_file"
 
-			if [ "$task_kind" = "dir" ]; then
-				src_full_path="/$backup_src_base_dir/$backup_src_dir"
+			if [ "$arg_task_kind" = "dir" ]; then
+				src_full_path="/$arg_backup_src_base_dir/$arg_backup_src_dir"
 
 				msg="$src_full_path to $dest_full_path (inside toolbox)"
 				info "$command - zip backup directory - $msg"
-				>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
+				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 					set -eou pipefail
 					cd "/$src_full_path"
 					zip -r "$dest_full_path" .
 				SHELL
-			elif [ "$task_kind" = "file" ]; then
-				src_full_path="/$backup_src_base_dir/$backup_src_file"
+			elif [ "$arg_task_kind" = "file" ]; then
+				src_full_path="/$arg_backup_src_base_dir/$arg_backup_src_file"
 				msg="$src_full_path to $dest_full_path (inside toolbox)"
 
 				if [ "$src_full_path" != "$dest_full_path" ]; then
-					if [ "${backup_src_file##*.}" = "zip" ]; then
+					if [ "${arg_backup_src_file##*.}" = "zip" ]; then
 						info "$command - move backup file - $msg"
-						>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
-							mv "/$backup_src_base_dir/$backup_src_file" "$dest_full_path"
+						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+							mv "/$arg_backup_src_base_dir/$arg_backup_src_file" "$dest_full_path"
 					else
 						info "$command - zip backup file - $msg"
-						>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
-							zip -j "$dest_full_path" "/$backup_src_base_dir/$backup_src_file"
+						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+							zip -j "$dest_full_path" "/$arg_backup_src_base_dir/$arg_backup_src_file"
 					fi
 				fi
 			else
-				error "$command: $task_kind: task_kind invalid value"
+				error "$command: $arg_task_kind: arg_task_kind invalid value"
 			fi
 		fi
 
-		if [ -n "${s3_task_name:-}" ]; then
-			empty_bucket="$("$pod_script_env_file" "$s3_task_name" --s3_cmd=is_empty_bucket)"
+		if [ -n "${arg_s3_task_name:-}" ]; then
+			empty_bucket="$("$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=is_empty_bucket)"
 
 			if [ "$empty_bucket" = "true" ]; then
-				info "$command - $toolbox_service - $s3_task_name - create bucket"
-				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=create-bucket
+				info "$command - $arg_toolbox_service - $arg_s3_task_name - create bucket"
+				>&2 "$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=create-bucket
 			fi
 
-			if [ -z "${backup_bucket_sync_dir:-}" ]; then
-				src="/$backup_local_dir/"
-				s3_dest_dir="$(basename "/$backup_local_dir")"
+			if [ -z "${arg_backup_bucket_sync_dir:-}" ]; then
+				src="/$arg_backup_local_dir/"
+				s3_dest_dir="$(basename "/$arg_backup_local_dir")"
 
 				msg="sync local backup directory with bucket - $src to $s3_dest_dir (s3)"
-				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
+				>&2 "$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=sync \
 					--s3_src="$src" \
 					--s3_dest_rel="$s3_dest_dir" \
-					--s3_file="$backup_local_zip_file"
+					--s3_file="$arg_backup_local_zip_file"
 			else
 				s3_file=''
 
-				if [ "$task_kind" = "dir" ]; then
-					src="/$backup_src_base_dir/$backup_src_dir/"
-				elif [ "$task_kind" = "file" ]; then
-					src="/$backup_src_base_dir/"
-					s3_file="$backup_src_file"
+				if [ "$arg_task_kind" = "dir" ]; then
+					src="/$arg_backup_src_base_dir/$arg_backup_src_dir/"
+				elif [ "$arg_task_kind" = "file" ]; then
+					src="/$arg_backup_src_base_dir/"
+					s3_file="$arg_backup_src_file"
 				else
-					error "$command: $task_kind: task_kind invalid value"
+					error "$command: $arg_task_kind: arg_task_kind invalid value"
 				fi
 
-				msg="sync local src directory with bucket - $src to $backup_bucket_sync_dir (s3)"
-				info "$command - $toolbox_service - $s3_task_name - $msg"
-				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
+				msg="sync local src directory with bucket - $src to $arg_backup_bucket_sync_dir (s3)"
+				info "$command - $arg_toolbox_service - $arg_s3_task_name - $msg"
+				>&2 "$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=sync \
 					--s3_src="$src" \
-					--s3_dest_rel="$backup_bucket_sync_dir" \
+					--s3_dest_rel="$arg_backup_bucket_sync_dir" \
 					--s3_file="$s3_file"
 			fi
 		fi
@@ -156,107 +156,107 @@ case "$command" in
 		;;  
 	"restore")
 		restore_path=''
-		restore_dest_dir_full="/$restore_dest_dir"
+		arg_restore_dest_dir_full="/$arg_restore_dest_dir"
 
 
-		if [ -n "${restore_remote_bucket_path_dir:-}" ]; then
-			info "$command - create the restore destination directory ($restore_dest_dir_full)"
-			>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
-				mkdir -p "$restore_dest_dir_full"
+		if [ -n "${arg_restore_remote_bucket_path_dir:-}" ]; then
+			info "$command - create the restore destination directory ($arg_restore_dest_dir_full)"
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				mkdir -p "$arg_restore_dest_dir_full"
 
 			s3_file=''
 
-			if [ -n "${restore_dest_file:-}" ]; then
-				s3_file="$restore_dest_file"
-				restore_path="$restore_dest_dir_full/$restore_dest_file"
+			if [ -n "${arg_restore_dest_file:-}" ]; then
+				s3_file="$arg_restore_dest_file"
+				restore_path="$arg_restore_dest_dir_full/$arg_restore_dest_file"
 			else
-				restore_path="$restore_dest_dir_full"
+				restore_path="$arg_restore_dest_dir_full"
 			fi
 			
-			msg="$restore_remote_bucket_path_dir (s3) to $restore_dest_dir_full"
+			msg="$arg_restore_remote_bucket_path_dir (s3) to $arg_restore_dest_dir_full"
 			info "$command - restore from remote bucket directly to local directory - $msg"
-			>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=sync \
-				--s3_src_rel="$restore_remote_bucket_path_dir" \
-				--s3_dest="$restore_dest_dir_full" \
+			>&2 "$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=sync \
+				--s3_src_rel="$arg_restore_remote_bucket_path_dir" \
+				--s3_dest="$arg_restore_dest_dir_full" \
 				--s3_file="$s3_file"
 		else
 			restore_file=""
 			restore_local_dest=""
 
-			info "$command - $toolbox_service - restore"
-			>&2 "$pod_script_env_file" up "$toolbox_service"
+			info "$command - $arg_toolbox_service - restore"
+			>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 			
-			restore_tmp_dir_full="/$restore_tmp_dir"
+			arg_restore_tmp_dir_full="/$arg_restore_tmp_dir"
 
-			msg="create the restore temporary directory ($restore_tmp_dir_full)"
-			msg="$msg and the destination directory ($restore_dest_dir_full)"
+			msg="create the restore temporary directory ($arg_restore_tmp_dir_full)"
+			msg="$msg and the destination directory ($arg_restore_dest_dir_full)"
 			info "$command - $msg"
-			>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
-				mkdir -p "$restore_tmp_dir_full"
-				mkdir -p "$restore_dest_dir_full"
+				mkdir -p "$arg_restore_tmp_dir_full"
+				mkdir -p "$arg_restore_dest_dir_full"
 			SHELL
 			
-			if [ "${restore_is_zip_file:-}" != "true" ]; then
-				if [ "$task_kind" = "dir" ]; then
+			if [ "${arg_restore_is_zip_file:-}" != "true" ]; then
+				if [ "$arg_task_kind" = "dir" ]; then
 					msg="trying to restore a directory using a non-zipped file"
 					msg="$msg (instead, use a zip file or specify a bucket directory as the source)"
 					error "$command - $msg"	
 				fi
 
-				restore_file_default="$restore_dest_file"
+				restore_file_default="$arg_restore_dest_file"
 			else
-				extension=${restore_zip_tmp_file_name##*.}
+				extension=${arg_restore_zip_tmp_file_name##*.}
 
 				if [ "$extension" != "zip" ]; then
-					msg="found: $extension ($restore_zip_tmp_file_name)"
+					msg="found: $extension ($arg_restore_zip_tmp_file_name)"
 					error "$command: zip tmp file extension should be zip - $msg"
 				fi
 
-				restore_file_default="$restore_tmp_dir_full/$restore_zip_tmp_file_name"
+				restore_file_default="$arg_restore_tmp_dir_full/$arg_restore_zip_tmp_file_name"
 			fi
 
-			if [ -n "${restore_local_file:-}" ]; then
+			if [ -n "${arg_restore_local_file:-}" ]; then
 				info "$command - restore from local file"
-				restore_file="$restore_local_file"
-			elif [ -n "${restore_remote_file:-}" ]; then
+				restore_file="$arg_restore_local_file"
+			elif [ -n "${arg_restore_remote_file:-}" ]; then
 				info "$command - restore from remote file"
 				restore_file="$restore_file_default"
 
-				>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
-					curl -L -o "$restore_file" -k "$restore_remote_file"
-			elif [ -n "${restore_remote_bucket_path_file:-}" ]; then
-				msg="$command - $toolbox_service - $s3_task_name"
+				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+					curl -L -o "$restore_file" -k "$arg_restore_remote_file"
+			elif [ -n "${arg_restore_remote_bucket_path_file:-}" ]; then
+				msg="$command - $arg_toolbox_service - $arg_s3_task_name"
 				msg="$msg - restore a file from remote bucket"
-				info "$msg [$restore_remote_bucket_path_file (s3) -> $restore_local_dest]"
+				info "$msg [$arg_restore_remote_bucket_path_file (s3) -> $restore_local_dest]"
 
 				restore_file="$restore_file_default"
 
-				>&2 "$pod_script_env_file" "$s3_task_name" --s3_cmd=cp \
-					--s3_src_rel="$restore_remote_bucket_path_file" \
+				>&2 "$pod_script_env_file" "$arg_s3_task_name" --s3_cmd=cp \
+					--s3_src_rel="$arg_restore_remote_bucket_path_file" \
 					--s3_dest="$restore_file"
 			else
 				error "$command: no source provided"
 			fi
 			
-			info "$command - restore - main ($task_kind) - $restore_file to $restore_tmp_dir_full"
+			info "$command - restore - main ($arg_task_kind) - $restore_file to $arg_restore_tmp_dir_full"
 			unzip_opts=()
 
-			if [ -n "${restore_zip_pass:-}" ]; then
-				unzip_opts=( -P "$restore_zip_pass" )
+			if [ -n "${arg_restore_zip_pass:-}" ]; then
+				unzip_opts=( -P "$arg_restore_zip_pass" )
 			fi
 
-			if [ "$task_kind" = "dir" ]; then
-				if [ "${restore_is_zip_file:-}" = "true" ]; then					
-					info "$command - unzip $restore_file to directory $restore_tmp_dir_full"
-					>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
+			if [ "$arg_task_kind" = "dir" ]; then
+				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then					
+					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir_full"
+					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 						set -eou pipefail
 
-						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$restore_tmp_dir_full"
+						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir_full"
 				
-						if [ "$restore_tmp_dir_full/$restore_zip_inner_dir" != "$restore_dest_dir_full" ]; then
-							cp -r "$restore_tmp_dir_full/$restore_zip_inner_dir"/. "$restore_dest_dir_full/"
-							rm -rf "$restore_tmp_dir_full/$restore_zip_inner_dir"
+						if [ "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir" != "$arg_restore_dest_dir_full" ]; then
+							cp -r "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir"/. "$arg_restore_dest_dir_full/"
+							rm -rf "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir"
 						fi
 					SHELL
 				else
@@ -265,34 +265,34 @@ case "$command" in
 					error "$command - $msg"	
 				fi
 				
-				restore_path="$restore_dest_dir_full"
-			elif [ "$task_kind" = "file" ]; then
-				if [ "${restore_is_zip_file:-}" = "true" ]; then
-					info "$command - unzip $restore_file to directory $restore_tmp_dir_full"
-					intermediate="$restore_tmp_dir_full/$restore_zip_inner_file"
-					dest="$restore_dest_dir_full/$restore_dest_file"
+				restore_path="$arg_restore_dest_dir_full"
+			elif [ "$arg_task_kind" = "file" ]; then
+				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then
+					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir_full"
+					intermediate="$arg_restore_tmp_dir_full/$arg_restore_zip_inner_file"
+					dest="$arg_restore_dest_dir_full/$arg_restore_dest_file"
 
 					if [ "$restore_file" != "$dest" ]; then
-						>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" /bin/bash <<-SHELL
+						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 							set -eou pipefail
 
-							unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$restore_tmp_dir_full"
+							unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir_full"
 
 							if [ "$intermediate" != "$dest" ]; then
 								mv "$intermediate" "$dest"
-								rm -rf "$restore_tmp_dir_full"
+								rm -rf "$arg_restore_tmp_dir_full"
 							fi
 						SHELL
 					fi
 				else
-					info "$command - move $restore_file to directory $restore_dest_dir_full"
-					>&2 "$pod_script_env_file" exec-nontty "$toolbox_service" \
-						mv "$restore_file" "$restore_dest_dir_full/"
+					info "$command - move $restore_file to directory $arg_restore_dest_dir_full"
+					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+						mv "$restore_file" "$arg_restore_dest_dir_full/"
 				fi
 
-				restore_path="$restore_dest_dir_full/$restore_dest_file"
+				restore_path="$arg_restore_dest_dir_full/$arg_restore_dest_file"
 			else
-				error "$command: $task_kind: invalid value for task_kind"
+				error "$command: $arg_task_kind: invalid value for arg_task_kind"
 			fi
 		fi
 

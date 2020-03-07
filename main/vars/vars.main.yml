@@ -33,7 +33,7 @@
     {% if (var_run_item_obj | dict2items | list | length) > 0 %}
       {% for var_run_item_inner in var_run_item_obj | dict2items | list %}
         {% set var_key = 'var_' + var_run_item.key + '_' + var_run_item_inner.key %}
-        {% set var_value = var_run_item_inner.value %}
+        {% set var_value = var_run_item_inner.value | default('') %}
         {% set ns_run.vars = ns_run.vars | combine({ var_key: var_value }) %}
       {% endfor %}
     {% endif %}

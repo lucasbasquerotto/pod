@@ -156,7 +156,7 @@ case "$command" in
     ctx="${command#setup:verify:db:}"
     prefix="var_setup_verify_${ctx}"
     db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
 		;;
   "setup:verify:default:"*)
     prefix="var_setup_verify_${command#setup:verify:default:}"
@@ -209,7 +209,7 @@ case "$command" in
     ctx="${command#setup:local:db:}"
     prefix="var_setup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
 		;;
   "backup")
     opts=()
@@ -268,7 +268,7 @@ case "$command" in
     ctx="${command#backup:local:db:}"
     prefix="var_backup_local_${ctx}"
     db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="$db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
 		;;
   "db:task:"*)
     prefix="var_db_${command#db:task:}"

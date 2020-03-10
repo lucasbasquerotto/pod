@@ -29,13 +29,12 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		s3_service ) s3_service="${OPTARG:-}";;
-		s3_endpoint ) s3_endpoint="${OPTARG:-}";;
-		s3_bucket_name ) s3_bucket_name="${OPTARG:-}";;
-		s3_src ) s3_src="${OPTARG:-}" ;;
-		s3_dest ) s3_dest="${OPTARG:-}";;
-    s3_opts ) s3_opts="${OPTARG:-}";;
-
+		s3_service ) arg_s3_service="${OPTARG:-}";;
+		s3_endpoint ) arg_s3_endpoint="${OPTARG:-}";;
+		s3_bucket_name ) arg_s3_bucket_name="${OPTARG:-}";;
+		s3_src ) arg_s3_src="${OPTARG:-}" ;;
+		s3_dest ) arg_s3_dest="${OPTARG:-}";;
+		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;; 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -43,7 +42,7 @@ done
 shift $((OPTIND-1))
 
 function awscli_general {
-	>&2 "$pod_script_env_file" "$1" "$s3_service" aws "${@:2}"
+	>&2 "$pod_script_env_file" "$1" "$arg_s3_service" aws "${@:2}"
 }
 
 function awscli_exec {
@@ -63,7 +62,11 @@ function awscli_is_empty_bucket {
 	error_filename="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
 	error_log_file="$error_log_dir/$error_filename"	
 
-	if ! awscli_general "$cmd" s3 --endpoint="$s3_endpoint" ls "s3://$s3_bucket_name" 2> "$error_log_file"; then
+	if ! awscli_general "$cmd" \
+		s3 --endpoint="$arg_s3_endpoint" \
+		ls "s3://$arg_s3_bucket_name" \
+		2> "$error_log_file"; 
+	then
 		if grep -q 'NoSuchBucket' "$error_log_file"; then
 			echo "true"
 		fi
@@ -73,7 +76,7 @@ function awscli_is_empty_bucket {
 }
 
 function s3cmd_general {
-	>&2 "$pod_script_env_file" "$1" "$s3_service" s3cmd "${@:2}"
+	>&2 "$pod_script_env_file" "$1" "$arg_s3_service" s3cmd "${@:2}"
 }
 
 function s3cmd_exec {
@@ -86,46 +89,52 @@ function s3cmd_run {
 
 case "$command" in
 	"s3:awscli:exec:is_empty_bucket")
-		awscli_is_empty_bucket exec-nontty ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_is_empty_bucket exec-nontty ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 	  ;;
-	"s3:awscli:run:is_empty_bucket")	  
-		awscli_is_empty_bucket run ${s3_opts[@]+"${s3_opts[@]}"}
+	"s3:awscli:run:is_empty_bucket")
+		echo "$command"
+		echo ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		echo "0=${arg_s3_opts[0]:-}"
+		echo "1=${arg_s3_opts[1]:-}"
+		echo "2=${arg_s3_opts[2]:-}"
+		echo
+		awscli_is_empty_bucket run ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 	  ;;
   "s3:awscli:exec:create-bucket")
-		awscli_exec s3api create-bucket --endpoint="$s3_endpoint" --bucket "$s3_bucket_name" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_exec s3api create-bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:run:create-bucket")
-		awscli_run s3api create-bucket --endpoint="$s3_endpoint"--bucket "$s3_bucket_name" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_run s3api create-bucket --endpoint="$arg_s3_endpoint"--bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:exec:rb")
-		awscli_exec s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_exec s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:run:rb")
-		awscli_run s3 rb --endpoint="$s3_endpoint" --force "s3://$s3_bucket_name" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_run s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
 	"s3:awscli:exec:cp")
-		awscli_exec s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_exec s3 cp --endpoint="$arg_s3_endpoint" "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:run:cp")
-		awscli_run s3 cp --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_run s3 cp --endpoint="$arg_s3_endpoint" "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:exec:sync")
-		awscli_exec s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_exec s3 sync --endpoint="$arg_s3_endpoint" "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:run:sync")
-		awscli_run s3 sync --endpoint="$s3_endpoint" "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		awscli_run s3 sync --endpoint="$arg_s3_endpoint" "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:s3cmd:exec:cp")
-		s3cmd_exec cp "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		s3cmd_exec cp "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:s3cmd:run:cp")
-		s3cmd_run cp "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		s3cmd_run cp "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:s3cmd::exec:sync")
-		s3cmd_exec sync "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		s3cmd_exec sync "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
     ;;
   "s3:s3cmd::run:sync")
-		s3cmd_run sync "$s3_src" "$s3_dest" ${s3_opts[@]+"${s3_opts[@]}"}
+		s3cmd_run sync "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
     ;;
   *)
 		error "Invalid command: $command"

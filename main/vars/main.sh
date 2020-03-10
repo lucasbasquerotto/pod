@@ -314,8 +314,8 @@ case "$command" in
 		;;
   "s3:task:"*)
     prefix="var_s3_${command#s3:task:}"
-    cli_uploads="${prefix}_cli_uploads"
-    cli_cmd_uploads="${prefix}_cli_cmd_uploads"
+    cli="${prefix}_cli"
+    cli_cmd="${prefix}_cli_cmd"
     service="${prefix}_service"
     endpoint="${prefix}_endpoint"
     bucket_name="${prefix}_bucket_name"
@@ -327,7 +327,7 @@ case "$command" in
       bucket_prefix="$bucket_name/$bucket_path"
     fi
 
-    s3_src="${arg_s3_src}"
+    s3_src="${arg_s3_src:-}"
 
     if [ -n "${arg_s3_src_rel:-}" ];then
       s3_src="$bucket_prefix/$arg_s3_src_rel"
@@ -335,7 +335,7 @@ case "$command" in
       s3_src="s3://$s3_src"
     fi
 
-    s3_dest="${arg_s3_dest}"
+    s3_dest="${arg_s3_dest:-}"
 
     if [ -n "${arg_s3_dest_rel:-}" ];then
       s3_dest="$bucket_prefix/$arg_s3_dest_rel"
@@ -354,11 +354,13 @@ case "$command" in
     opts+=( "--s3_service=${!service:-}" )
     opts+=( "--s3_endpoint=${!endpoint:-}" )
     opts+=( "--s3_bucket_name=${!bucket_name:-}" )
+
     opts+=( "--s3_src=${s3_src:-}" )
     opts+=( "--s3_dest=${s3_dest:-}" )
+    opts+=( "--s3_opts" )
     opts+=( "${s3_opts[@]}" )
 
-    inner_cmd="s3:$cli_uploads:$cli_cmd_uploads:$arg_s3_cmd"
+    inner_cmd="s3:${!cli}:${!cli_cmd}:$arg_s3_cmd"
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;

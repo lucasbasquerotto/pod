@@ -74,8 +74,8 @@ case "$command" in
       if [ -z "$arg_setup_local_seed_data" ] && [ -z "$arg_setup_remote_seed_data" ]; then
         error "$command - seed_data not provided"
       else
-        info "$command - upgrade..."
-        "$pod_script_env_file" upgrade "${args[@]}"
+        info "$command - migrate..."
+        "$pod_script_env_file" migrate "${args[@]}"
 
         if [ -n "$arg_setup_local_seed_data" ]; then
           info "$command - import local seed data"
@@ -93,8 +93,15 @@ case "$command" in
       fi
     fi
     ;;
-  "upgrade")
-    info "upgrade (app) - start container"
+  "migrate:app")
+    "$pod_script_env_file" "migrate:db" "${args[@]}"
+    "$pod_script_env_file" "migrate:web" "${args[@]}"
+    ;;
+  "migrate:db")
+    info "$command - nothing to do..."
+    ;;
+  "migrate:web")
+    info "$command - start container"
     "$pod_script_run_file" up wordpress
 
     "$pod_script_run_file" exec-nontty wordpress /bin/bash <<-SHELL
@@ -105,14 +112,14 @@ case "$command" in
         >&2 echo -e "${GRAY}\${msg}${NC}"
       }
 
-      info "upgrade (app) - update database"
+      info "$command update database"
       wp --allow-root core update-db
 
-      info "upgrade (app) - activate plugins"
+      info "$command activate plugins"
       wp --allow-root plugin activate --all
 
       if [ -n "${arg_old_domain_host:-}" ] && [ -n "${arg_new_domain_host:-}" ]; then
-        info "upgrade (app) - update domain"
+        info "$command - update domain"
         wp --allow-root search-replace "$arg_old_domain_host" "$arg_new_domain_host"
       fi
 		SHELL

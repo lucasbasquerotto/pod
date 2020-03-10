@@ -31,21 +31,24 @@ shift;
 args=("$@")
 
 case "$command" in
-	"upgrade")
+	"migrate")
     opts=()
 
-    opts+=( "--setup_url=$var_upgrade_url" )
-    opts+=( "--setup_title=$var_upgrade_title" )
-    opts+=( "--setup_admin_user=$var_upgrade_admin_user" )
-    opts+=( "--setup_admin_password=$var_upgrade_admin_password" )
-    opts+=( "--setup_admin_email=$var_upgrade_admin_email" )
-    opts+=( "--setup_restore_seed=${var_upgrade_restore_seed:-}" )
-    opts+=( "--setup_local_seed_data=${var_upgrade_local_seed_data:-}" )
-    opts+=( "--setup_remote_seed_data=${var_upgrade_remote_seed_data:-}" )
-    opts+=( "--old_domain_host=${var_upgrade_old_domain_host:-}" )
-    opts+=( "--new_domain_host=${var_upgrade_new_domain_host:-}" )
+    opts+=( "--setup_url=$var_migrate_url" )
+    opts+=( "--setup_title=$var_migrate_title" )
+    opts+=( "--setup_admin_user=$var_migrate_admin_user" )
+    opts+=( "--setup_admin_password=$var_migrate_admin_password" )
+    opts+=( "--setup_admin_email=$var_migrate_admin_email" )
+    opts+=( "--setup_restore_seed=${var_migrate_restore_seed:-}" )
+    opts+=( "--setup_local_seed_data=${var_migrate_local_seed_data:-}" )
+    opts+=( "--setup_remote_seed_data=${var_migrate_remote_seed_data:-}" )
+    opts+=( "--old_domain_host=${var_migrate_old_domain_host:-}" )
+    opts+=( "--new_domain_host=${var_migrate_new_domain_host:-}" )
 
-    "$pod_env_shared_exec_file" upgrade "${opts[@]}"
+    "$pod_env_shared_exec_file" "migrate:$var_wp_pod_type" "${opts[@]}"
+    ;;
+	"migrate:"*)
+    "$pod_env_shared_exec_file" "$command" ${args[@]+"${args[@]}"}
     ;;
   "setup:new:wp:db")
     "$pod_env_shared_exec_file" "setup:new:wp:db" ${args[@]+"${args[@]}"}

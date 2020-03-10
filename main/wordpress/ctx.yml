@@ -12,67 +12,7 @@
 
 ## general vars - end ###
 
-{% set var_web = 'wordpress' in var_services %}
-{% set var_db = 'mysql' in var_services %}
-
-{% if var_web %}
-  {% set setup_uploads_name = var_run.setup.restore_uploads | default('') %}
-  {% set setup_uploads = var_run.setup_uploads_dict[setup_uploads_name] 
-    | default({}) %}
-  {% set setup_uploads_type = setup_uploads.type | default('') %}
-
-  {% if setup_uploads_name != '' %}
-    {% if setup_uploads_type == 'local_file' %}
-      {% set setup_local_uploads_file = setup_uploads.src %}
-    {% elif setup_uploads_type == 'web_file' %}
-      {% set setup_remote_uploads_file = setup_uploads.src %}
-    {% elif setup_uploads_type == 'bucket_file' %}
-      {% set setup_remote_bucket_path_uploads_file = setup_uploads.src %}
-    {% elif setup_uploads_type == 'bucket_dir' %}
-      {% set setup_remote_bucket_path_uploads_dir = setup_uploads.src %}
-    {% elif setup_uploads_type == '' %}
-      {% set error = {} %}
-      {{ error['error.setup_uploads_type.not_defined'] }}
-    {% else %}
-      {% set error = {} %}
-      {{ error['error.setup_uploads_type.invalid.' + setup_uploads_type] }}
-    {% endif %}
-  {% endif %}
-{% endif %}
-
-{% set setup_local_uploads_file = setup_local_uploads_file | default('') %}
-{% set setup_remote_uploads_file = setup_remote_uploads_file | default('') %}
-{% set setup_remote_bucket_path_uploads_file = setup_remote_bucket_path_uploads_file | default('') %}
-{% set setup_remote_bucket_path_uploads_dir = setup_remote_bucket_path_uploads_dir | default('') %}
-
-{% if var_db %}
-  {% set setup_db_name = var_run.setup.restore_db | default('') %}
-  {% set setup_db = var_run.setup_db_dict[setup_db_name] | default({}) %}
-  {% set setup_db_type = setup_db.type | default('') %}
-
-  {% if setup_db_name != '' %}
-    {% if setup_db_type == 'local_file' %}
-      {% set setup_local_db_file = setup_db.src %}
-    {% elif setup_db_type == 'web_file' %}
-      {% set setup_remote_db_file = setup_db.src %}
-    {% elif setup_db_type == 'bucket_file' %}
-      {% set setup_remote_bucket_path_db_file = setup_db.src %}
-    {% elif setup_db_type == 'bucket_dir' %}
-      {% set setup_remote_bucket_path_db_dir = setup_db.src %}
-    {% elif setup_db_type == '' %}
-      {% set error = {} %}
-      {{ error['error.setup_db_type.not_defined'] }}
-    {% else %}
-      {% set error = {} %}
-      {{ error['error.setup_db_type.invalid.' + setup_db_type] }}
-    {% endif %}
-  {% endif %}
-{% endif %}
-
-{% set setup_local_db_file = setup_local_db_file | default('') %}
-{% set setup_remote_db_file = setup_remote_db_file | default('') %}
-{% set setup_remote_bucket_path_db_file = setup_remote_bucket_path_db_file | default('') %}
-{% set setup_remote_bucket_path_db_dir = setup_remote_bucket_path_db_dir | default('') %}
+{% set var_wp_pod_type = params.main.type %}
 
 {% set var_wp_domain = var_containers_dict.wordpress.domain %}
 {% set var_wp_ssl = var_containers_dict.wordpress.ssl | default(false) %}
@@ -286,6 +226,7 @@ children:
       var_scripts_dir: "main/wordpress/scripts"
       var_script_env_file: >-
         {{ var_local | ternary('local.sh', 'remote.sh') }}
+      var_wp_pod_type: "{{ var_wp_pod_type }}"
       var_dev_repo_dir_wordpress: >-
         {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
       var_env_local_repo: "{{ params.pod.env_local_repo }}"

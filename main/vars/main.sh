@@ -57,17 +57,11 @@ case "$command" in
 
     shift;
     ;;
-	"m")
-    command="args"
-    inner_cmd="migrate"
-    ;;
 	"u")
-    command="args"
-    inner_cmd="update"
+    command="upgrade"
     ;;
 	"f")
-    command="args"
-    inner_cmd="fast-update"
+    command="fast-update"
     ;;
 	"s")
     command="args"
@@ -116,10 +110,13 @@ case "$command" in
 esac
 
 case "$command" in
-  "main")
-		"$pod_script_env_file" args migrate ${args[@]+"${args[@]}"}
+  "upgrade"|"update"|"fast-update")
+		"$pod_script_env_file" args "$command" ${args[@]+"${args[@]}"}
 		;;
-  "migrate"|"update"|"fast-update"|"setup"|"fast-setup")
+  "stop_to_upgrade")
+		"$pod_script_env_file" args stop ${args[@]+"${args[@]}"}
+		;;
+  "setup"|"fast-setup")
     "$pod_script_main_file" "$command" ${args[@]+"${args[@]}"}
     ;;
   "local:prepare")

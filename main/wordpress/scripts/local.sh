@@ -45,7 +45,7 @@ shift;
 start="$(date '+%F %T')"
 
 case "$command" in
-  "prepare"|"setup"|"upgrade"|"stop"|"rm"|"clear")
+  "prepare"|"setup"|"migrate"|"stop"|"rm"|"clear")
     echo -e "${CYAN}$(date '+%F %T') - env (local) - $command - start${NC}"
     ;;
 esac
@@ -68,7 +68,7 @@ case "$command" in
     "$pod_env_shared_file" exec composer composer install --verbose
 		"$pod_env_shared_file" "$command" "$@"
 		;;
-  "upgrade")
+  "migrate")
     "$pod_env_shared_file" rm wordpress composer 
     "$pod_env_shared_file" stop mysql
     "$pod_env_shared_file" up mysql composer
@@ -93,7 +93,7 @@ esac
 end="$(date '+%F %T')"
 
 case "$command" in
-  "prepare"|"setup"|"upgrade"|"stop"|"rm"|"clear")
+  "prepare"|"setup"|"migrate"|"stop"|"rm"|"clear")
     echo -e "${CYAN}$(date '+%F %T') - env (local) - $command - end${NC}"
     echo -e "${CYAN}env (local) - $command - $start - $end${NC}"
     ;;

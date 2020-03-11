@@ -54,7 +54,7 @@ case "$command" in
   "prepare")
     "$pod_env_shared_file" "local:prepare" \
       --env_local_repo="$var_env_local_repo" \
-      --ctl_layer_dir="$ctl_layer_dir" "${@}"
+      --ctl_layer_dir="$ctl_layer_dir" --opts "${@}"
 
     sudo chmod +x "$app_layer_dir/"
     cp "$pod_full_dir/main/wordpress/.env" "$app_layer_dir/.env"

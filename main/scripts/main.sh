@@ -53,6 +53,7 @@ while getopts ':-:' OPT; do
 		setup_run_new_task ) arg_setup_run_new_task="${OPTARG:-}";;    
 		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
 		
+		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
 		??* ) ;;  # bad long option
@@ -149,29 +150,71 @@ case "$command" in
 		fi
 		;;
 	"backup")	
+		if [ -z "${arg_backup_local_base_dir:-}" ] ; then
+			msg="The variable 'backup_local_base_dir' is not defined"
+			error "$command: $msg"
+		fi
+
+		if [ -z "${arg_backup_local_dir:-}" ] ; then
+			msg="The variable 'backup_local_dir' is not defined"
+			error "$command: $msg"
+		fi
+
+		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
+			msg="The variable 'backup_delete_old_days' is not defined"
+			error "$command: $msg"
+		fi
+
     re_number='^[0-9]+$'
 
 		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
 			msg="The variable 'backup_delete_old_days' should be a number"
-			msg="\$msg (value=$arg_backup_delete_old_days)"
-			error "$msg"
+			msg="$msg (value=$arg_backup_delete_old_days)"
+			error "$command: $msg"
 		fi
 
 		info "$command - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
+
+		arg_backup_delete_old_days=-1
 		
-		info "$command - clear old files"
+		info "$command - create the backup base directory and clear old files"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
-			find /$arg_backup_local_dir/* -ctime +$arg_backup_delete_old_days -delete;
-			find /$arg_backup_local_dir/* -maxdepth 0 -type d -ctime \
-				+$arg_backup_delete_old_days -exec rm -rf {} \;
+			mkdir -p "$arg_backup_local_base_dir"
+			
+			# remove old files and directories
+			find "$arg_backup_local_base_dir"/ -mindepth 1 \
+				-ctime +$arg_backup_delete_old_days -delete -print;
+				
+			# remove old and empty directories
+			find "$arg_backup_local_base_dir"/ -mindepth 1 -type d \
+				-ctime +$arg_backup_delete_old_days -empty -delete -print;
 		SHELL
 
+		# main command - run backup sub-tasks
 		run_tasks "${arg_task_names:-}"
 		;;  
 	"backup:default")
 		info "$command ($arg_task_name) - started"
+
+		if [ -z "${arg_backup_local_dir:-}" ] ; then
+			msg="The variable 'backup_local_dir' is not defined"
+			error "$command ($arg_task_name): $msg"
+		fi
+
+		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
+			msg="The variable 'backup_delete_old_days' is not defined"
+			error "$command ($arg_task_name): $msg"
+		fi
+
+    re_number='^[0-9]+$'
+
+		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
+			msg="The variable 'backup_delete_old_days' should be a number"
+			msg="$msg (value=$arg_backup_delete_old_days)"
+			error "$command ($arg_task_name): $msg"
+		fi
 
 		if [ -z "${arg_task_name_verify:-}" ]; then
 			skip="false"
@@ -189,6 +232,14 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_task_name) - skipping..."
 		else
+			info "$command - start needed services"
+			"$pod_script_env_file" up "$arg_toolbox_service"
+
+			msg="create the backup directory (if there isn't yet)"
+			info "$command - $msg ($arg_backup_local_dir)"
+			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				mkdir -p "$arg_backup_local_dir"
+			
 			if [ -n "${arg_task_name_local:-}" ]; then
 				info "$command ($arg_task_name) - backup - local"
 				"$pod_script_env_file" "${arg_task_name_local}" "${args[@]}"
@@ -198,9 +249,14 @@ case "$command" in
 				info "$command ($arg_task_name) - backup - remote"
 				"$pod_script_env_file" "${arg_task_name_remote}" "${args[@]}"
 			fi
-
-			info "$command ($arg_task_name) - start needed services"
-			"$pod_script_env_file" up "$arg_toolbox_service"
+			
+			info "$command ($arg_task_name) - clear old files"
+			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+				set -eou pipefail
+				find "$arg_backup_local_dir"/* -ctime +$arg_backup_delete_old_days -delete;
+				find "$arg_backup_local_dir"/* -maxdepth 0 -type d -ctime \
+					+$arg_backup_delete_old_days -exec rm -rf {} \;
+			SHELL
 		fi
 		;;
 	*)

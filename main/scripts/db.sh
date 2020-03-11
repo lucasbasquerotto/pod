@@ -96,7 +96,7 @@ case "$command" in
 			error "$command: arg_db_sql_file_name not specified"
 		fi
 
-    db_sql_file="/$arg_db_task_base_dir/$arg_db_sql_file_name"
+    db_sql_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
 
 		"$pod_script_env_file" up "$arg_db_service"
 
@@ -126,11 +126,12 @@ case "$command" in
   "backup:file:mysql")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		backup_file="/$arg_db_task_base_dir/$arg_db_sql_file_name"
+		backup_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
+			mkdir -p "$(dirname -- "$backup_file")"
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
 		SHELL
     ;;

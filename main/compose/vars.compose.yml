@@ -19,6 +19,8 @@ templates:
   dest: "docker-compose.yml"
   params: {{ compose_params | to_json }}
 
+{% if (var_main_params.run_services | default([]) | length) > 0 %}
+
 {% set compose_params = compose_params | combine({ 
     'services_dir_base': 'run',
     'services': var_main_params.run_services | default([]) 
@@ -28,7 +30,8 @@ templates:
 - src: "main/compose/docker-compose.yml"
   dest: "docker-compose.run.yml"
   params: {{ compose_params | to_json }}
-  when: (var_main_params.run_services | default([]) | length) > 0
+
+{% endif %}
 
 - src: "main/compose/.env"
   dest: ".env"

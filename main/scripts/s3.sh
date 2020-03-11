@@ -92,12 +92,6 @@ case "$command" in
 		awscli_is_empty_bucket exec-nontty ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 	  ;;
 	"s3:awscli:run:is_empty_bucket")
-		echo "$command"
-		echo ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-		echo "0=${arg_s3_opts[0]:-}"
-		echo "1=${arg_s3_opts[1]:-}"
-		echo "2=${arg_s3_opts[2]:-}"
-		echo
 		awscli_is_empty_bucket run ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 	  ;;
   "s3:awscli:exec:create-bucket")

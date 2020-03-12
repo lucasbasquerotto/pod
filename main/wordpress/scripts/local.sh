@@ -81,13 +81,14 @@ case "$command" in
 		"$pod_env_shared_file" "$command" "$@"
     "$ctl_layer_dir/run" "$command"
     ;;
-  "clear")
+  "clear-all")
     "$pod_script_env_file" "s3:task:wp_uploads" --s3_cmd=rb
     "$pod_script_env_file" "s3:task:wp_db" --s3_cmd=rb
-
+    "$pod_script_env_file" clear
+    ;;
+  "clear")
     "$pod_script_env_file" rm
     sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
-
     sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
     ;;
 	*)

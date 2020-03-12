@@ -43,6 +43,7 @@ while getopts ':-:' OPT; do
 		backup_src_file ) arg_backup_src_file="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_zip_file ) arg_backup_zip_file="${OPTARG:-}";;
+		backup_bucket_static_dir ) arg_backup_bucket_static_dir="${OPTARG:-}";;
 		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
 
 		restore_dest_base_dir ) arg_restore_dest_base_dir="${OPTARG:-}";;
@@ -130,7 +131,7 @@ case "$command" in
 
 			if [ -z "${arg_backup_bucket_sync_dir:-}" ]; then
 				src="$arg_backup_local_dir/"
-				s3_dest_dir="$(basename "$arg_backup_local_dir")"
+				s3_dest_dir="${arg_backup_bucket_static_dir:-$(basename "$arg_backup_local_dir")}"
 
 				msg="sync local backup directory with bucket - $src to $s3_dest_dir (s3)"
 				>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=sync \

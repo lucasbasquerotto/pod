@@ -275,6 +275,7 @@ case "$command" in
     backup_src_dir="${prefix}_backup_src_dir"
     backup_src_file="${prefix}_backup_src_file"
     backup_zip_file="${prefix}_backup_zip_file"
+    backup_bucket_static_dir="${prefix}_backup_bucket_static_dir"
     backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
 
     opts=()
@@ -288,6 +289,7 @@ case "$command" in
     opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
     opts+=( "--backup_src_file=${!backup_src_file:-}" )
     opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
+    opts+=( "--backup_bucket_static_dir=${!backup_bucket_static_dir:-}" )
     opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )
 
 		"$pod_script_remote_file" backup "${opts[@]}"

@@ -62,6 +62,7 @@ case "$command" in
     chmod 777 "$app_layer_dir/web/app/uploads/"
     ;;
 	"setup")
+    "$pod_env_shared_file" stop wordpress composer 
     "$pod_env_shared_file" rm wordpress composer 
     "$pod_env_shared_file" stop mysql
     "$pod_env_shared_file" up mysql composer
@@ -81,9 +82,11 @@ case "$command" in
     "$ctl_layer_dir/run" "$command"
     ;;
   "clear")
-    "$pod_script_env_file" rm
-    sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
-    sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
+    "$pod_script_env_file" "s3:task:wp_uploads" --s3_cmd=rb
+    "$pod_script_env_file" "s3:task:wp_db" --s3_cmd=rb
+    # "$pod_script_env_file" rm
+    # sudo rm -rf "${base_dir}/data/${var_env}/${var_ctx}/${var_pod_name}/"
+    # sudo docker volume rm -f "${var_env}-${var_ctx}-${var_pod_name}_mysql"
     ;;
 	*)
 		"$pod_env_shared_file" "$command" "$@"

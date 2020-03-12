@@ -338,10 +338,10 @@ case "$command" in
     bucket_name="${prefix}_bucket_name"
     bucket_path="${prefix}_bucket_path"
   
-    bucket_prefix="$bucket_name"
+    bucket_prefix="${!bucket_name:-}"
 
-    if [ -n "${bucket_path:-}" ];then
-      bucket_prefix="$bucket_name/$bucket_path"
+    if [ -n "${!bucket_path:-}" ];then
+      bucket_prefix="${!bucket_name}/${!bucket_path}"
     fi
 
     s3_src="${arg_s3_src:-}"

@@ -157,8 +157,6 @@ case "$command" in
 					--s3_file="$s3_file"
 			fi
 		fi
-
-		info "$command - generated backup file(s) at '/$tmp_dir'"
 		;;  
 	"restore")
 		restore_path=''

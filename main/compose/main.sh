@@ -54,7 +54,7 @@ case "$command" in
 		cd "$pod_full_dir/"
 		sudo docker-compose rm --stop -v --force "${@}"
 
-		if [ -f "$run_file" ]; then
+		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
 			sudo docker-compose -f "$run_file" rm --stop -v --force "${@}"
 		fi
 		;;
@@ -62,7 +62,7 @@ case "$command" in
 		cd "$pod_full_dir/"
 		sudo docker-compose "$command" "${@}"
 
-		if [ -f "$run_file" ]; then
+		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
 			sudo docker-compose -f "$run_file" "$command" "${@}"
 		fi
 		;;

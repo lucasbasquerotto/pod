@@ -23,6 +23,8 @@ templates:
 
 {% set compose_params = compose_params | combine({ 
     'services_dir_base': 'run',
+    'managed_volumes': var_main_params.run_managed_volumes | default([]) ,
+    'networks': var_main_params.run_networks | default([]) ,
     'services': var_main_params.run_services | default([]) 
   })
 %}

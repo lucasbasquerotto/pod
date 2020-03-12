@@ -175,8 +175,6 @@ case "$command" in
 
 		info "$command - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
-
-		arg_backup_delete_old_days=-1
 		
 		info "$command - create the backup base directory and clear old files"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
@@ -253,9 +251,14 @@ case "$command" in
 			info "$command ($arg_task_name) - clear old files"
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
-				find "$arg_backup_local_dir"/* -ctime +$arg_backup_delete_old_days -delete;
-				find "$arg_backup_local_dir"/* -maxdepth 0 -type d -ctime \
-					+$arg_backup_delete_old_days -exec rm -rf {} \;
+				
+				# remove old files and directories
+				find "$arg_backup_local_dir"/ -mindepth 1 \
+					-ctime +$arg_backup_delete_old_days -delete -print;
+					
+				# remove old and empty directories
+				find "$arg_backup_local_dir"/ -mindepth 1 -type d \
+					-ctime +$arg_backup_delete_old_days -empty -delete -print;
 			SHELL
 		fi
 		;;

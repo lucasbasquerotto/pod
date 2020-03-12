@@ -42,6 +42,7 @@ done
 shift $((OPTIND-1))
 
 function awscli_general {
+	>&2 echo ">$1 $arg_s3_service: aws ${*:2}"
 	>&2 "$pod_script_env_file" "$1" "$arg_s3_service" aws "${@:2}"
 }
 
@@ -69,10 +70,25 @@ function awscli_is_empty_bucket {
 	then
 		if grep -q 'NoSuchBucket' "$error_log_file"; then
 			echo "true"
+			exit 0
 		fi
 	fi
-	
+		
 	echo "false"
+}
+
+function awscli_rb {
+	cmd="$1"
+
+	empty_bucket="$(awscli_is_empty_bucket "$cmd")"
+
+	if [ "$empty_bucket" = "true" ]; then
+		>&2 echo "skipping (no_bucket)"
+	elif [ "$empty_bucket" = "false" ]; then
+		awscli_general "$cmd" s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+	else
+		error "$command - awscli_rb: invalid result (empty_bucket should be true or false): $empty_bucket"
+	fi
 }
 
 function s3cmd_general {
@@ -89,22 +105,22 @@ function s3cmd_run {
 
 case "$command" in
 	"s3:awscli:exec:is_empty_bucket")
-		awscli_is_empty_bucket exec-nontty ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		awscli_is_empty_bucket exec-nontty
 	  ;;
 	"s3:awscli:run:is_empty_bucket")
-		awscli_is_empty_bucket run ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		awscli_is_empty_bucket run
 	  ;;
   "s3:awscli:exec:create-bucket")
 		awscli_exec s3api create-bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:run:create-bucket")
-		awscli_run s3api create-bucket --endpoint="$arg_s3_endpoint"--bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		awscli_run s3api create-bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
   "s3:awscli:exec:rb")
-		awscli_exec s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		awscli_rb exec-nontty
 		;;
   "s3:awscli:run:rb")
-		awscli_run s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		awscli_rb run
 		;;
 	"s3:awscli:exec:cp")
 		awscli_exec s3 cp --endpoint="$arg_s3_endpoint" "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}

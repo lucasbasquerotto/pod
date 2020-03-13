@@ -119,7 +119,7 @@ case "$command" in
   "env")
     "$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
     ;;
-  "upgrade"|"update"|"fast-update")
+  "upgrade"|"fast-upgrade"|"update"|"fast-update")
 		"$pod_script_env_file" args "$command" ${args[@]+"${args[@]}"}
 		;;
   "stop_to_upgrade")

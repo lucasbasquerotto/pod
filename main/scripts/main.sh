@@ -77,16 +77,19 @@ function run_tasks {
 }
 
 case "$command" in
-	"upgrade"|"update"|"fast-update")
-		info "$command - prepare..."
-		"$pod_script_env_file" prepare
+	"upgrade"|"fast-upgrade"|"update"|"fast-update")
+		if [ "$command" != "fast-upgrade" ]; then
+			info "$command - prepare..."
+			"$pod_script_env_file" prepare
+		fi
+		
 		info "$command - build..."
 		"$pod_script_env_file" build
 
-		if [[ "$command" = "upgrade" ]]; then
+		if [[ "$command" = @("upgrade"|"fast-upgrade") ]]; then
 			info "$command - setup..."
 			"$pod_script_env_file" setup "${args[@]}"
-		elif [[ "$command" = "update" ]]; then
+		elif [ "$command" = "update" ]; then
 			info "$command - migrate..."
 			"$pod_script_env_file" migrate "${args[@]}" 
 		fi

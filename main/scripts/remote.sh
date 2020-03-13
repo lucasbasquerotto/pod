@@ -190,14 +190,12 @@ case "$command" in
 			info "$command - $arg_toolbox_service - restore"
 			>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 			
-			arg_restore_tmp_dir_full="$arg_restore_tmp_dir"
-
-			msg="create the restore temporary directory ($arg_restore_tmp_dir_full)"
+			msg="create the restore temporary directory ($arg_restore_tmp_dir)"
 			msg="$msg and the destination directory ($arg_restore_dest_base_dir_full)"
 			info "$command - $msg"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
-				mkdir -p "$arg_restore_tmp_dir_full"
+				mkdir -p "$arg_restore_tmp_dir"
 				mkdir -p "$arg_restore_dest_base_dir_full"
 			SHELL
 			
@@ -217,7 +215,7 @@ case "$command" in
 					error "$command: zip tmp file extension should be zip - $msg"
 				fi
 
-				restore_file_default="$arg_restore_tmp_dir_full/$arg_restore_zip_tmp_file_name"
+				restore_file_default="$arg_restore_tmp_dir/$arg_restore_zip_tmp_file_name"
 			fi
 
 			if [ -n "${arg_restore_local_file:-}" ]; then
@@ -243,7 +241,7 @@ case "$command" in
 				error "$command: no source provided"
 			fi
 			
-			info "$command - restore - main ($arg_task_kind) - $restore_file to $arg_restore_tmp_dir_full"
+			info "$command - restore - main ($arg_task_kind) - $restore_file to $arg_restore_tmp_dir"
 			unzip_opts=()
 
 			if [ -n "${arg_restore_zip_pass:-}" ]; then
@@ -251,16 +249,20 @@ case "$command" in
 			fi
 
 			if [ "$arg_task_kind" = "dir" ]; then
-				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then					
-					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir_full"
+				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then
+					retore_tmp_dir="$arg_restore_tmp_dir/$arg_restore_zip_inner_dir"
+
+					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir"
 					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 						set -eou pipefail
 
-						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir_full"
+						rm -rf "$retore_tmp_dir"
+
+						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$retore_tmp_dir"
 				
-						if [ "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir" != "$arg_restore_dest_base_dir_full" ]; then
-							cp -r "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir"/. "$arg_restore_dest_base_dir_full/"
-							rm -rf "$arg_restore_tmp_dir_full/$arg_restore_zip_inner_dir"
+						if [ "$retore_tmp_dir" != "$arg_restore_dest_base_dir_full" ]; then
+							cp -r "$retore_tmp_dir"/. "$arg_restore_dest_base_dir_full/"
+							rm -rf "$retore_tmp_dir"
 						fi
 					SHELL
 				else
@@ -272,19 +274,19 @@ case "$command" in
 				restore_path="$arg_restore_dest_base_dir_full"
 			elif [ "$arg_task_kind" = "file" ]; then
 				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then
-					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir_full"
-					intermediate="$arg_restore_tmp_dir_full/$arg_restore_zip_inner_file"
+					info "$command - unzip $restore_file to directory $arg_restore_tmp_dir"
+					intermediate="$arg_restore_tmp_dir/$arg_restore_zip_inner_file"
 					dest="$arg_restore_dest_base_dir_full/$arg_restore_dest_file"
 
 					if [ "$restore_file" != "$dest" ]; then
 						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 							set -eou pipefail
 
-							unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir_full"
+							unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
 
 							if [ "$intermediate" != "$dest" ]; then
 								mv "$intermediate" "$dest"
-								rm -rf "$arg_restore_tmp_dir_full"
+								rm -rf "$arg_restore_tmp_dir"
 							fi
 						SHELL
 					fi

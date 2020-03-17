@@ -32,6 +32,4 @@ children:
       fluentd:
         elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
         flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"
-    run:
-      env: "{{ var_env }}"
-      ctx: "{{ var_ctx }}"
+    run: {}

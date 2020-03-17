@@ -218,15 +218,6 @@ children:
     run: {{ var_run | to_json }}
     run_dict: {{ var_run_dict | to_json }}
     run_custom:
-      var_env: "{{ var_env }}"
-      var_ctx: "{{ var_ctx }}"
-      var_pod_name: "{{ params.pod.name }}"
-      var_pod_inner_dir: "{{ params.dirs.dest_dir_base }}"
-      var_pod_env_dir: "{{ params.pod.env_dir }}"
-      var_scripts_dir: "main/wordpress/scripts"
-      var_script_env_file: >-
-        {{ var_local | ternary('local.sh', 'remote.sh') }}
       var_wp_pod_type: "{{ var_wp_pod_type }}"
       var_dev_repo_dir_wordpress: >-
         {{ var_local | ternary(params.pod.app.wp_local.dir_rel, '') }}
-      var_env_local_repo: "{{ params.pod.env_local_repo }}"

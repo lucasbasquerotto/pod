@@ -3,6 +3,7 @@
 {% set var_local = params.main.local | default(false) | bool %}
 {% set var_remote = params.main.local | default(false) | bool | ternary('false', 'true') %}
 {% set var_run = params.main.run | default({}) %}
+{% set var_run_dict = params.main.run_dict | default({}) %}
 
 {% set var_containers_dict = params.main.containers_dict | default({}) %}
 {% set var_compose_orchestration = params.main.orchestration in ['docker_compose', 'none'] %}
@@ -32,4 +33,5 @@ children:
       fluentd:
         elasticsearch_port: "{{ var_containers_dict.elasticsearch.port | default('9200') }}"
         flush_interval: "{{ var_containers_dict.fluentd.flush_interval | default('1s') }}"
-    run: {}
+    run: {{ var_run | to_json }}
+    run_dict: {{ var_run_dict | to_json }}

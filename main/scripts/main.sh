@@ -153,6 +153,11 @@ case "$command" in
 		fi
 		;;
 	"backup")	
+		if [ -z "${arg_task_names:-}" ] ; then
+			info "$command: no tasks defined - skipping..."
+			exit 0
+		fi
+
 		if [ -z "${arg_backup_local_base_dir:-}" ] ; then
 			msg="The variable 'backup_local_base_dir' is not defined"
 			error "$command: $msg"

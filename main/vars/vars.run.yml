@@ -1,0 +1,61 @@
+{% set var_params = params.env_params | default({}) %}
+{% set var_pod_custom_dir = params.pod_custom_dir | default('') %}
+{% set var_dest_dir_base = var_params.dirs.dest_dir_base %}
+
+{% set var_pod_inner_dir = ((var_pod_custom_dir | default('')) != '') 
+  | ternary(var_pod_custom_dir, var_dest_dir_base) %}
+
+{% set var_main_params = var_params.main | default({}) %}
+{% set var_local = var_main_params.local | default(false) | bool %}
+
+{% set var_use_run_dict = var_main_params.meta.use_run_dict | default(false) | bool %}
+{% set var_run = params.run | default({}) %}
+{% set var_run_dict = params.run_dict | default({}) %}
+{% set var_run_custom = params.run_custom | default({}) %}
+
+{% set ns_run = namespace(vars={
+  'var_env': var_params.env_name,
+  'var_ctx': var_params.ctx_name,
+  'var_pod_name': var_params.pod.name,
+  'var_pod_inner_dir': var_pod_inner_dir,
+  'var_pod_env_dir': var_params.pod.env_dir,
+  'var_env_local_repo': var_params.pod.env_local_repo
+}) %}
+
+{% if (var_run | dict2items | list | length) > 0 %}
+  {% for var_run_item in var_run | dict2items | list %}
+    {% set var_run_item_obj = var_run_item.value %}
+
+    {% if var_use_run_dict %}
+      {% set var_run_item_obj = var_run_dict[var_run_item.value] %}
+    {% endif %}
+
+    {% if (var_run_item_obj | dict2items | list | length) > 0 %}
+      {% for var_run_item_inner in var_run_item_obj | dict2items | list %}
+        {% set var_key = 'var_' + var_run_item.key + '_' + var_run_item_inner.key %}
+        {% set var_value = var_run_item_inner.value | default('') %}
+        {% set ns_run.vars = ns_run.vars | combine({ var_key: var_value }) %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set ns_run.vars = ns_run.vars | combine(var_run_custom) %}
+
+{% if (var_run | default({}) | dict2items | list | length) > 0 %}
+
+templates:
+
+- src: "main/vars/vars.tpl.sh"
+  dest: "vars.sh"
+  mode: '{{ var_local | ternary(0666, 0640) }}'
+  params: {{ ns_run.vars | to_json }}
+
+files:
+
+- src: "{{ var_dest_dir_base }}/vars.sh"
+  root: true  
+  dest: "vars.sh"
+  mode: '{{ var_local | ternary(0666, 0640) }}'
+
+{% endif %}

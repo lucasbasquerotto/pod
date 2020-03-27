@@ -1,5 +1,5 @@
 {% set var_params = params.env_params | default({}) %}
-{% set var_dest_dir_base = var_params.dirs.dest_dir_base %}
+{% set var_params_dynamic = var_params.dynamic | default(false) | bool %}
 {% set var_volumes_dict = params.volumes_dict | default({}) %}
 {% set var_services_data_dict = params.services_data_dict | default({}) %}
 
@@ -19,40 +19,6 @@
 
 {% set var_compose = var_main_params.orchestration in ['docker_compose', 'none'] %}
 {% set var_data_dir = var_pod_params.local_data_dir_inside | default(var_pod_params.data_dir, true) %}
-
-{% set var_use_run_dict = var_main_params.meta.use_run_dict | default(false) | bool %}
-{% set var_run = params.run | default({}) %}
-{% set var_run_dict = params.run_dict | default({}) %}
-{% set var_run_custom = params.run_custom | default({}) %}
-
-{% set ns_run = namespace(vars={
-  'var_env': var_params.env_name,
-  'var_ctx': var_params.ctx_name,
-  'var_pod_name': var_params.pod.name,
-  'var_pod_inner_dir': var_params.dirs.dest_dir_base,
-  'var_pod_env_dir': var_params.pod.env_dir,
-  'var_env_local_repo': var_params.pod.env_local_repo
-}) %}
-
-{% if (var_run | dict2items | list | length) > 0 %}
-  {% for var_run_item in var_run | dict2items | list %}
-    {% set var_run_item_obj = var_run_item.value %}
-
-    {% if var_use_run_dict %}
-      {% set var_run_item_obj = var_run_dict[var_run_item.value] %}
-    {% endif %}
-
-    {% if (var_run_item_obj | dict2items | list | length) > 0 %}
-      {% for var_run_item_inner in var_run_item_obj | dict2items | list %}
-        {% set var_key = 'var_' + var_run_item.key + '_' + var_run_item_inner.key %}
-        {% set var_value = var_run_item_inner.value | default('') %}
-        {% set ns_run.vars = ns_run.vars | combine({ var_key: var_value }) %}
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
-{% endif %}
-
-{% set ns_run.vars = ns_run.vars | combine(var_run_custom) %}
 
 {% macro define_files(services, run_type) %}
 
@@ -165,10 +131,10 @@
   dest: "{{ item_dest }}/.env"
   params: 
     env: "{{ item_params.env }}"
-    db_host: "mysql"
-    db_port: 3306
-    db_name: "wordpress"
-    db_user: "wp_user"
+    db_host: "{{ item_params.db_host }}"
+    db_port: "{{ item_params.db_port }}"
+    db_name: "{{ item_params.db_name }}"
+    db_user: "{{ item_params.db_user }}"
     db_password: "{{ item_params.db_password }}"
     db_charset: "utf8mb4"
     db_collate: ""
@@ -197,6 +163,8 @@ volumes:
 
 - when: false
 
+{% if var_params_dynamic %}
+
 {% for name in var_volumes | list %}
 {% set item = var_env_volumes_dict[name] | default(var_volumes_dict[name]) %}
 
@@ -211,36 +179,34 @@ volumes:
 ### volume end - {{ name }} ({{ item.rel_path }})
 {% endfor %}
 
+{% endif %}
+
 templates:
 
 - when: false
+
+{% if var_params_dynamic %}
 
 {{ define_templates(var_services, false) }}
 
 {{ define_templates(var_run_services, true) }}
 
-{% if (ns_run.vars | dict2items | list | length) > 0 %}
-
-- src: "main/vars/vars.tpl.sh"
-  dest: "vars.sh"
-  mode: '0755'
-  params: {{ ns_run.vars | to_json }}
-
 {% endif %}
-  
+
 files:
 
 - when: false
+
+{% if var_params_dynamic %}
 
 {{ define_files(var_services, false) }}
 
 {{ define_files(var_run_services, true) }}
 
-{% if (var_run | default({}) | dict2items | list | length) > 0 %}
-
-- src: "{{ var_dest_dir_base }}/vars.sh"
-  root: true  
-  dest: "vars.sh"
-  mode: '0755'
-
 {% endif %}
+
+children:
+
+- name: "main/vars/vars.run.yml"
+  params: {{ params | to_json }}
+  

@@ -25,6 +25,7 @@ children:
 - name: "main/vars/vars.main.yml"
   params:
     env_params: {{ params | to_json }}
+    dynamic: true
     volumes_dict: 
       elasticsearch:
         rel_path: "elasticsearch"

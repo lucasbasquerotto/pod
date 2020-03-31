@@ -1,5 +1,5 @@
 {% set var_params = params.env_params | default({}) %}
-{% set var_params_dynamic = var_params.dynamic | default(false) | bool %}
+{% set var_params_dynamic = params.dynamic | default(false) | bool %}
 {% set var_volumes_dict = params.volumes_dict | default({}) %}
 {% set var_services_data_dict = params.services_data_dict | default({}) %}
 

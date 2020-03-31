@@ -67,7 +67,7 @@ case "$command" in
 		fi
 
 		if [ -z "$tables" ]; then
-			info "$command - wait for db to be ready"
+			info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
 			sleep "$arg_db_connect_wait_secs"
 			sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
 				mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:

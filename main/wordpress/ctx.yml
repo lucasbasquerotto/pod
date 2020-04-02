@@ -12,6 +12,10 @@
 
 ## general vars - end ###
 
+{% set var_pod_dir_rel = '../../../..' %}
+{% set var_data_dir = var_local 
+  | ternary(var_pod_dir_rel + '/' + params.pod.data_dir, params.pod.data_dir) %}
+
 {% set var_wp_pod_type = params.main.type %}
 
 {% set var_wp_domain = var_containers_dict.wordpress.domain %}
@@ -40,6 +44,7 @@ children:
   params: 
     env_params: {{ params | to_json }}
     env_params_list: 
+      - "DATA_DIR={{ var_data_dir }}"
       - "DB_HOST={{ var_containers_dict.mysql.host }}"
       - "DB_PORT={{ var_containers_dict.mysql.port }}"
       - "DB_NAME={{ params.credentials.wordpress.db.name }}"
@@ -52,7 +57,7 @@ children:
         | ternary('WP_APP_REPO_DIR=', '') 
         }}{{ 
         var_local | default(false) | bool 
-        | ternary('../../../../' + var_apps_dir_base + 
+        | ternary(var_pod_dir_rel + '/' + var_apps_dir_base + 
         '/' + (params.pod.app.wp_local.dir_rel | default('')), '') 
         }}
 

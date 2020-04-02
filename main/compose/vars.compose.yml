@@ -43,6 +43,5 @@ templates:
     pod_repo_version: "{{ var_pod_params.repo.version }}"
     git_commit: "{{ var_pod_params.git_commit }}"
     pod_env_dir: "{{ var_pod_params.env_dir }}"
-    data_dir: "{{ var_pod_params.data_dir }}"
     env_list: {{ (var_ctx_env_list + var_env_list) | to_json }}
     env_encoded_list: {{ var_env_encoded_list | to_json }}

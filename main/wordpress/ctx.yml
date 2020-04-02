@@ -52,7 +52,8 @@ children:
         | ternary('WP_APP_REPO_DIR=', '') 
         }}{{ 
         var_local | default(false) | bool 
-        | ternary(var_apps_dir_base + '/' + (params.pod.app.wp_local.dir_rel | default('')), '') 
+        | ternary('../../../../' + var_apps_dir_base + 
+        '/' + (params.pod.app.wp_local.dir_rel | default('')), '') 
         }}
 
 {% else %}

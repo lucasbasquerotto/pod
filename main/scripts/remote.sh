@@ -86,12 +86,12 @@ case "$command" in
 			dest_full_path="$arg_backup_local_dir/$arg_backup_zip_file"
 
 			if [ "$arg_task_kind" = "dir" ]; then
-				msg="$arg_backup_src_dir (at $arg_backup_src_base_dir) to $dest_full_path (inside toolbox)"
+				msg="zipping $arg_backup_src_base_dir/${arg_backup_src_dir:-} to $dest_full_path (inside toolbox)"
 				info "$command - zip backup directory - $msg"
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 					set -eou pipefail
 					cd "$arg_backup_src_base_dir"
-					zip -r "$dest_full_path" ./"$arg_backup_src_dir"
+					zip -r "$dest_full_path" ./"${arg_backup_src_dir:-}"
 				SHELL
 			elif [ "$arg_task_kind" = "file" ]; then
 				src_full_path="$arg_backup_src_base_dir/$arg_backup_src_file"
@@ -248,7 +248,11 @@ case "$command" in
 
 			if [ "$arg_task_kind" = "dir" ]; then
 				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then
-					restore_tmp_dir_full="$arg_restore_tmp_dir/$arg_restore_zip_inner_dir"
+					restore_tmp_dir_full="$arg_restore_tmp_dir"
+
+					if [ -n "${arg_restore_zip_inner_dir:-}" ]; then
+						restore_tmp_dir_full="$arg_restore_tmp_dir/${arg_restore_zip_inner_dir:-}"
+					fi
 
 					info "$command - unzip $restore_file to directory $restore_tmp_dir_full"
 					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL

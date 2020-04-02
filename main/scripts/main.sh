@@ -65,6 +65,8 @@ shift $((OPTIND-1))
 function run_tasks {
   run_task_names="${1:-}" 
 
+	info "run_task_names: $run_task_names"
+
   if [ -n "${run_task_names:-}" ]; then
     IFS=',' read -r -a tmp <<< "${run_task_names}"
     arr=("${tmp[@]}")
@@ -140,7 +142,7 @@ case "$command" in
 		info "$command ($arg_task_name) - $msg"
 
 		dir_ls="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			find /"${arg_setup_dest_dir_to_verify}"/ -type f | wc -l)"
+			find "${arg_setup_dest_dir_to_verify}"/ -type f | wc -l)"
 
 		if [ -z "$dir_ls" ]; then
 			dir_ls="0"

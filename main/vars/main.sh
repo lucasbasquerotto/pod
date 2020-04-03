@@ -133,10 +133,26 @@ case "$command" in
     ;;
   "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
     |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+
+    if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
+      export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
+    fi
+    
+    if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
+      export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
+    fi
     
     "$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"args")
+    if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
+      export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
+    fi
+    
+    if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
+      export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
+    fi
+
     opts=()
     opts+=( "--task_names=$var_main_setup_task_names" )
 		"$pod_script_main_file" "$inner_cmd" "${opts[@]}"

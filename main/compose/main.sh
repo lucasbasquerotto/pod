@@ -6,6 +6,9 @@ pod_layer_dir="$POD_LAYER_DIR"
 pod_full_dir="$POD_FULL_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
+main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
+run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"
+
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -20,7 +23,6 @@ if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
 fi
 
 command="${1:-}"
-run_file="docker-compose.run.yml"
 
 if [ -z "$command" ]; then
 	error "No command entered (compose)."
@@ -31,7 +33,7 @@ shift;
 case "$command" in
 	"up")
 		cd "$pod_full_dir/"
-		sudo docker-compose up -d --remove-orphans "${@}"
+		sudo docker-compose -f "$main_file" up -d --remove-orphans "${@}"
 		;;
 	"exec-nontty")
 		cd "$pod_full_dir/"
@@ -52,7 +54,7 @@ case "$command" in
 		;;
 	"rm")
 		cd "$pod_full_dir/"
-		sudo docker-compose rm --stop -v --force "${@}"
+		sudo docker-compose -f "$main_file" rm --stop -v --force "${@}"
 
 		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
 			sudo docker-compose -f "$run_file" rm --stop -v --force "${@}"
@@ -60,7 +62,7 @@ case "$command" in
 		;;
 	"build"|"stop")
 		cd "$pod_full_dir/"
-		sudo docker-compose "$command" "${@}"
+		sudo docker-compose -f "$main_file" "$command" "${@}"
 
 		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
 			sudo docker-compose -f "$run_file" "$command" "${@}"
@@ -68,7 +70,7 @@ case "$command" in
 		;;
 	"exec"|"restart"|"logs"|"ps")
 		cd "$pod_full_dir/"
-		sudo docker-compose "$command" "${@}"
+		sudo docker-compose -f "$main_file" "$command" "${@}"
 		;;
 	"ps-run")
 		cd "$pod_full_dir/"
@@ -79,7 +81,7 @@ case "$command" in
 		;;
 	"sh"|"bash")
 		cd "$pod_full_dir/"
-		sudo docker-compose exec "${1}" /bin/"$command"
+		sudo docker-compose -f "$main_file" exec "${1}" /bin/"$command"
 		;;
 	*)
 		error "$command: invalid command"

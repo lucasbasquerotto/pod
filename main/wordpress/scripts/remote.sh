@@ -11,6 +11,12 @@ pod_env_shared_file="$pod_layer_dir/main/wordpress/scripts/shared.sh"
 
 command="${1:-}"
 
+if [ -z "$command" ]; then
+	error "No command entered (env)."
+fi
+
+shift;
+
 case "$command" in
   *)
     "$pod_env_shared_file" "$command" "$@"

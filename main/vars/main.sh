@@ -16,7 +16,7 @@ pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
-GRAY="\033[0;90m"
+GRAY='\033[0;90m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 

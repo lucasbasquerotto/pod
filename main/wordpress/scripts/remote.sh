@@ -11,6 +11,17 @@ pod_env_shared_file="$pod_layer_dir/main/wordpress/scripts/shared.sh"
 
 command="${1:-}"
 
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
+
+function error {
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
+}
+
 if [ -z "$command" ]; then
 	error "No command entered (env)."
 fi
@@ -18,6 +29,9 @@ fi
 shift;
 
 case "$command" in
+  "prepare")
+    info "do nothing..."
+    ;;
   *)
     "$pod_env_shared_file" "$command" "$@"
     ;;

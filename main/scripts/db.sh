@@ -78,7 +78,7 @@ case "$command" in
 		fi
 
 		if ! [[ $tables =~ $re_number ]] ; then
-			error "$command: Could nor verify number of tables in database - output: $sql_output"
+			error "$command: Couldn't verify number of tables in database - output: $sql_output"
 		fi
 
 		if [ "$tables" != "0" ]; then

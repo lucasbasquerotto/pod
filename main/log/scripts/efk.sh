@@ -2,10 +2,13 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+pod_layer_dir="$POD_LAYER_DIR"
 pod_vars_dir="$POD_VARS_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
+
+pod_script_run_vars_file="$pod_layer_dir/main/vars/main.sh"
 
 GRAY="\033[0;90m"
 RED='\033[0;31m'
@@ -33,10 +36,16 @@ shift;
 args=( "$@" )
 
 case "$command" in
+  "prepare")
+    info "$command - do nothing..."
+    ;;
+  "migrate")
+    "$pod_script_env_file" "migrate:$var_pod_type" ${args[@]+"${args[@]}"}
+    ;;
   "migrate:app")
-    "$pod_script_env_file" "migrate:fluentd" "${args[@]}"
-    "$pod_script_env_file" "migrate:es" "${args[@]}"
-    "$pod_script_env_file" "migrate:kibana" "${args[@]}"
+    "$pod_script_env_file" "migrate:fluentd" ${args[@]+"${args[@]}"}
+    "$pod_script_env_file" "migrate:es" ${args[@]+"${args[@]}"}
+    "$pod_script_env_file" "migrate:kibana" ${args[@]+"${args[@]}"}
     ;;
   "migrate:fluentd")
     info "$command - nothing to do..."
@@ -50,6 +59,6 @@ case "$command" in
     info "$command - nothing to do..."
     ;;
   *)
-		error "$command: invalid command"
+		"$pod_script_run_vars_file" "$command" ${args[@]+"${args[@]}"}
     ;;
 esac

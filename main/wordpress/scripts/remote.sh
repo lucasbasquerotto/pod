@@ -34,7 +34,7 @@ shift;
 
 case "$command" in
   "prepare")
-    info "do nothing..."
+    info "$command - do nothing..."
     ;;
   *)
     "$pod_env_shared_file" "$command" "$@"

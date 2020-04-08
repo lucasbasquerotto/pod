@@ -53,7 +53,7 @@ case "$command" in
   "migrate:es")
     vm_max_map_count="${var_migrate_es_vm_max_map_count:-262144}"
     info "$command increasing vm max map count to $vm_max_map_count"
-    sysctl -w vm.max_map_count="$vm_max_map_count"
+    sudo sysctl -w vm.max_map_count="$vm_max_map_count"
     ;;
   "migrate:kibana")
     info "$command - nothing to do..."

@@ -61,6 +61,9 @@ case "$command" in
     command="upgrade"
     ;;
 	"f")
+    command="fast-upgrade"
+    ;;
+	"t")
     command="fast-update"
     ;;
 	"s")

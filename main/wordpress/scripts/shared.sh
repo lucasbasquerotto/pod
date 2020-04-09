@@ -11,8 +11,14 @@ pod_env_shared_exec_file="$pod_layer_dir/main/wordpress/scripts/shared.exec.sh"
 
 pod_script_run_vars_file="$pod_layer_dir/main/vars/main.sh"
 
+GRAY='\033[0;90m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+function info {
+	msg="$(date '+%F %T') - ${1:-}"
+	>&2 echo -e "${GRAY}${msg}${NC}"
+}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -31,6 +37,9 @@ shift;
 args=("$@")
 
 case "$command" in
+  "prepare")
+    info "$command - do nothing..."
+    ;;
 	"migrate")
     opts=()
 

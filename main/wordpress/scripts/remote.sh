@@ -11,14 +11,8 @@ pod_env_shared_file="$pod_layer_dir/main/wordpress/scripts/shared.sh"
 
 command="${1:-}"
 
-GRAY='\033[0;90m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
-
-function info {
-	msg="$(date '+%F %T') - ${1:-}"
-	>&2 echo -e "${GRAY}${msg}${NC}"
-}
 
 function error {
 	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
@@ -33,9 +27,6 @@ fi
 shift;
 
 case "$command" in
-  "prepare")
-    info "$command - do nothing..."
-    ;;
   *)
     "$pod_env_shared_file" "$command" "$@"
     ;;

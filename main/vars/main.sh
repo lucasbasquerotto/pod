@@ -126,7 +126,7 @@ case "$command" in
 		"$pod_script_env_file" args "$command" ${args[@]+"${args[@]}"}
 		;;
   "stop-to-upgrade")
-		"$pod_script_env_file" args stop ${args[@]+"${args[@]}"}
+		"$pod_script_env_file" stop ${args[@]+"${args[@]}"}
 		;;
   "setup"|"fast-setup")
     "$pod_script_main_file" "$command" ${args[@]+"${args[@]}"}

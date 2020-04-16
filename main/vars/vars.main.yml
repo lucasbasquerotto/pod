@@ -207,6 +207,6 @@ files:
 
 children:
 
-- name: "main/vars/vars.run.yml"
+- name: "main/scripts/vars.run.yml"
   params: {{ params | to_json }}
   

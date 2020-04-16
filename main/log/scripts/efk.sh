@@ -8,7 +8,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_script_run_vars_file="$pod_layer_dir/main/vars/main.sh"
+pod_script_run_main_file="$pod_layer_dir/main/scripts/main.sh"
 
 GRAY="\033[0;90m"
 RED='\033[0;31m'
@@ -59,6 +59,6 @@ case "$command" in
     info "$command - nothing to do..."
     ;;
   *)
-		"$pod_script_run_vars_file" "$command" ${args[@]+"${args[@]}"}
+		"$pod_script_run_main_file" "$command" ${args[@]+"${args[@]}"}
     ;;
 esac

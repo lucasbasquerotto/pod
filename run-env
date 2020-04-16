@@ -35,14 +35,14 @@ if [ -z "${var_pod_inner_dir:-}" ]; then
 	exit 1
 fi
 
-if [ -z "${var_main_script_dir:-}" ]; then
-	msg="[error] var_main_script_dir not specified in the $pod_vars_dir/vars.sh file"
+if [ -z "${var_general_script_dir:-}" ]; then
+	msg="[error] var_general_script_dir not specified in the $pod_vars_dir/vars.sh file"
 	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
 
-if [ -z "${var_main_script_env_file:-}" ]; then
-	msg="[error] var_main_script_env_file not specified in the $pod_vars_dir/vars.sh file"
+if [ -z "${var_general_script_env_file:-}" ]; then
+	msg="[error] var_general_script_env_file not specified in the $pod_vars_dir/vars.sh file"
 	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
 	exit 1
 fi
@@ -51,7 +51,7 @@ pod_vars_dir="$(cd "$(dirname "$pod_vars_dir")"; pwd -P)/$(basename "$pod_vars_d
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pod_full_dir="$pod_layer_dir/$var_pod_inner_dir"
 pod_tmp_dir="$pod_layer_dir/tmp/$var_pod_inner_dir"
-pod_script_env_file="$pod_layer_dir/$var_main_script_dir/$var_main_script_env_file"
+pod_script_env_file="$pod_layer_dir/$var_general_script_dir/$var_general_script_env_file"
 
 if [ ! -d "$pod_full_dir" ]; then
 	mkdir -p "$pod_full_dir"

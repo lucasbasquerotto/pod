@@ -7,7 +7,8 @@
 {% set var_env_encoded_list = params.main.compose_env_encoded_list | default([]) %}
 
 {% set compose_params = var_main_params | combine({ 
-    'node_size': var_node_params.size | default({}) 
+    'node_size': var_node_params.size | default({}),
+    'custom_dependencies': var_params.dependencies | default([])
   })
 %}
 

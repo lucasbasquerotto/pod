@@ -2,10 +2,21 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+pod_vars_dir="$POD_VARS_DIR"
 pod_layer_dir="$POD_LAYER_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-GRAY="\033[0;90m"
+. "${pod_vars_dir}/vars.sh"
+
+pod_script_run_file="$pod_layer_dir/main/scripts/$var_general_orchestration.sh"
+pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
+pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
+pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
+pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
+
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+GRAY='\033[0;90m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -21,258 +32,389 @@ function error {
 }
 
 if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
-	error "This project must not be in the '/' directory"
+  error "This project must not be in the '/' directory"
 fi
 
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	error "No command entered."
+  error "No command entered (vars)."
 fi
 
 shift;
 
-args=( "$@" )
+inner_cmd=''
+key="$(date '+%Y%m%d_%H%M%S_%3N')"
+cmd_path="$(echo "$command" | tr : -)"
+
+case "$command" in
+  "args"|"args:"*)
+    inner_cmd="${1:-}"
+
+		if [ -z "$inner_cmd" ]; then
+			error "$command: inner command not specified"
+		fi
+
+    shift;
+    ;;
+	"u")
+    command="upgrade"
+    ;;
+	"f")
+    command="fast-upgrade"
+    ;;
+	"t")
+    command="fast-update"
+    ;;
+	"s")
+    command="args"
+    inner_cmd="fast-setup"
+    ;;
+	"p")
+    command="env"
+    inner_cmd="prepare"
+    ;;
+esac
+
+args=("$@")
 
 while getopts ':-:' OPT; do
-	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
-		OPT="${OPTARG%%=*}"       # extract long option name
-		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
-		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
-	fi
-	case "$OPT" in
-		task_names ) arg_task_names="${OPTARG:-}";;
-
-		task_name ) arg_task_name="${OPTARG:-}";; 
-		task_name_verify ) arg_task_name_verify="${OPTARG:-}";; 
-		task_name_remote ) arg_task_name_remote="${OPTARG:-}";; 
-		task_name_local ) arg_task_name_local="${OPTARG:-}";; 
-		task_name_new ) arg_task_name_new="${OPTARG:-}";; 
-		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
-
-		setup_run_new_task ) arg_setup_run_new_task="${OPTARG:-}";;    
-		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
-		
-		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
-		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
+    s3_src ) arg_s3_src="${OPTARG:-}";;
+    s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
+    s3_dest ) arg_s3_dest="${OPTARG:-}";;
+    s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
+    s3_file ) arg_s3_file="${OPTARG:-}";;
+    backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
-		??* ) ;;  # bad long option
-		\? )  exit 2 ;;  # bad short option (error reported via getopts)
-	esac
+    db_task_name ) arg_db_task_name="${OPTARG:-}";; 
+    env_local_repo ) arg_env_local_repo="${OPTARG:-}";; 
+    ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";; 
+    setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
+    backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
+    db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
+    db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}";;
+		opts ) arg_opts=( "${@:OPTIND}" ); break;; 
+    ??* ) ;;  # bad long option
+    \? )  ;;  # bad short option (error reported via getopts)
+  esac
 done
 shift $((OPTIND-1))
 
-function run_tasks {
-  run_task_names="${1:-}" 
-
-	info "run_task_names: $run_task_names"
-
-  if [ -n "${run_task_names:-}" ]; then
-    IFS=',' read -r -a tmp <<< "${run_task_names}"
-    arr=("${tmp[@]}")
-
-    for task_name in "${arr[@]}"; do
-      "$pod_script_env_file" "$task_name" "${args[@]}" \
-        --task_name="$task_name"
-    done
-  fi
-}
+start="$(date '+%F %T')"
 
 case "$command" in
-	"upgrade"|"fast-upgrade"|"update"|"fast-update")
-		if [ "$command" != "fast-upgrade" ]; then
-			info "$command - prepare..."
-			"$pod_script_env_file" prepare
-		fi
-		
-		info "$command - build..."
-		"$pod_script_env_file" build
+	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+    ;;
+  *)
+    >&2 echo -e "${CYAN}$(date '+%F %T') - vars - $command - start${NC}"
+    ;;
+esac
 
-		if [[ "$command" = @("upgrade"|"fast-upgrade") ]]; then
-			info "$command - setup..."
-			"$pod_script_env_file" setup "${args[@]}"
-		elif [ "$command" = "update" ]; then
-			info "$command - migrate..."
-			"$pod_script_env_file" migrate "${args[@]}" 
-		fi
-		
-		info "$command - run..."
-		"$pod_script_env_file" up
-		info "$command - ended"
+case "$command" in
+  "env")
+    "$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
+    ;;
+  "upgrade"|"fast-upgrade"|"update"|"fast-update")
+		"$pod_script_env_file" args "$command" ${args[@]+"${args[@]}"}
 		;;
-	"setup"|"fast-setup")    
-		run_tasks "${arg_task_names:-}"
+  "stop-to-upgrade")
+		"$pod_script_env_file" stop ${args[@]+"${args[@]}"}
+		;;
+  "setup"|"fast-setup")
+    "$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
+    ;;
+  "local:prepare")
+    "$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" "${arg_opts[@]}"
+    ;;
+  "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 
-    if [ "$command" = "setup" ]; then
-      "$pod_script_env_file" migrate "${args[@]}" 
+    if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
+      export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
     fi
+    
+    if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
+      export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
+    fi
+    
+    "$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
-	"setup:default")
-		info "$command ($arg_task_name) - start needed services"
-		"$pod_script_env_file" up "$arg_toolbox_service"
+	"args")
+    if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
+      export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
+    fi
+    
+    if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
+      export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
+    fi
 
-		msg="verify if the setup should be done"
-		info "$command ($arg_task_name) - $msg "
-		skip="$("$pod_script_env_file" "${arg_task_name_verify}" "${args[@]}")"
-      
-		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
-			msg="value of the verification should be true or false"
-			msg="$msg - result: $skip"
-			error "$command ($arg_task_name): $msg"
-		fi
-
-		if [ "$skip" = "true" ]; then
-			echo "$(date '+%F %T') - $command ($arg_task_name) - skipping..."
-		elif [ "${arg_setup_run_new_task:-}" = "true" ]; then
-			"$pod_script_env_file" "${arg_task_name_new}"
-		else 
-			if [ -n "${arg_task_name_remote:-}" ]; then
-				info "$command ($arg_task_name) - restore - remote"
-				"$pod_script_env_file" "${arg_task_name_remote}" "${args[@]}"
-			fi
-			
-			if [ -n "${arg_task_name_local:-}" ]; then
-				info "$command ($arg_task_name) - restore - local"
-				"$pod_script_env_file" "${arg_task_name_local}" "${args[@]}"
-			fi
-		fi
+    opts=()
+    opts+=( "--task_names=$var_tasks_setup" )
+		"$pod_script_upgrade_file" "$inner_cmd" "${opts[@]}"
 		;;
-	"setup:verify")
-		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
-		info "$command ($arg_task_name) - $msg"
+  "setup:task:"*)
+    prefix="var_setup_task_${command#setup:task:}"
+    task_name_verify="${prefix}_task_name_verify"
+    task_name_remote="${prefix}_task_name_remote"
+    task_name_local="${prefix}_task_name_local"
+    task_name_new="${prefix}_task_name_new"
+    setup_run_new_task="${prefix}_setup_run_new_task"
+    setup_dest_base_dir="${prefix}_setup_dest_base_dir"
 
-		dir_ls="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			find "${arg_setup_dest_dir_to_verify}"/ -type f | wc -l)"
+    opts=()
+    
+    opts+=( "--task_name=$command" )
+    opts+=( "--toolbox_service=$var_general_toolbox_service" )
 
-		if [ -z "$dir_ls" ]; then
-			dir_ls="0"
-		fi
+    opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir}" )
+    
+    opts+=( "--task_name_verify=${!task_name_verify:-}" )
+    opts+=( "--task_name_remote=${!task_name_remote:-}" )
+    opts+=( "--task_name_local=${!task_name_local:-}" )
+    opts+=( "--task_name_new=${!task_name_new:-}" )        
+    opts+=( "--setup_run_new_task=${!setup_run_new_task:-}" )
 
-		if [[ $dir_ls -ne 0 ]]; then
-			echo "true"
-		else
-			echo "false"
-		fi
+		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
+    ;;
+  "setup:verify:db:"*)
+    ctx="${command#setup:verify:db:}"
+    prefix="var_setup_verify_${ctx}"
+    db_task_name="${prefix}_db_task_name"
+		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
 		;;
-	"backup")	
-		if [ -z "${arg_task_names:-}" ] ; then
-			info "$command: no tasks defined - skipping..."
-			exit 0
-		fi
+  "setup:verify:default:"*)
+    prefix="var_setup_verify_${command#setup:verify:default:}"
+    setup_dest_dir_to_verify="${prefix}_setup_dest_dir_to_verify"
+    
+    opts=()
+    opts+=( "--setup_dest_dir_to_verify=${!setup_dest_dir_to_verify}" )
 
-		if [ -z "${arg_backup_local_base_dir:-}" ] ; then
-			msg="The variable 'backup_local_base_dir' is not defined"
-			error "$command: $msg"
-		fi
+    "$pod_script_upgrade_file" "setup:verify" "${opts[@]}" ${args[@]+"${args[@]}"}
+    ;;
+  "setup:remote:default:"*)
+    prefix="var_setup_remote_${command#setup:remote:default:}"
 
-		if [ -z "${arg_backup_local_dir:-}" ] ; then
-			msg="The variable 'backup_local_dir' is not defined"
-			error "$command: $msg"
-		fi
+    task_kind="${prefix}_task_kind"
+    task_name_s3="${prefix}_task_name_s3"
+    restore_dest_file="${prefix}_restore_dest_file"
+    restore_tmp_dir="${prefix}_restore_tmp_dir"
+    restore_local_file="${prefix}_restore_local_file"
+    restore_remote_file="${prefix}_restore_remote_file"
+    restore_remote_bucket_path_file="${prefix}_restore_remote_bucket_path_file"
+    restore_remote_bucket_path_dir="${prefix}_restore_remote_bucket_path_dir"
+    restore_is_zip_file="${prefix}_restore_is_zip_file"
+    restore_zip_pass="${prefix}_restore_zip_pass"
+    restore_zip_inner_dir="${prefix}_restore_zip_inner_dir"
+    restore_zip_inner_file="${prefix}_restore_zip_inner_file"
 
-		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
-			msg="The variable 'backup_delete_old_days' is not defined"
-			error "$command: $msg"
-		fi
+    opts=()
+    
+    opts+=( "--toolbox_service=$var_general_toolbox_service" )
+    opts+=( "--restore_zip_tmp_file_name=$cmd_path-$key.zip" )
+    opts+=( "--restore_dest_base_dir=${arg_setup_dest_base_dir}" )
 
-    re_number='^[0-9]+$'
+    opts+=( "--restore_tmp_dir=${!restore_tmp_dir}" )
 
-		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
-			msg="The variable 'backup_delete_old_days' should be a number"
-			msg="$msg (value=$arg_backup_delete_old_days)"
-			error "$command: $msg"
-		fi
+    opts+=( "--task_kind=${!task_kind:-}" )
+    opts+=( "--task_name_s3=${!task_name_s3:-}" )
+    opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
+    opts+=( "--restore_local_file=${!restore_local_file:-}" )
+    opts+=( "--restore_remote_file=${!restore_remote_file:-}" )
+    opts+=( "--restore_remote_bucket_path_file=${!restore_remote_bucket_path_file:-}" )
+    opts+=( "--restore_remote_bucket_path_dir=${!restore_remote_bucket_path_dir:-}" )
+    opts+=( "--restore_is_zip_file=${!restore_is_zip_file:-}" )
+    opts+=( "--restore_zip_pass=${!restore_zip_pass:-}" )
+    opts+=( "--restore_zip_inner_dir=${!restore_zip_inner_dir:-}" )
+    opts+=( "--restore_zip_inner_file=${!restore_zip_inner_file:-}" )
 
-		info "$command - start needed services"
-		"$pod_script_env_file" up "$arg_toolbox_service"
+		"$pod_script_remote_file" restore "${opts[@]}"
+		;;
+  "setup:local:db:"*)
+    ctx="${command#setup:local:db:}"
+    prefix="var_setup_local_${ctx}"
+    db_task_name="${prefix}_db_task_name"
+    db_sql_file_name="${prefix}_db_sql_file_name"
+    
+    opts=()
+
+    opts+=( "--db_task_base_dir=${arg_setup_dest_base_dir}" )
+
+    opts+=( "--db_task_name=${!db_task_name}" )
+    opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		;;
+  "backup")
+    opts=()
+
+    opts+=( "--task_names=$var_tasks_backup" )
+    opts+=( "--toolbox_service=$var_general_toolbox_service" )
+    opts+=( "--backup_local_base_dir=$var_general_backup_local_base_dir" )
+    opts+=( "--backup_local_dir=$var_general_backup_local_base_dir/backup-$key" )
+    opts+=( "--backup_delete_old_days=$var_general_backup_delete_old_days" )
+
+		"$pod_script_upgrade_file" backup "${opts[@]}"
+		;;
+  "backup:task:"*)
+    prefix="var_backup_task_${command#backup:task:}"
+    task_name_verify="${prefix}_task_name_verify"
+    task_name_local="${prefix}_task_name_local"
+    task_name_remote="${prefix}_task_name_remote"
+    backup_src_base_dir="${prefix}_backup_src_base_dir"
+    backup_local_static_dir="${prefix}_backup_local_static_dir"
+    backup_delete_old_days="${prefix}_backup_delete_old_days"    
+
+    opts=()
+
+    opts+=( "--task_name=$command" )
+    opts+=( "--toolbox_service=$var_general_toolbox_service" )
+    
+    opts+=( "--backup_local_dir=${!backup_local_static_dir:-$arg_backup_local_dir}" )
+    opts+=( "--backup_delete_old_days=${!backup_delete_old_days:-$arg_backup_delete_old_days}" )    
+
+    opts+=( "--task_name_verify=${!task_name_verify:-}" )
+    opts+=( "--task_name_local=${!task_name_local:-}" )
+    opts+=( "--task_name_remote=${!task_name_remote:-}" )
+    opts+=( "--backup_src_base_dir=${!backup_src_base_dir}" )
+
+		"$pod_script_upgrade_file" "backup:default" "${opts[@]}"
+		;;
+  "backup:remote:default:"*)
+    prefix="var_backup_remote_${command#backup:remote:default:}"
+    task_kind="${prefix}_task_kind"
+    task_name_s3="${prefix}_task_name_s3"
+    backup_src_dir="${prefix}_backup_src_dir"
+    backup_src_file="${prefix}_backup_src_file"
+    backup_zip_file="${prefix}_backup_zip_file"
+    backup_bucket_static_dir="${prefix}_backup_bucket_static_dir"
+    backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
+
+    opts=()
+
+    opts+=( "--toolbox_service=$var_general_toolbox_service" )
+    opts+=( "--backup_src_base_dir=$arg_backup_src_base_dir" )
+    opts+=( "--backup_local_dir=$arg_backup_local_dir" )
+
+    opts+=( "--task_kind=${!task_kind}" )
+    opts+=( "--task_name_s3=${!task_name_s3:-}" )
+    opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
+    opts+=( "--backup_src_file=${!backup_src_file:-}" )
+    opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
+    opts+=( "--backup_bucket_static_dir=${!backup_bucket_static_dir:-}" )
+    opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )
+
+		"$pod_script_remote_file" backup "${opts[@]}"
+    ;;
+  "backup:local:db:"*)
+    ctx="${command#backup:local:db:}"
+    prefix="var_backup_local_${ctx}"
+    db_task_name="${prefix}_db_task_name"
+    db_sql_file_name="${prefix}_db_sql_file_name"
+    
+    opts=()
+
+    opts+=( "--db_task_base_dir=${arg_backup_src_base_dir}" )
+
+    opts+=( "--db_task_name=${!db_task_name}" )
+    opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		;;
+  "db:task:"*)
+    prefix="var_db_${command#db:task:}"
+    
+    db_name="${prefix}_db_name"
+    db_service="${prefix}_db_service"
+    db_user="${prefix}_db_user"
+    db_pass="${prefix}_db_pass"
+    db_connect_wait_secs="${prefix}_db_connect_wait_secs"
+
+    opts=()
+
+    opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
+    opts+=( "--db_sql_file_name=${arg_db_sql_file_name:-}" )
+
+    opts+=( "--db_name=${!db_name:-}" )
+    opts+=( "--db_service=${!db_service:-}" )
+    opts+=( "--db_user=${!db_user:-}" )
+    opts+=( "--db_pass=${!db_pass:-}" )
+    opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
+
+		"$pod_script_db_file" "$arg_db_task_name" "${opts[@]}"
+		;;
+  "s3:task:"*)
+    prefix="var_s3_${command#s3:task:}"
+    cli="${prefix}_cli"
+    cli_cmd="${prefix}_cli_cmd"
+    service="${prefix}_service"
+    endpoint="${prefix}_endpoint"
+    bucket_name="${prefix}_bucket_name"
+    bucket_path="${prefix}_bucket_path"
+  
+    bucket_prefix="${!bucket_name:-}"
+
+    if [ -n "${!bucket_path:-}" ];then
+      bucket_prefix="${!bucket_name}/${!bucket_path}"
+    fi
+
+    s3_src="${arg_s3_src:-}"
+
+    if [ -n "${arg_s3_src_rel:-}" ];then
+      s3_src="$bucket_prefix/$arg_s3_src_rel"
+      s3_src=$(echo "$s3_src" | tr -s /)
+      s3_src="s3://$s3_src"
+    fi
+
+    s3_dest="${arg_s3_dest:-}"
+
+    if [ -n "${arg_s3_dest_rel:-}" ];then
+      s3_dest="$bucket_prefix/$arg_s3_dest_rel"
+      s3_dest=$(echo "$s3_dest" | tr -s /)
+      s3_dest="s3://$s3_dest"
+    fi	
 		
-		info "$command - create the backup base directory and clear old files"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-			set -eou pipefail
-			mkdir -p "$arg_backup_local_base_dir"
-			
-			# remove old files and directories
-			find "$arg_backup_local_base_dir"/ -mindepth 1 \
-				-ctime +$arg_backup_delete_old_days -delete -print;
-				
-			# remove old and empty directories
-			find "$arg_backup_local_base_dir"/ -mindepth 1 -type d \
-				-ctime +$arg_backup_delete_old_days -empty -delete -print;
-		SHELL
+    s3_opts=()
 
-		# main command - run backup sub-tasks
-		run_tasks "${arg_task_names:-}"
-		;;  
-	"backup:default")
-		info "$command ($arg_task_name) - started"
+    if [ -n "${arg_s3_file:-}" ]; then
+      s3_opts=( --exclude "*" --include "$arg_s3_file" )
+    fi
+    
+    opts=()
+    
+    opts+=( "--s3_service=${!service:-}" )
+    opts+=( "--s3_endpoint=${!endpoint:-}" )
+    opts+=( "--s3_bucket_name=${!bucket_name:-}" )
 
-		if [ -z "${arg_backup_local_dir:-}" ] ; then
-			msg="The variable 'backup_local_dir' is not defined"
-			error "$command ($arg_task_name): $msg"
-		fi
+    opts+=( "--s3_src=${s3_src:-}" )
+    opts+=( "--s3_dest=${s3_dest:-}" )
+    opts+=( "--s3_opts" )
+    opts+=( "${s3_opts[@]}" )
 
-		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
-			msg="The variable 'backup_delete_old_days' is not defined"
-			error "$command ($arg_task_name): $msg"
-		fi
-
-    re_number='^[0-9]+$'
-
-		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
-			msg="The variable 'backup_delete_old_days' should be a number"
-			msg="$msg (value=$arg_backup_delete_old_days)"
-			error "$command ($arg_task_name): $msg"
-		fi
-
-		if [ -z "${arg_task_name_verify:-}" ]; then
-			skip="false"
-		else
-			info "$command ($arg_task_name) - verify if the backup should be done"
-			skip="$("$pod_script_env_file" "${arg_task_name_verify}" "${args[@]}")"
-		fi
-      
-		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
-			msg="value of the verification should be true or false"
-			msg="$msg - result: $skip"
-			error "$command ($arg_task_name): $msg"
-		fi
-
-		if [ "$skip" = "true" ]; then
-			echo "$(date '+%F %T') - $command ($arg_task_name) - skipping..."
-		else
-			info "$command - start needed services"
-			"$pod_script_env_file" up "$arg_toolbox_service"
-
-			msg="create the backup directory (if there isn't yet)"
-			info "$command - $msg ($arg_backup_local_dir)"
-			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				mkdir -p "$arg_backup_local_dir"
-			
-			if [ -n "${arg_task_name_local:-}" ]; then
-				info "$command ($arg_task_name) - backup - local"
-				"$pod_script_env_file" "${arg_task_name_local}" "${args[@]}"
-			fi
-			
-			if [ -n "${arg_task_name_remote:-}" ]; then
-				info "$command ($arg_task_name) - backup - remote"
-				"$pod_script_env_file" "${arg_task_name_remote}" "${args[@]}"
-			fi
-			
-			info "$command ($arg_task_name) - clear old files"
-			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-				set -eou pipefail
-				
-				# remove old files and directories
-				find "$arg_backup_local_dir"/ -mindepth 1 \
-					-ctime +$arg_backup_delete_old_days -delete -print;
-					
-				# remove old and empty directories
-				find "$arg_backup_local_dir"/ -mindepth 1 -type d \
-					-ctime +$arg_backup_delete_old_days -empty -delete -print;
-			SHELL
-		fi
+    inner_cmd="s3:${!cli}:${!cli_cmd}:$arg_s3_cmd"
+    info "$command - $inner_cmd"
+		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;
-	*)
+  *)
 		error "$command: invalid command"
+    ;;
+esac
+
+end="$(date '+%F %T')"
+
+case "$command" in
+	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+    |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+    ;;
+  *)
+    >&2 echo -e "${CYAN}$(date '+%F %T') - vars - $command - end${NC}"
+    >&2 echo -e "${PURPLE}[summary] vars - $command - $start - $end${NC}"
     ;;
 esac

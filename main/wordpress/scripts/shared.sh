@@ -9,7 +9,7 @@ pod_layer_dir="$POD_LAYER_DIR"
 
 pod_env_shared_exec_file="$pod_layer_dir/main/wordpress/scripts/shared.exec.sh"
 
-pod_script_run_vars_file="$pod_layer_dir/main/vars/main.sh"
+pod_script_run_main_file="$pod_layer_dir/main/scripts/main.sh"
 
 GRAY='\033[0;90m'
 RED='\033[0;31m'
@@ -63,6 +63,6 @@ case "$command" in
     "$pod_env_shared_exec_file" "setup:new:wp:db" ${args[@]+"${args[@]}"}
     ;;
   *)
-		"$pod_script_run_vars_file" "$command" ${args[@]+"${args[@]}"}
+		"$pod_script_run_main_file" "$command" ${args[@]+"${args[@]}"}
     ;;
 esac

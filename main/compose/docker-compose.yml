@@ -5,6 +5,7 @@
 {% set var_default_logging = params.default_logging | default('') %}
 {% set var_managed_volumes = params.managed_volumes | default([]) %}
 {% set var_networks = params.networks | default([]) %}
+{% set var_custom_dependencies = params.custom_dependencies | default([]) %}
 
 {% set var_default_logging_dict = params.default_logging_dict | default({}) %}
 {% set var_logging_dict = params.logging_dict | default({}) %}
@@ -98,6 +99,14 @@ services:
     ]) | default({})
   %}
 
+  {% set ns_extra_hosts = namespace(list=[]) %}
+
+  {% for dep in var_custom_dependencies | default([]) %}
+    {% set ns_extra_hosts.list = ns_extra_hosts.list + [dep.host + ':' + dep.ip] %}
+  {% endfor %}
+
+  {% set item_extra_hosts = (item.extra_hosts | default([])) + (ns_extra_hosts.list | default([])) %}
+
   {{ name }}:
     container_name: "${CTX_NAME}-{{ var_services_dir_base }}-{{ name }}"
     hostname: "{{ item.hostname | default(name) }}"
@@ -128,12 +137,19 @@ services:
     {% endfor %}
     {% endif %}
 
-    {% if item_networks | list | length > 0
-    %}networks: {{ item_networks | to_json }}
+    {% if item_networks | list | length > 0 %}networks:
+    {% for subitem in item_networks | list %}- {{ subitem | to_json }}
+    {% endfor %}
     {% endif %}
 
-    {% if item_volumes | list | length > 0
-    %}volumes: {{ item_volumes | to_json }}
+    {% if item_volumes | list | length > 0 %}volumes:
+    {% for subitem in item_volumes | list %}- {{ subitem | to_json }}
+    {% endfor %}
+    {% endif %}
+
+    {% if item_extra_hosts | list | length > 0 %}extra_hosts:
+    {% for subitem in item_extra_hosts | list %}- "{{ subitem }}"
+    {% endfor %}
     {% endif %}
 
     {% if item_ulimits | dict2items | list | length > 0 
@@ -250,10 +266,6 @@ services:
     
     {% if item.external_links | default([]) | list | length > 0
     %}external_links: {{ item.external_links | to_json }}
-    {% endif %}
-
-    {% if item.extra_hosts | default([]) | list | length > 0
-    %}extra_hosts: {{ item.extra_hosts | to_json }}
     {% endif %}
     
     {% if item.group_add | default([]) | list | length > 0

@@ -3,12 +3,9 @@
 set -eou pipefail
 
 pod_vars_dir="$POD_VARS_DIR"
-pod_layer_dir="$POD_LAYER_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
-
-pod_script_run_file="$pod_layer_dir/main/compose/main.sh"
 
 GRAY="\033[0;90m"
 RED='\033[0;31m'
@@ -62,7 +59,7 @@ case "$command" in
   "setup:new:wp:db")
     # Deploy a brand-new Wordpress site (with possibly seeded data)
     info "$command - installation"
-    "$pod_script_run_file" run wordpress \
+    "$pod_script_env_file" run wordpress \
       wp --allow-root core install \
       --url="$arg_setup_url" \
       --title="$arg_setup_title" \
@@ -79,13 +76,13 @@ case "$command" in
 
         if [ -n "$arg_setup_local_seed_data" ]; then
           info "$command - import local seed data"
-          "$pod_script_run_file" run wordpress \
+          "$pod_script_env_file" run wordpress \
             wp --allow-root import ./"$arg_setup_local_seed_data" --authors=create
         fi
 
         if [ -n "$arg_setup_remote_seed_data" ]; then
           info "$command - import remote seed data"
-          "$pod_script_run_file" run wordpress sh -c \
+          "$pod_script_env_file" run wordpress sh -c \
             "curl -L -o ./tmp/tmp-seed-data.xml -k '$arg_setup_remote_seed_data' \
             && wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
             && rm -f ./tmp/tmp-seed-data.xml"
@@ -102,9 +99,9 @@ case "$command" in
     ;;
   "migrate:web")
     info "$command - start container"
-    "$pod_script_run_file" up wordpress
+    "$pod_script_env_file" up wordpress
 
-    "$pod_script_run_file" exec-nontty wordpress /bin/bash <<-SHELL
+    "$pod_script_env_file" exec-nontty wordpress /bin/bash <<-SHELL
 			set -eou pipefail
 
       function info {

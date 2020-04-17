@@ -47,6 +47,10 @@ case "$command" in
     "$pod_script_env_file" "migrate:es" ${args[@]+"${args[@]}"}
     "$pod_script_env_file" "migrate:kibana" ${args[@]+"${args[@]}"}
     ;;
+  "migrate:external")
+    "$pod_script_env_file" "migrate:es" ${args[@]+"${args[@]}"}
+    "$pod_script_env_file" "migrate:kibana" ${args[@]+"${args[@]}"}
+    ;;
   "migrate:fluentd")
     info "$command - nothing to do..."
     ;;

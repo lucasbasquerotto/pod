@@ -214,6 +214,9 @@ case "$command" in
     restore_zip_pass="${prefix}_restore_zip_pass"
     restore_zip_inner_dir="${prefix}_restore_zip_inner_dir"
     restore_zip_inner_file="${prefix}_restore_zip_inner_file"
+    restore_recursive_mode="${prefix}restore_recursive_mode"
+    restore_recursive_mode_dir="${prefix}restore_recursive_mode_dir"
+    restore_recursive_mode_file="${prefix}restore_recursive_mode_file"
 
     opts=()
     
@@ -234,6 +237,9 @@ case "$command" in
     opts+=( "--restore_zip_pass=${!restore_zip_pass:-}" )
     opts+=( "--restore_zip_inner_dir=${!restore_zip_inner_dir:-}" )
     opts+=( "--restore_zip_inner_file=${!restore_zip_inner_file:-}" )
+    opts+=( "--restore_recursive_mode=${!restore_recursive_mode:-}" )
+    opts+=( "--restore_recursive_mode_dir=${!restore_recursive_mode_dir:-}" )
+    opts+=( "--restore_recursive_mode_file=${!restore_recursive_mode_file:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;

@@ -58,6 +58,9 @@ while getopts ':-:' OPT; do
 		restore_zip_pass ) arg_restore_zip_pass="${OPTARG:-}";;
 		restore_zip_inner_dir ) arg_restore_zip_inner_dir="${OPTARG:-}";;
 		restore_zip_inner_file ) arg_restore_zip_inner_file="${OPTARG:-}";;
+		restore_recursive_mode ) arg_restore_recursive_mode="${OPTARG:-}";;
+		restore_recursive_mode_dir ) arg_restore_recursive_mode_dir="${OPTARG:-}";;
+		restore_recursive_mode_file ) arg_restore_recursive_mode_file="${OPTARG:-}";;
 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -303,6 +306,24 @@ case "$command" in
 				error "$command: $arg_task_kind: invalid value for arg_task_kind"
 			fi
 		fi
+
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			if [ -n "${arg_restore_recursive_mode:-}" ]; then
+				chmod -R "$arg_restore_recursive_mode" "$arg_restore_dest_base_dir_full"
+			fi
+
+			if [ -n "${arg_restore_recursive_mode_dir:-}" ]; then
+				find "$arg_restore_dest_base_dir_full" -type d -print0 \
+					| xargs -0 chmod "$arg_restore_recursive_mode_dir" 
+			fi
+
+			if [ -n "${arg_restore_recursive_mode_file:-}" ]; then
+				find "$arg_restore_dest_base_dir_full" -type f -print0 \
+					| xargs -0 chmod "$arg_restore_recursive_mode_file" 
+			fi
+		SHELL
 
 		info "$command - restored at: $restore_path"
 		;;

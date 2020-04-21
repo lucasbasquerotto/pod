@@ -132,7 +132,7 @@ case "$command" in
     "$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
     ;;
   "local:prepare")
-    "$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" "${arg_opts[@]}"
+    "$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" ${arg_opts[@]+"${arg_opts[@]}"}
     ;;
   "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
     |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
@@ -402,7 +402,7 @@ case "$command" in
     opts+=( "--s3_src=${s3_src:-}" )
     opts+=( "--s3_dest=${s3_dest:-}" )
     opts+=( "--s3_opts" )
-    opts+=( "${s3_opts[@]}" )
+    opts+=( ${s3_opts[@]+"${s3_opts[@]}"} )
 
     inner_cmd="s3:${!cli}:${!cli_cmd}:$arg_s3_cmd"
     info "$command - $inner_cmd"

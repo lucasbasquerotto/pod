@@ -272,6 +272,15 @@ case "$command" in
 			SHELL
 		fi
 		;;
+	"verify")	
+		if [ -z "${arg_task_names:-}" ] ; then
+			info "$command: no tasks defined - skipping..."
+			exit 0
+		fi
+
+		# main command - run verify sub-tasks
+		run_tasks "${arg_task_names:-}"
+		;;  
 	*)
 		error "$command: invalid command"
     ;;

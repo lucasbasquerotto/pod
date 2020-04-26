@@ -3,6 +3,8 @@
 /env-*/
 /custom/
 /custom-*/
+/repo/
+/repo-*/
 /docker-compose.yml
 /docker-compose.run.yml
 /vars.sh

@@ -408,6 +408,22 @@ case "$command" in
     info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;
+  "verify")
+    opts=()
+    opts+=( "--task_names=$var_tasks_verify" )
+		"$pod_script_upgrade_file" backup "${opts[@]}"
+		;;
+  "verify:db:connection:"*)
+    ctx="${command#verify:db:connection:}"
+    prefix="var_verify_db_connection_${ctx}"
+    db_task_name="${prefix}_db_task_name"
+    
+    opts=()
+    
+    opts+=( "--db_task_name=${!db_task_name}" )
+
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		;;
   *)
 		error "$command: invalid command"
     ;;

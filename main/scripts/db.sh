@@ -34,13 +34,16 @@ while getopts ':-:' OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    db_name ) arg_db_name="${OPTARG:-}" ;;
     db_service ) arg_db_service="${OPTARG:-}" ;;
+    db_name ) arg_db_name="${OPTARG:-}" ;;
+    db_host ) arg_db_host="${OPTARG:-}" ;;
+    db_port ) arg_db_port="${OPTARG:-}" ;;
     db_user ) arg_db_user="${OPTARG:-}" ;;
     db_pass ) arg_db_pass="${OPTARG:-}";;
     db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_connect_wait_secs) arg_db_connect_wait_secs="${OPTARG:-}" ;;
     db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}" ;;
+    connection_sleep ) arg_connection_sleep="${OPTARG:-}" ;;
     ??* ) error "Illegal option --$OPT" ;;  # bad long option
     \? )  exit 2 ;;  # bad short option (error reported via getopts)
   esac
@@ -48,7 +51,7 @@ done
 shift $((OPTIND-1))
 
 case "$command" in
-	"restore:verify:mysql")
+	"db:restore:verify:mysql")
     re_number='^[0-9]+$'
 
 		"$pod_script_env_file" up "$arg_db_service"
@@ -87,7 +90,7 @@ case "$command" in
 			echo "false"
 		fi
 		;;
-  "restore:file:mysql")    
+  "db:restore:file:mysql")    
 		if [ -z "$arg_db_task_base_dir" ]; then
 			error "$command: arg_db_task_base_dir not specified"
 		fi
@@ -123,7 +126,7 @@ case "$command" in
 			pv "$db_sql_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
 		SHELL
 		;;
-  "backup:file:mysql")
+  "db:backup:file:mysql")
 		"$pod_script_env_file" up "$arg_db_service"
 
 		backup_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
@@ -133,6 +136,34 @@ case "$command" in
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
+		SHELL
+		;;
+  "db:connection:pg")
+    "$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+      function error {
+        msg="\$(date '+%F %T') \${1:-}"
+        >&2 echo -e "${RED}$command: \${msg}${NC}"
+        exit 2
+      }
+
+			set -eou pipefail
+      
+      end=\$((SECONDS+$arg_db_connect_wait_secs))
+
+      while [ \$SECONDS -lt \$end ]; do
+          if pg_isready \
+            --dbname="$arg_db_name" \
+            --host="$arg_db_host" \
+            --port="$arg_db_port"; \
+            --username="$arg_db_user"
+          then
+            exit
+          fi
+
+          sleep "${arg_connection_sleep:-5}"
+      done
+      
+      error "can't connect to database (dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port, username=$arg_db_user)"
 		SHELL
     ;;
   *)

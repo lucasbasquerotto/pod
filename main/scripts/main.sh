@@ -418,7 +418,7 @@ case "$command" in
   "verify")
     opts=()
     opts+=( "--task_names=$var_tasks_verify" )
-		"$pod_script_upgrade_file" backup "${opts[@]}"
+		"$pod_script_upgrade_file" "$command" "${opts[@]}"
 		;;
   "verify:db:connection:"*)
     ctx="${command#verify:db:connection:}"

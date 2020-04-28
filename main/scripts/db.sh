@@ -154,7 +154,7 @@ case "$command" in
           if pg_isready \
             --dbname="$arg_db_name" \
             --host="$arg_db_host" \
-            --port="$arg_db_port"; \
+            --port="$arg_db_port" \
             --username="$arg_db_user"
           then
             exit

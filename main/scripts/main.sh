@@ -429,7 +429,7 @@ case "$command" in
     
     opts+=( "--db_task_name=${!db_task_name}" )
 
-		"$pod_script_env_file" "$db_task_name" "${opts[@]}"
+		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
 		;;
   *)
 		error "$command: invalid command"

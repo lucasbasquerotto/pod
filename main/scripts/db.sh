@@ -35,6 +35,7 @@ while getopts ':-:' OPT; do
   fi
   case "$OPT" in
     db_service ) arg_db_service="${OPTARG:-}" ;;
+		db_cmd ) arg_db_cmd="${OPTARG:-}" ;;
     db_name ) arg_db_name="${OPTARG:-}" ;;
     db_host ) arg_db_host="${OPTARG:-}" ;;
     db_port ) arg_db_port="${OPTARG:-}" ;;
@@ -139,7 +140,13 @@ case "$command" in
 		SHELL
 		;;
   "db:connection:pg")
-    "$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		cmd_args=( "exec-nontty" )
+
+		if [ "${arg_db_cmd:-}" = "run" ]; then
+			cmd_args=( "run" "--rm" )
+		fi
+
+    "$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
       function error {
         msg="\$(date '+%F %T') \${1:-}"
         >&2 echo -e "${RED}$command: \${msg}${NC}"

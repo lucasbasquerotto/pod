@@ -338,27 +338,28 @@ case "$command" in
     prefix="var_db_${command#db:task:}"
     
     db_service="${prefix}_db_service"
+    db_cmd="${prefix}_db_cmd"
     db_name="${prefix}_db_name"
     db_host="${prefix}_db_host"
     db_port="${prefix}_db_port"
     db_user="${prefix}_db_user"
     db_pass="${prefix}_db_pass"
-    db_task_base_dir="${prefix}_db_task_base_dir"
     db_connect_wait_secs="${prefix}_db_connect_wait_secs"
     db_sql_file_name="${prefix}_db_sql_file_name"
-    connection_sleep="${prefix}_connection_sleep"
 
     opts=()
 
+    opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
+    opts+=( "--db_sql_file_name=${arg_db_sql_file_name:-}" )
+
     opts+=( "--db_service=${!db_service:-}" )
+    opts+=( "--db_cmd=${!db_cmd:-}" )
     opts+=( "--db_name=${!db_name:-}" )
     opts+=( "--db_host=${!db_host:-}" )
     opts+=( "--db_port=${!db_port:-}" )
     opts+=( "--db_user=${!db_user:-}" )
     opts+=( "--db_pass=${!db_pass:-}" )
-    opts+=( "--db_task_base_dir=${!db_task_base_dir:-}" )
     opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
-    opts+=( "--db_sql_file_name=${!db_sql_file_name:-}" )
     opts+=( "--connection_sleep=${!connection_sleep:-}" )
 
 		"$pod_script_db_file" "$arg_db_task_name" "${opts[@]}"

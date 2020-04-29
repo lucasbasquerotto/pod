@@ -141,8 +141,12 @@ case "$command" in
 		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
 		info "$command ($arg_task_name) - $msg"
 
-		dir_ls="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			find "${arg_setup_dest_dir_to_verify}"/ -type f | wc -l)"
+		dir_ls=""
+
+		if [ -d "${arg_setup_dest_dir_to_verify}" ]; then
+			dir_ls="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				find "${arg_setup_dest_dir_to_verify}"/ -type f | wc -l)"
+		fi
 
 		if [ -z "$dir_ls" ]; then
 			dir_ls="0"

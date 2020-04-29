@@ -131,8 +131,14 @@ case "$command" in
   "setup"|"fast-setup")
     "$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
     ;;
+  "prepare")
+    >&2 info "$command - do nothing..."
+    ;;
   "local:prepare")
     "$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" ${arg_opts[@]+"${arg_opts[@]}"}
+    ;;
+  "migrate")
+    >&2 info "$command - do nothing..."
     ;;
   "up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
     |"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")

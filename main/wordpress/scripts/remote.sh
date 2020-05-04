@@ -27,7 +27,7 @@ fi
 shift;
 
 case "$command" in
-  *)
-    "$pod_env_shared_file" "$command" "$@"
-    ;;
+	*)
+		"$pod_env_shared_file" "$command" "$@"
+		;;
 esac

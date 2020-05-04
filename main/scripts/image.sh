@@ -27,6 +27,8 @@ fi
 
 shift;
 
+args=("$@")
+
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
@@ -35,8 +37,10 @@ while getopts ':-:' OPT; do
 	fi
 	case "$OPT" in
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}" ;;
+		container_type ) arg_container_type="${OPTARG:-}" ;;		
 		registry_api_base_url ) arg_registry_api_base_url="${OPTARG:-}" ;;
-		registry_host ) arg_registry_api_base_url="${OPTARG:-}" ;;
+		registry_host ) arg_registry_host="${OPTARG:-}" ;;
+		registry_port ) arg_registry_port="${OPTARG:-}" ;;
 		repository ) arg_repository="${OPTARG:-}" ;;
 		version ) arg_version="${OPTARG:-}" ;;
 		username ) arg_username="${OPTARG:-}" ;;
@@ -68,7 +72,13 @@ case "$command" in
 		SHELL
 		;;
 	"image:push")
-		docker push registry-host:5000/myadmin/rhel-httpd
+		>&2 "$pod_script_env_file" "image:type:$arg_container_type:push" ${args[@]+"${args[@]}"}
+		;;
+	"image:type:docker:push")
+		docker push "${arg_registry_host}":"${arg_registry_port}"/"${arg_repository}"
+		;;
+	"image:type:podman:push")
+		podman push "${arg_registry_host}":"${arg_registry_port}"/"${arg_repository}"
 		;;
 	*)
 		error "$command: Invalid command"

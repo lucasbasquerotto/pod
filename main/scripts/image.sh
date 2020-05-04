@@ -45,6 +45,9 @@ while getopts ':-:' OPT; do
 		version ) arg_version="${OPTARG:-}" ;;
 		username ) arg_username="${OPTARG:-}" ;;
 		pass ) arg_pass="${OPTARG:-}" ;;
+		local_image ) arg_local_image="${OPTARG:-}" ;;
+		remote_tag ) arg_remote_tag="${OPTARG:-}" ;;
+		full_image_name ) arg_full_image_name="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -72,13 +75,17 @@ case "$command" in
 		SHELL
 		;;
 	"image:push")
-		>&2 "$pod_script_env_file" "image:type:$arg_container_type:push" ${args[@]+"${args[@]}"}
+		full_image_name="$arg_registry_host:$arg_registry_port"
+		full_image_name="$full_image_name/$arg_repository:$arg_remote_tag"
+		>&2 docker tag "$arg_local_image" "$full_image_name"
+		>&2 "$pod_script_env_file" "image:type:$arg_container_type:push" \
+			 --full_image_name="$full_image_name"
 		;;
 	"image:type:docker:push")
-		docker push "${arg_registry_host}":"${arg_registry_port}"/"${arg_repository}"
+		docker push "$arg_full_image_name"
 		;;
 	"image:type:podman:push")
-		podman push "${arg_registry_host}":"${arg_registry_port}"/"${arg_repository}"
+		podman push "$arg_full_image_name"
 		;;
 	*)
 		error "$command: Invalid command"

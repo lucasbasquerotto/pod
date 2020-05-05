@@ -88,8 +88,10 @@ while getopts ':-:' OPT; do
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}";;
 		s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
+		s3_remote_src ) arg_s3_remote_src="${OPTARG:-}";;
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
 		s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
+		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
@@ -307,6 +309,7 @@ case "$command" in
 		backup_src_file="${prefix}_backup_src_file"
 		backup_zip_file="${prefix}_backup_zip_file"
 		backup_bucket_static_dir="${prefix}_backup_bucket_static_dir"
+		backup_bucket_sync="${prefix}_backup_bucket_sync"
 		backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
 
 		opts=()
@@ -321,6 +324,7 @@ case "$command" in
 		opts+=( "--backup_src_file=${!backup_src_file:-}" )
 		opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
 		opts+=( "--backup_bucket_static_dir=${!backup_bucket_static_dir:-}" )
+		opts+=( "--backup_bucket_sync=${!backup_bucket_sync:-}" )
 		opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )
 
 		"$pod_script_remote_file" backup "${opts[@]}"
@@ -378,28 +382,64 @@ case "$command" in
 		endpoint="${prefix}_endpoint"
 		bucket_name="${prefix}_bucket_name"
 		bucket_path="${prefix}_bucket_path"
-	
-		bucket_prefix="${!bucket_name:-}"
+		bucket_src_name="${prefix}_bucket_src_name"
+		bucket_src_path="${prefix}_bucket_src_path"
+		bucket_dest_name="${prefix}_bucket_dest_name"
+		bucket_dest_path="${prefix}_bucket_dest_path"
 
-		if [ -n "${!bucket_path:-}" ];then
-			bucket_prefix="${!bucket_name}/${!bucket_path}"
+		bucket_src_name_value="${!bucket_name:-}"
+		bucket_src_path_value="${!bucket_path:-}"
+
+		if [ -n "${!bucket_src_name:-}" ]; then
+			bucket_src_name_value="${!bucket_src_name:-}"
+			bucket_src_path_value="${!bucket_src_path:-}"
+		fi
+	
+		bucket_src_prefix="$bucket_src_name_value"
+
+		if [ -n "$bucket_src_path_value" ]; then
+			bucket_src_prefix="$bucket_src_name_value/$bucket_src_path_value"
 		fi
 
 		s3_src="${arg_s3_src:-}"
 
-		if [ -n "${arg_s3_src_rel:-}" ];then
-			s3_src="$bucket_prefix/$arg_s3_src_rel"
+		if [ "${arg_s3_remote_src:-}" = "true" ]; then
+			s3_src="$bucket_src_prefix"
+
+			if [ -n "${arg_s3_src_rel:-}" ];then
+				s3_src="$s3_src/$arg_s3_src_rel"
+			fi
+
 			s3_src=$(echo "$s3_src" | tr -s /)
 			s3_src="s3://$s3_src"
 		fi
 
+		bucket_dest_name_value="${!bucket_name:-}"
+		bucket_dest_path_value="${!bucket_path:-}"
+
+		if [ -n "${!bucket_dest_name:-}" ]; then
+			bucket_dest_name_value="${!bucket_dest_name:-}"
+			bucket_dest_path_value="${!bucket_dest_path:-}"
+		fi
+	
+		bucket_dest_prefix="$bucket_dest_name_value"
+
+		if [ -n "$bucket_dest_path_value" ]; then
+			bucket_dest_prefix="$bucket_dest_name_value/$bucket_dest_path_value"
+		fi
+
 		s3_dest="${arg_s3_dest:-}"
 
-		if [ -n "${arg_s3_dest_rel:-}" ];then
-			s3_dest="$bucket_prefix/$arg_s3_dest_rel"
+		if [ "${arg_s3_remote_dest:-}" = "true" ]; then
+			s3_dest="$bucket_dest_prefix"
+
+			if [ -n "${arg_s3_dest_rel:-}" ];then
+				s3_dest="$s3_dest/$arg_s3_dest_rel"
+			fi
+
 			s3_dest=$(echo "$s3_dest" | tr -s /)
 			s3_dest="s3://$s3_dest"
-		fi	
+		fi
 		
 		s3_opts=()
 

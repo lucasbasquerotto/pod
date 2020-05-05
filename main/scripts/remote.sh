@@ -44,6 +44,7 @@ while getopts ':-:' OPT; do
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_zip_file ) arg_backup_zip_file="${OPTARG:-}";;
 		backup_bucket_static_dir ) arg_backup_bucket_static_dir="${OPTARG:-}";;
+		backup_bucket_sync ) arg_backup_bucket_sync="${OPTARG:-}";;
 		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
 
 		restore_dest_base_dir ) arg_restore_dest_base_dir="${OPTARG:-}";;
@@ -75,7 +76,7 @@ case "$command" in
 		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
-		if [ -z "${arg_backup_bucket_sync_dir:-}" ]; then			
+		if [ "${backup_bucket_sync:-}" != "true" ]; then			
 			info "$command - create the backup directory ($arg_backup_local_dir)"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" mkdir -p "$arg_backup_local_dir"
 
@@ -117,7 +118,7 @@ case "$command" in
 		else
 			if [ -n "${arg_backup_zip_file:-}" ]; then
 				msg="backup_zip_file (${arg_backup_zip_file:-}) shouldn't be defined when"
-				msg="$msg backup_bucket_sync_dir (${arg_backup_bucket_sync_dir:-}) is defined"
+				msg="$msg backup_bucket_sync is true"
 				error "$command: $msg"
 			fi
 		fi
@@ -130,7 +131,7 @@ case "$command" in
 				>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=create-bucket
 			fi
 
-			if [ -z "${arg_backup_bucket_sync_dir:-}" ]; then
+			if [ "${backup_bucket_sync:-}" != "true" ]; then
 				src="$arg_backup_local_dir/"
 				s3_dest_dir="${arg_backup_bucket_static_dir:-$(basename "$arg_backup_local_dir")}"
 
@@ -138,6 +139,7 @@ case "$command" in
 				>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=sync \
 					--s3_src="$src" \
 					--s3_dest_rel="$s3_dest_dir" \
+					--s3_remote_dest="true" \
 					--s3_file="$arg_backup_zip_file"
 			else
 				s3_file=''
@@ -151,11 +153,12 @@ case "$command" in
 					error "$command: $arg_task_kind: arg_task_kind invalid value"
 				fi
 
-				msg="sync local src directory with bucket - $src to $arg_backup_bucket_sync_dir (s3)"
+				msg="sync local src directory with bucket - $src to ${arg_backup_bucket_sync_dir:-bucket} (s3)"
 				info "$command - $arg_toolbox_service - $arg_task_name_s3 - $msg"
 				>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=sync \
 					--s3_src="$src" \
-					--s3_dest_rel="$arg_backup_bucket_sync_dir" \
+					--s3_dest_rel="${arg_backup_bucket_sync_dir:-}" \
+					--s3_remote_dest="true" \
 					--s3_file="$s3_file"
 			fi
 		fi
@@ -182,6 +185,7 @@ case "$command" in
 			info "$command - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=sync \
 				--s3_src_rel="$arg_restore_remote_bucket_path_dir" \
+				--s3_remote_src="true" \
 				--s3_dest="$arg_restore_dest_base_dir_full" \
 				--s3_file="$s3_file"
 		else

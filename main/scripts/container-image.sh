@@ -55,7 +55,7 @@ done
 shift $((OPTIND-1))
 
 case "$command" in
-	"image:tag:exists")
+	"container:image:tag:exists")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			
@@ -74,18 +74,17 @@ case "$command" in
 			fi
 		SHELL
 		;;
-	"image:push")
+	"container:image:push")
 		full_image_name="$arg_registry_host:$arg_registry_port"
 		full_image_name="$full_image_name/$arg_repository:$arg_remote_tag"
-		>&2 docker tag "$arg_local_image" "$full_image_name"
-		>&2 "$pod_script_env_file" "image:type:$arg_container_type:push" \
+		>&2 "$pod_script_env_file" "container:image:push:$arg_container_type" \
+			 --local_image="$arg_local_image" \
 			 --full_image_name="$full_image_name"
 		;;
-	"image:type:docker:push")
-		docker push "$arg_full_image_name"
-		;;
-	"image:type:podman:push")
-		podman push "$arg_full_image_name"
+	"container:image:push:"*)
+		cmd="${command#container:image:push:}"
+		>&2 "$cmd" tag "$arg_local_image" "$arg_full_image_name"
+		>&2 "$cmd" push "$arg_full_image_name"
 		;;
 	*)
 		error "$command: Invalid command"

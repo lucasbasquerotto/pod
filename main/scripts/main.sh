@@ -277,6 +277,21 @@ case "$command" in
 
 		"$pod_script_upgrade_file" backup "${opts[@]}"
 		;;
+	"backup:ctx:"*)
+		prefix="var_backup_ctx_${command#backup:ctx:}"
+		task_names="${prefix}_task_names"
+
+		opts=()
+
+		opts+=( "--task_names=${!task_names}" )
+		
+		opts+=( "--toolbox_service=$var_general_toolbox_service" )
+		opts+=( "--backup_local_base_dir=$var_general_backup_local_base_dir" )
+		opts+=( "--backup_local_dir=$var_general_backup_local_base_dir/backup-$key" )
+		opts+=( "--backup_delete_old_days=$var_general_backup_delete_old_days" )
+
+		"$pod_script_upgrade_file" backup "${opts[@]}"
+		;;
 	"backup:task:"*)
 		prefix="var_backup_task_${command#backup:task:}"
 		task_name_verify="${prefix}_task_name_verify"

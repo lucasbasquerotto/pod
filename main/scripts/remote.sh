@@ -76,7 +76,7 @@ case "$command" in
 		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
-		if [ "${backup_bucket_sync:-}" != "true" ]; then			
+		if [ "${arg_backup_bucket_sync:-}" != "true" ]; then			
 			info "$command - create the backup directory ($arg_backup_local_dir)"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" mkdir -p "$arg_backup_local_dir"
 
@@ -131,7 +131,7 @@ case "$command" in
 				>&2 "$pod_script_env_file" "$arg_task_name_s3" --s3_cmd=create-bucket
 			fi
 
-			if [ "${backup_bucket_sync:-}" != "true" ]; then
+			if [ "${arg_backup_bucket_sync:-}" != "true" ]; then
 				src="$arg_backup_local_dir/"
 				s3_dest_dir="${arg_backup_bucket_static_dir:-$(basename "$arg_backup_local_dir")}"
 

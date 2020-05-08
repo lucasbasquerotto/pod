@@ -44,9 +44,8 @@ while getopts ':-:' OPT; do
 		repository ) arg_repository="${OPTARG:-}" ;;
 		version ) arg_version="${OPTARG:-}" ;;
 		username ) arg_username="${OPTARG:-}" ;;
-		pass ) arg_pass="${OPTARG:-}" ;;
+		userpass ) arg_userpass="${OPTARG:-}" ;;
 		local_image ) arg_local_image="${OPTARG:-}" ;;
-		remote_tag ) arg_remote_tag="${OPTARG:-}" ;;
 		full_image_name ) arg_full_image_name="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -60,7 +59,7 @@ case "$command" in
 			set -eou pipefail
 			
 			>&2 token="$(curl -s -H "Content-Type: application/json" -X POST \
-				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_pass}"'"}' \
+				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
 				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
 
 			>&2 exists="$(curl -s -H "Authorization: JWT \${token}" \
@@ -75,8 +74,14 @@ case "$command" in
 		SHELL
 		;;
 	"container:image:push")
-		full_image_name="$arg_registry_host:$arg_registry_port"
-		full_image_name="$full_image_name/$arg_repository:$arg_remote_tag"
+		full_image_name="$arg_registry_host"
+
+		if [ "$arg_registry_port" != '80' ] && [ "$arg_registry_port" != '443' ]; then
+			full_image_name="$full_image_name:$arg_registry_port"
+		fi
+
+		full_image_name="$full_image_name/$arg_repository:$arg_version"
+		
 		>&2 "$pod_script_env_file" "container:image:push:$arg_container_type" \
 			 --local_image="$arg_local_image" \
 			 --full_image_name="$full_image_name"

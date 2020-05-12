@@ -13,6 +13,7 @@ pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
+pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -492,6 +493,9 @@ case "$command" in
 		opts+=( "--db_task_name=${!db_task_name}" )
 
 		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		;;
+	"container:image:"*)
+		"$pod_script_container_image_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

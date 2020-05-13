@@ -46,7 +46,13 @@ case "$command" in
 
 		shift;
 
-		sudo docker exec -i "$("$pod_script_env_file" ps -q "$service")" "${@}"
+		container="$("$pod_script_env_file" ps -q "$service")"
+
+		if [ -z "$container" ]; then
+			error "[$command] container not found (or not running) for service $service"
+		fi
+
+		sudo docker exec -i "$container" "${@}"
 		;;
 	"run")
 		cd "$pod_full_dir/"

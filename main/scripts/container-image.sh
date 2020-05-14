@@ -84,9 +84,9 @@ case "$command" in
 	"container:image:push")
 		registry="${arg_registry_host:-}"
 
-		if [ -n "${arg_registry_host:-}" ] 
-		&& [ -n "${arg_registry_port:-}" ] 
-		&& [ "${arg_registry_port:-}" != '80' ] 
+		if [ -n "${arg_registry_host:-}" ] \
+		&& [ -n "${arg_registry_port:-}" ] \
+		&& [ "${arg_registry_port:-}" != '80' ] \
 		&& [ "${arg_registry_port:-}" != '443' ]; then
 			registry="$registry:$arg_registry_port"
 		fi

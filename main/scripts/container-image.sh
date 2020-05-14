@@ -46,6 +46,7 @@ while getopts ':-:' OPT; do
 		username ) arg_username="${OPTARG:-}" ;;
 		userpass ) arg_userpass="${OPTARG:-}" ;;
 		local_image ) arg_local_image="${OPTARG:-}" ;;
+		registry ) arg_registry="${OPTARG:-}" ;;
 		full_image_name ) arg_full_image_name="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -57,6 +58,13 @@ case "$command" in
 	"container:image:tag:exists")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
+			
+			>&2 token="\$(curl -s -H "Content-Type: application/json" -X POST \
+				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
+				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
+
+			>&2 curl -s -H "Authorization: JWT \${token}" \
+				"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000" | echo "curl failed"
 			
 			>&2 token="\$(curl -s -H "Content-Type: application/json" -X POST \
 				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
@@ -74,22 +82,37 @@ case "$command" in
 		SHELL
 		;;
 	"container:image:push")
-		full_image_name="$arg_registry_host"
+		registry="${arg_registry_host:-}"
 
-		if [ "$arg_registry_port" != '80' ] && [ "$arg_registry_port" != '443' ]; then
-			full_image_name="$full_image_name:$arg_registry_port"
+		if [ -n "${arg_registry_host:-}" ] 
+		&& [ -n "${arg_registry_port:-}" ] 
+		&& [ "${arg_registry_port:-}" != '80' ] 
+		&& [ "${arg_registry_port:-}" != '443' ]; then
+			registry="$registry:$arg_registry_port"
 		fi
 
-		full_image_name="$full_image_name/$arg_repository:$arg_version"
+		full_image_name="$arg_repository:$arg_version"
+
+		if [ -n "$registry" ]; then
+			full_image_name="$registry:$full_image_name"
+		fi
 		
 		>&2 "$pod_script_env_file" "container:image:push:$arg_container_type" \
 			 --local_image="$arg_local_image" \
+			 --registry="$registry" \
 			 --full_image_name="$full_image_name"
 		;;
 	"container:image:push:"*)
-		cmd="${command#container:image:push:}"
-		>&2 "$cmd" tag "$arg_local_image" "$arg_full_image_name"
-		>&2 "$cmd" push "$arg_full_image_name"
+		cli="${command#container:image:push:}"
+		registry_args=()
+
+		if [ -n "${arg_registry:-}" ]; then
+			registry_args=( "$arg_registry" )
+		fi
+
+		>&2 "$cli" login --username "$arg_username" --password "$arg_userpass" ${registry_args[@]+"${registry_args[@]}"}
+		>&2 "$cli" tag "$arg_local_image" "$arg_full_image_name"
+		>&2 "$cli" push "$arg_full_image_name"
 		;;
 	*)
 		error "$command: Invalid command"

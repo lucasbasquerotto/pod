@@ -63,13 +63,6 @@ case "$command" in
 				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
 				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
 
-			>&2 curl -s -H "Authorization: JWT \${token}" \
-				"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000" | echo "curl failed"
-			
-			>&2 token="\$(curl -s -H "Content-Type: application/json" -X POST \
-				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
-				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
-
 			>&2 exists="\$(curl -s -H "Authorization: JWT \${token}" \
 				"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000" | \
 				jq -r "[.results | .[] | .name == \"${arg_version}\"] | any")"
@@ -99,6 +92,8 @@ case "$command" in
 		
 		>&2 "$pod_script_env_file" "container:image:push:$arg_container_type" \
 			 --local_image="$arg_local_image" \
+			 --username="$arg_username" \
+			 --userpass="$arg_userpass" \
 			 --registry="$registry" \
 			 --full_image_name="$full_image_name"
 		;;
@@ -110,7 +105,8 @@ case "$command" in
 			registry_args=( "$arg_registry" )
 		fi
 
-		>&2 "$cli" login --username "$arg_username" --password "$arg_userpass" ${registry_args[@]+"${registry_args[@]}"}
+		>&2 "$cli" login --username "$arg_username" --password "$arg_userpass" \
+			${registry_args[@]+"${registry_args[@]}"}
 		>&2 "$cli" tag "$arg_local_image" "$arg_full_image_name"
 		>&2 "$cli" push "$arg_full_image_name"
 		;;

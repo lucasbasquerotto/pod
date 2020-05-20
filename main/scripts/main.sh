@@ -183,8 +183,7 @@ case "$command" in
 		opts+=( "--task_name=$command" )
 		opts+=( "--toolbox_service=$var_general_toolbox_service" )
 
-		opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir}" )
-		
+		opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir:-}" )		
 		opts+=( "--task_name_verify=${!task_name_verify:-}" )
 		opts+=( "--task_name_remote=${!task_name_remote:-}" )
 		opts+=( "--task_name_local=${!task_name_local:-}" )

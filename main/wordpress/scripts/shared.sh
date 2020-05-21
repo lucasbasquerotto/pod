@@ -63,7 +63,7 @@ case "$command" in
 		opts+=( "--setup_local_seed_data=${var_setup_new_wp_db_local_seed_data:-}" )
 		opts+=( "--setup_remote_seed_data=${var_setup_new_wp_db_remote_seed_data:-}" )
 
-		"$pod_env_shared_exec_file" "setup:new:wp:db" "${opts[@]}"
+		"$pod_env_shared_exec_file" "$command" "${opts[@]}"
 		;;
 	*)
 		"$pod_script_run_main_file" "$command" ${args[@]+"${args[@]}"}

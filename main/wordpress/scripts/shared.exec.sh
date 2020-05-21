@@ -56,7 +56,7 @@ done
 shift $((OPTIND-1))
 
 case "$command" in
-	"setup:new:wp:db")
+	"setup:new:wp_db")
 		"$pod_script_env_file" up wordpress
 
 		# Deploy a brand-new Wordpress site (with possibly seeded data)

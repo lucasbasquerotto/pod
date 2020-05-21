@@ -57,9 +57,11 @@ shift $((OPTIND-1))
 
 case "$command" in
 	"setup:new:wp:db")
+		"$pod_script_env_file" up wordpress
+
 		# Deploy a brand-new Wordpress site (with possibly seeded data)
 		info "$command - installation"
-		"$pod_script_env_file" run wordpress \
+		"$pod_script_env_file" exec-nontty wordpress \
 			wp --allow-root core install \
 			--url="$arg_setup_url" \
 			--title="$arg_setup_title" \
@@ -76,16 +78,17 @@ case "$command" in
 
 				if [ -n "$arg_setup_local_seed_data" ]; then
 					info "$command - import local seed data"
-					"$pod_script_env_file" run wordpress \
+					"$pod_script_env_file" exec-nontty wordpress \
 						wp --allow-root import ./"$arg_setup_local_seed_data" --authors=create
 				fi
 
 				if [ -n "$arg_setup_remote_seed_data" ]; then
 					info "$command - import remote seed data"
-					"$pod_script_env_file" run wordpress sh -c \
-						"curl -L -o ./tmp/tmp-seed-data.xml -k '$arg_setup_remote_seed_data' \
-						&& wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
-						&& rm -f ./tmp/tmp-seed-data.xml"
+					"$pod_script_env_file" exec-nontty wordpress /bin/bash <<-SHELL
+						curl -L -o ./tmp/tmp-seed-data.xml -k "$arg_setup_remote_seed_data" \
+							&& wp --allow-root import ./tmp/tmp-seed-data.xml --authors=create \
+							&& rm -f ./tmp/tmp-seed-data.xml
+					SHELL
 				fi
 			fi
 		fi

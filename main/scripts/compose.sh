@@ -66,7 +66,26 @@ case "$command" in
 			sudo docker-compose -f "$run_file" rm --stop -v --force "${@}"
 		fi
 		;;
-	"build"|"stop")
+	"build")
+		cd "$pod_full_dir/"
+
+		if [[ "$#" -eq 0 ]]; then
+			# sudo docker-compose -f "$main_file" pull
+			sudo docker-compose -f "$main_file" build
+
+			if [ -f "$run_file" ]; then
+				# sudo docker-compose -f "$run_file" pull
+				sudo docker-compose -f "$run_file" build
+			fi
+		else
+			sudo docker-compose -f "$main_file" "$command" "${@}"
+
+			if [ -f "$run_file" ]; then
+				sudo docker-compose -f "$run_file" "$command" "${@}"
+			fi
+		fi
+		;;
+	"stop")
 		cd "$pod_full_dir/"
 		sudo docker-compose -f "$main_file" "$command" "${@}"
 

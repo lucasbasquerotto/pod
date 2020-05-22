@@ -41,6 +41,9 @@ case "$command" in
 	"sh"|"bash")
 		sudo docker exec "${1}" /bin/"$command"
 		;;
+	"network")
+		sudo docker network "${@}"
+		;;
 	*)
 		error "$command: invalid command"
 		;;

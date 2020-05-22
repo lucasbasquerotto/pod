@@ -54,6 +54,10 @@ case "$command" in
 
 		sudo docker exec -i "$container" "${@}"
 		;;
+	"run-main")
+		cd "$pod_full_dir/"
+		sudo docker-compose -f "$main_file" run --rm "${@}"
+		;;
 	"run")
 		cd "$pod_full_dir/"
 		sudo docker-compose -f "$run_file" run --rm "${@}"

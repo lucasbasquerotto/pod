@@ -9,6 +9,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 . "${pod_vars_dir}/vars.sh"
 
 pod_script_run_file="$pod_layer_dir/main/scripts/$var_general_orchestration.sh"
+pod_script_container_file="$pod_layer_dir/main/scripts/container.sh"
 pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
@@ -113,7 +114,7 @@ shift $((OPTIND-1))
 start="$(date '+%F %T')"
 
 case "$command" in
-	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 		;;
 	*)
@@ -143,7 +144,7 @@ case "$command" in
 	"migrate")
 		>&2 info "$command - do nothing..."
 		;;
-	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 
 		if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
@@ -168,6 +169,15 @@ case "$command" in
 		opts=()
 		opts+=( "--task_names=$var_tasks_setup" )
 		"$pod_script_upgrade_file" "$inner_cmd" "${opts[@]}"
+		;;
+	"setup:main:network")
+		network_name="${var_env}-${var_ctx}-${var_pod_name}-network"
+		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
+
+		if [ -z "$network_result" ]; then
+			>&2 info "$command - creating the network $network_name..."
+			"$pod_script_container_file" network create -d bridge "$network_name"
+		fi
 		;;
 	"setup:task:"*)
 		prefix="var_setup_task_${command#setup:task:}"
@@ -504,7 +514,7 @@ esac
 end="$(date '+%F %T')"
 
 case "$command" in
-	"up"|"rm"|"exec-nontty"|"build"|"run"|"stop"|"exec" \
+	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 		;;
 	*)

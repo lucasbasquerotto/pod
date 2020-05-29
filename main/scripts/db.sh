@@ -52,6 +52,41 @@ done
 shift $((OPTIND-1))
 
 case "$command" in
+	"db:connect:mysql")
+		re_number='^[0-9]+$'
+
+		"$pod_script_env_file" up "$arg_db_service"
+		
+		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
+		sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
+			mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
+		tables=""
+
+		if [ -n "$sql_output" ]; then
+			tables="$(echo "$sql_output" | tail -n 1)"
+		fi
+
+		if ! [[ $tables =~ $re_number ]] ; then
+			tables=""
+		fi
+
+		if [ -z "$tables" ]; then
+			info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
+			sleep "$arg_db_connect_wait_secs"
+			sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
+				mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
+
+			if [ -n "$sql_output" ]; then
+				tables="$(echo "$sql_output" | tail -n 1)"
+			fi
+		fi
+
+		if ! [[ $tables =~ $re_number ]] ; then
+			error "$command: Couldn't verify number of tables in database - output: $sql_output"
+		fi
+
+		echo "$tables"
+		;;
 	"db:restore:verify:mysql")
 		re_number='^[0-9]+$'
 

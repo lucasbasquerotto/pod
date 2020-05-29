@@ -43,6 +43,7 @@ while getopts ':-:' OPT; do
 		db_port ) arg_db_port="${OPTARG:-}" ;;
 		db_user ) arg_db_user="${OPTARG:-}" ;;
 		db_pass ) arg_db_pass="${OPTARG:-}";;
+		db_remote ) arg_db_remote="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_connect_wait_secs) arg_db_connect_wait_secs="${OPTARG:-}" ;;
 		db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}" ;;
@@ -55,15 +56,20 @@ shift $((OPTIND-1))
 
 case "$command" in
 	"db:main:connect:mysql")
-		tables="$("$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
+		"$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
 		;;
 	"db:main:tables:count:mysql")
 		"$pod_script_env_file" up "$arg_db_service"
 
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
 		re_number='^[0-9]+$'
+		cmd_args=( "exec-nontty" )
 
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		if [ "${arg_db_cmd:-}" = "run" ]; then
+			cmd_args=( "run" )
+		fi
+
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			function info {
@@ -81,8 +87,20 @@ case "$command" in
 			tables=""
 
 			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
-				info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
-				sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
+				current=\$((end-SECONDS))
+				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
+				info "$command - wait for the database $arg_db_name to be ready (\$msg)"
+
+				if [ "$arg_db_remote" = "true" ]; then
+					sql_output="\$(mysql \
+						--user="$arg_db_user" \
+						--host="$arg_db_host" \
+						--port="$arg_db_port" \
+						--password="$arg_db_pass" \
+						-N -e "$sql_tables" 2>&1)" ||:
+				else
+					sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables" 2>&1)" ||:
+				fi
 
 				if [ -n "\$sql_output" ]; then
 					tables="$(echo "\$sql_output" | tail -n 1)"
@@ -100,7 +118,7 @@ case "$command" in
 				fi
 			done
 
-			error "$command: Couldn't verify number of tables in database - output: \$sql_output"
+			error "$command: Couldn't verify number of tables in the database $arg_db_name - output: \$sql_output"
 		SHELL
 		;;
 	"db:restore:verify:mysql")

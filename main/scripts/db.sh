@@ -89,9 +89,9 @@ case "$command" in
 			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
 				current=\$((end-SECONDS))
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
-				info "$command - wait for the database $arg_db_name to be ready (\$msg)"
 
-				if [ "$arg_db_remote" = "true" ]; then
+				if [ "${arg_db_remote:-}" = "true" ]; then
+					info "$command - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
 					sql_output="\$(mysql \
 						--user="$arg_db_user" \
 						--host="$arg_db_host" \
@@ -99,11 +99,12 @@ case "$command" in
 						--password="$arg_db_pass" \
 						-N -e "$sql_tables" 2>&1)" ||:
 				else
+					info "$command - wait for the local database $arg_db_name to be ready (\$msg)"
 					sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables" 2>&1)" ||:
 				fi
 
 				if [ -n "\$sql_output" ]; then
-					tables="$(echo "\$sql_output" | tail -n 1)"
+					tables="\$(echo "\$sql_output" | tail -n 1)"
 				fi
 
 				if ! [[ \$tables =~ $re_number ]] ; then
@@ -118,7 +119,7 @@ case "$command" in
 				fi
 			done
 
-			error "$command: Couldn't verify number of tables in the database $arg_db_name - output: \$sql_output"
+			error "$command: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
 		SHELL
 		;;
 	"db:restore:verify:mysql")

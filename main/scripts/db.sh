@@ -27,6 +27,8 @@ fi
 
 shift;
 
+args=("$@")
+
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
@@ -52,73 +54,57 @@ done
 shift $((OPTIND-1))
 
 case "$command" in
-	"db:connect:mysql")
+	"db:main:connect:mysql")
+		tables="$("$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
+		;;
+	"db:main:tables:count:mysql")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
 		re_number='^[0-9]+$'
 
-		"$pod_script_env_file" up "$arg_db_service"
-		
-		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
-		sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
-			mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
-		tables=""
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+			set -eou pipefail
 
-		if [ -n "$sql_output" ]; then
-			tables="$(echo "$sql_output" | tail -n 1)"
-		fi
+			function info {
+				msg="\$(date '+%F %T') - \${1:-}"
+				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
+			}
 
-		if ! [[ $tables =~ $re_number ]] ; then
+			function error {
+				msg="\$(date '+%F %T') \${1:-}"
+				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				exit 2
+			}
+
+			end=\$((SECONDS+$arg_db_connect_wait_secs))
 			tables=""
-		fi
 
-		if [ -z "$tables" ]; then
-			info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
-			sleep "$arg_db_connect_wait_secs"
-			sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
-				mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
+			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
+				info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
+				sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
 
-			if [ -n "$sql_output" ]; then
-				tables="$(echo "$sql_output" | tail -n 1)"
-			fi
-		fi
+				if [ -n "\$sql_output" ]; then
+					tables="$(echo "\$sql_output" | tail -n 1)"
+				fi
 
-		if ! [[ $tables =~ $re_number ]] ; then
-			error "$command: Couldn't verify number of tables in database - output: $sql_output"
-		fi
+				if ! [[ \$tables =~ $re_number ]] ; then
+					tables=""
+				fi
 
-		echo "$tables"
+				if [ -z "\$tables" ]; then
+					sleep "${arg_connection_sleep:-5}"
+				else
+					echo "\$tables"
+					exit
+				fi
+			done
+
+			error "$command: Couldn't verify number of tables in database - output: \$sql_output"
+		SHELL
 		;;
 	"db:restore:verify:mysql")
-		re_number='^[0-9]+$'
-
-		"$pod_script_env_file" up "$arg_db_service"
-		
-		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
-		sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
-			mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
-		tables=""
-
-		if [ -n "$sql_output" ]; then
-			tables="$(echo "$sql_output" | tail -n 1)"
-		fi
-
-		if ! [[ $tables =~ $re_number ]] ; then
-			tables=""
-		fi
-
-		if [ -z "$tables" ]; then
-			info "$command - wait for db to be ready ($arg_db_connect_wait_secs seconds)"
-			sleep "$arg_db_connect_wait_secs"
-			sql_output="$("$pod_script_env_file" exec-nontty "$arg_db_service" \
-				mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables")" ||:
-
-			if [ -n "$sql_output" ]; then
-				tables="$(echo "$sql_output" | tail -n 1)"
-			fi
-		fi
-
-		if ! [[ $tables =~ $re_number ]] ; then
-			error "$command: Couldn't verify number of tables in database - output: $sql_output"
-		fi
+		tables="$("$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
 
 		if [ "$tables" != "0" ]; then
 			echo "true"
@@ -126,7 +112,7 @@ case "$command" in
 			echo "false"
 		fi
 		;;
-	"db:restore:file:mysql")    
+	"db:restore:file:mysql")
 		if [ -z "$arg_db_task_base_dir" ]; then
 			error "$command: arg_db_task_base_dir not specified"
 		fi
@@ -157,7 +143,7 @@ case "$command" in
 			if [ ! -f "$db_sql_file" ]; then
 				error "$command: db file not found: $db_sql_file"
 			fi
-			
+
 			mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
 			pv "$db_sql_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
 		SHELL
@@ -182,29 +168,29 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
 			function error {
 				msg="\$(date '+%F %T') \${1:-}"
 				>&2 echo -e "${RED}$command: \${msg}${NC}"
 				exit 2
 			}
 
-			set -eou pipefail
-			
 			end=\$((SECONDS+$arg_db_connect_wait_secs))
 
 			while [ \$SECONDS -lt \$end ]; do
-					if pg_isready \
-						--dbname="$arg_db_name" \
-						--host="$arg_db_host" \
-						--port="$arg_db_port" \
-						--username="$arg_db_user"
-					then
-						exit
-					fi
+				if pg_isready \
+					--dbname="$arg_db_name" \
+					--host="$arg_db_host" \
+					--port="$arg_db_port" \
+					--username="$arg_db_user"
+				then
+					exit
+				fi
 
-					sleep "${arg_connection_sleep:-5}"
+				sleep "${arg_connection_sleep:-5}"
 			done
-			
+
 			error "can't connect to database (dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port, username=$arg_db_user)"
 		SHELL
 		;;

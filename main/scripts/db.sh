@@ -179,6 +179,19 @@ case "$command" in
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
 		SHELL
 		;;
+	"db:backup:file:mongo")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		backup_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
+
+		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+			set -eou pipefail
+			mkdir -p "$(dirname -- "$backup_file")"
+			mongodump --host="$arg_db_host" --port="$arg_db_port"
+			mysqldump -u "$arg_db_user" -p"$arg_db_pass" --db="$arg_db_name" > "$backup_file"
+		SHELL
+		;;
 	"db:connection:pg")
 		cmd_args=( "exec-nontty" )
 

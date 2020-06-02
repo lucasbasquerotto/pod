@@ -103,7 +103,7 @@ while getopts ':-:' OPT; do
 		setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
 		backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
-		db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}";;
+		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		opts ) arg_opts=( "${@:OPTIND}" ); break;;
 		??* ) ;;	# bad long option
 		\? )	;;	# bad short option (error reported via getopts)
@@ -269,14 +269,14 @@ case "$command" in
 		ctx="${command#setup:local:db:}"
 		prefix="var_setup_local_${ctx}"
 		db_task_name="${prefix}_db_task_name"
-		db_sql_file_name="${prefix}_db_sql_file_name"
+		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
 		opts+=( "--db_task_base_dir=${arg_setup_dest_base_dir}" )
 
 		opts+=( "--db_task_name=${!db_task_name}" )
-		opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+		opts+=( "--db_file_name=${!db_file_name}" )
 
 		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
 		;;
@@ -362,14 +362,14 @@ case "$command" in
 		ctx="${command#backup:local:db:}"
 		prefix="var_backup_local_${ctx}"
 		db_task_name="${prefix}_db_task_name"
-		db_sql_file_name="${prefix}_db_sql_file_name"
+		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
 		opts+=( "--db_task_base_dir=${arg_backup_src_base_dir}" )
 
 		opts+=( "--db_task_name=${!db_task_name}" )
-		opts+=( "--db_sql_file_name=${!db_sql_file_name}" )
+		opts+=( "--db_file_name=${!db_file_name}" )
 
 		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
 		;;
@@ -384,12 +384,12 @@ case "$command" in
 		db_user="${prefix}_db_user"
 		db_pass="${prefix}_db_pass"
 		db_connect_wait_secs="${prefix}_db_connect_wait_secs"
-		db_sql_file_name="${prefix}_db_sql_file_name"
+		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
 		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
-		opts+=( "--db_sql_file_name=${arg_db_sql_file_name:-}" )
+		opts+=( "--db_file_name=${arg_db_file_name:-}" )
 
 		opts+=( "--db_service=${!db_service:-}" )
 		opts+=( "--db_cmd=${!db_cmd:-}" )

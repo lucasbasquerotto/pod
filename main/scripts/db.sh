@@ -46,7 +46,7 @@ while getopts ':-:' OPT; do
 		db_remote ) arg_db_remote="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_connect_wait_secs) arg_db_connect_wait_secs="${OPTARG:-}" ;;
-		db_sql_file_name ) arg_db_sql_file_name="${OPTARG:-}" ;;
+		db_file_name ) arg_db_file_name="${OPTARG:-}" ;;
 		connection_sleep ) arg_connection_sleep="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -136,11 +136,11 @@ case "$command" in
 			error "$command: arg_db_task_base_dir not specified"
 		fi
 
-		if [ -z "$arg_db_sql_file_name" ]; then
-			error "$command: arg_db_sql_file_name not specified"
+		if [ -z "$arg_db_file_name" ]; then
+			error "$command: arg_db_file_name not specified"
 		fi
 
-		db_sql_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
+		db_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		"$pod_script_env_file" up "$arg_db_service"
 
@@ -153,24 +153,24 @@ case "$command" in
 				exit 2
 			}
 
-			extension=${db_sql_file##*.}
+			extension=${db_file##*.}
 
 			if [ "\$extension" != "sql" ]; then
-				error "$command: db file extension should be sql - found: \$extension ($db_sql_file)"
+				error "$command: db file extension should be sql - found: \$extension ($db_file)"
 			fi
 
-			if [ ! -f "$db_sql_file" ]; then
-				error "$command: db file not found: $db_sql_file"
+			if [ ! -f "$db_file" ]; then
+				error "$command: db file not found: $db_file"
 			fi
 
 			mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
-			pv "$db_sql_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
+			pv "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
 		SHELL
 		;;
 	"db:backup:file:mysql")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		backup_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
+		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
@@ -182,14 +182,35 @@ case "$command" in
 	"db:backup:file:mongo")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		backup_file="$arg_db_task_base_dir/$arg_db_sql_file_name"
+		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+			set -eou pipefail
+			mkdir -p "$arg_db_task_base_dir"
+			mongodump \
+				--host="$arg_db_host" \
+				--port="$arg_db_port" \
+				--username="$arg_db_user" \
+				--password="$arg_db_pass" \
+				--db="$arg_db_name" \
+				--out="$arg_db_task_base_dir"
+		SHELL
+		;;
+	"db:restore:file:mongo")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
-			mongodump --host="$arg_db_host" --port="$arg_db_port"
-			mysqldump -u "$arg_db_user" -p"$arg_db_pass" --db="$arg_db_name" > "$backup_file"
+			mongorestore \
+				--host="$arg_db_host" \
+				--port="$arg_db_port" \
+				--username="$arg_db_user" \
+				--password="$arg_db_pass" \
+				--db="$arg_db_name" \
+				"$backup_file"
 		SHELL
 		;;
 	"db:connection:pg")

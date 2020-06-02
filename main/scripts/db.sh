@@ -165,7 +165,7 @@ case "$command" in
 
 			cmd="cat"
 
-			if command -v pv >/dev/null 2>&1 then
+			if command -v pv >/dev/null 2>&1; then
 				cmd="pv"
 			fi
 

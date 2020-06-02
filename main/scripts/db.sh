@@ -163,8 +163,14 @@ case "$command" in
 				error "$command: db file not found: $db_file"
 			fi
 
+			cmd="cat"
+
+			if command -v pv >/dev/null 2>&1 then
+				cmd="pv"
+			fi
+
 			mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
-			pv "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
+			"\$cmd" "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
 		SHELL
 		;;
 	"db:backup:file:mysql")

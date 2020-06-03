@@ -103,7 +103,7 @@ case "$command" in
 		;;
 	"ps-run")
 		cd "$pod_full_dir/"
-		
+
 		if [ -f "$run_file" ]; then
 			sudo docker-compose -f "$run_file" ps "${@}"
 		fi

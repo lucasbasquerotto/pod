@@ -40,7 +40,7 @@ fi
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	error "No command entered (vars)."
+	error "No command entered (main)."
 fi
 
 shift;
@@ -114,7 +114,7 @@ case "$command" in
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 		;;
 	*)
-		>&2 echo -e "${CYAN}$(date '+%F %T') - vars - $command - start${NC}"
+		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - start${NC}"
 		;;
 esac
 
@@ -123,7 +123,7 @@ case "$command" in
 		"$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"upgrade"|"fast-upgrade"|"update"|"fast-update")
-		"$pod_script_env_file" args "$command" ${args[@]+"${args[@]}"}
+		"$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"stop-to-upgrade")
 		"$pod_script_env_file" stop ${args[@]+"${args[@]}"}
@@ -151,7 +151,7 @@ case "$command" in
 		"$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"main:task:"*)
-		task_name="${command#setup:task:}"
+		task_name="${command#main:task:}"
 		prefix="var_task__${task_name}__task_"
 
 		type="${prefix}_type"
@@ -159,7 +159,7 @@ case "$command" in
 		"$pod_script_env_file" "${!type}:task:$task_name"
 		;;
 	"group:task:"*)
-		task_name="${command#setup:task:}"
+		task_name="${command#group:task:}"
 		prefix="var_task__${task_name}__group_task_"
 
 		task_names="${prefix}_task_names"
@@ -601,7 +601,7 @@ case "$command" in
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 		;;
 	*)
-		>&2 echo -e "${CYAN}$(date '+%F %T') - vars - $command - end${NC}"
-		>&2 echo -e "${PURPLE}[summary] vars - $command - $start - $end${NC}"
+		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - end${NC}"
+		>&2 echo -e "${PURPLE}[summary] main - $command - $start - $end${NC}"
 		;;
 esac

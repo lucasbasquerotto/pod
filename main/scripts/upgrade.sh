@@ -41,8 +41,6 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"			# if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		task_cmds ) arg_task_cmds="${OPTARG:-}";;
-
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		subtask_cmd_verify ) arg_subtask_cmd_verify="${OPTARG:-}";;
@@ -51,9 +49,11 @@ while getopts ':-:' OPT; do
 		subtask_cmd_new ) arg_subtask_cmd_new="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 
+		setup_task_name ) arg_setup_task_name="${OPTARG:-}";;
 		setup_run_new_task ) arg_setup_run_new_task="${OPTARG:-}";;
 		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
 
+		backup_task_name ) arg_backup_task_name="${OPTARG:-}";;
 		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
@@ -90,8 +90,8 @@ case "$command" in
 		info "$command - ended"
 		;;
 	"setup"|"fast-setup")
-		if [ -n "${setup_task_name:-}" ]; then
-			"$pod_script_env_file" "main:task:$setup_task_name"
+		if [ -n "${arg_setup_task_name:-}" ]; then
+			"$pod_script_env_file" "main:task:$arg_setup_task_name"
 		fi
 
 		if [ "$command" = "setup" ]; then
@@ -214,7 +214,7 @@ case "$command" in
 				-ctime +$arg_backup_delete_old_days -empty -delete -print;
 		SHELL
 
-		"$pod_script_env_file" "main:task:$backup_task_name"
+		"$pod_script_env_file" "main:task:$arg_backup_task_name"
 		;;
 	"backup:default")
 		info "$title - started"

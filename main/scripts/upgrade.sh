@@ -35,10 +35,10 @@ shift;
 args=( "$@" )
 
 while getopts ':-:' OPT; do
-	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
-		OPT="${OPTARG%%=*}"       # extract long option name
-		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
-		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+	if [ "$OPT" = "-" ]; then	 # long option: reformulate OPT and OPTARG
+		OPT="${OPTARG%%=*}"			 # extract long option name
+		OPTARG="${OPTARG#$OPT}"	 # extract long option argument (may be empty)
+		OPTARG="${OPTARG#=}"			# if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
 		task_cmds ) arg_task_cmds="${OPTARG:-}";;
@@ -57,29 +57,15 @@ while getopts ':-:' OPT; do
 		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
-		??* ) ;;  # bad long option
-		\? )  exit 2 ;;  # bad short option (error reported via getopts)
+		??* ) ;;	# bad long option
+		\? )	exit 2 ;;	# bad short option (error reported via getopts)
 	esac
 done
 shift $((OPTIND-1))
 
-title="$command - ${arg_task_name:-} (${arg_subtask_cmd:-})"
-
-function run_tasks {
-  run_task_cmds="${1:-}"
-
-	info "run_task_cmds: $run_task_cmds"
-
-  if [ -n "${run_task_cmds:-}" ]; then
-    IFS=',' read -r -a tmp <<< "${run_task_cmds}"
-    arr=("${tmp[@]}")
-
-    for task_cmd in "${arr[@]}"; do
-      "$pod_script_env_file" "$task_cmd" "${args[@]}" \
-        --task_cmd="$task_cmd"
-    done
-  fi
-}
+title="$command"
+[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
+[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
 	"upgrade"|"fast-upgrade"|"update"|"fast-update")
@@ -104,11 +90,13 @@ case "$command" in
 		info "$command - ended"
 		;;
 	"setup"|"fast-setup")
-		run_tasks "${arg_task_cmds:-}"
+		if [ -n "${setup_task_name:-}" ]; then
+			"$pod_script_env_file" "main:task:$setup_task_name"
+		fi
 
-    if [ "$command" = "setup" ]; then
-      "$pod_script_env_file" migrate "${args[@]}"
-    fi
+		if [ "$command" = "setup" ]; then
+			"$pod_script_env_file" migrate "${args[@]}"
+		fi
 		;;
 	"setup:default")
 		info "$title - start needed services"
@@ -201,7 +189,7 @@ case "$command" in
 			error "$command: $msg"
 		fi
 
-    re_number='^[0-9]+$'
+		re_number='^[0-9]+$'
 
 		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
 			msg="The variable 'backup_delete_old_days' should be a number"
@@ -226,8 +214,7 @@ case "$command" in
 				-ctime +$arg_backup_delete_old_days -empty -delete -print;
 		SHELL
 
-		# main command - run backup sub-tasks
-		run_tasks "${arg_task_cmds:-}"
+		"$pod_script_env_file" "main:task:$backup_task_name"
 		;;
 	"backup:default")
 		info "$title - started"
@@ -309,5 +296,5 @@ case "$command" in
 		;;
 	*)
 		error "$command: invalid command"
-    ;;
+		;;
 esac

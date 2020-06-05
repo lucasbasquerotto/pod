@@ -50,15 +50,6 @@ key="$(date '+%Y%m%d_%H%M%S_%3N')"
 cmd_path="$(echo "$command" | tr : -)"
 
 case "$command" in
-	"args"|"args:"*)
-		inner_cmd="${1:-}"
-
-		if [ -z "$inner_cmd" ]; then
-			error "$command: inner command not specified"
-		fi
-
-		shift;
-		;;
 	"u")
 		command="upgrade"
 		;;
@@ -69,8 +60,7 @@ case "$command" in
 		command="fast-update"
 		;;
 	"s")
-		command="args"
-		inner_cmd="fast-setup"
+		command="fast-setup"
 		;;
 	"p")
 		command="env"
@@ -113,6 +103,10 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
+title="$command"
+[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
+[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+
 start="$(date '+%F %T')"
 
 case "$command" in
@@ -134,9 +128,6 @@ case "$command" in
 	"stop-to-upgrade")
 		"$pod_script_env_file" stop ${args[@]+"${args[@]}"}
 		;;
-	"setup"|"fast-setup")
-		"$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
-		;;
 	"prepare")
 		>&2 info "$command - do nothing..."
 		;;
@@ -149,28 +140,47 @@ case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
 
-		if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
-			export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
+		if [ -n "${var_orchestration__main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
+			export ORCHESTRATION_MAIN_FILE="$var_orchestration__main_file"
 		fi
 
-		if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
-			export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
+		if [ -n "${var_orchestration__run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
+			export ORCHESTRATION_RUN_FILE="$var_orchestration__run_file"
 		fi
 
 		"$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
-	"args")
-		if [ -n "${var_orchestration_main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
-			export ORCHESTRATION_MAIN_FILE="$var_orchestration_main_file"
-		fi
+	"main:task:"*)
+		task_name="${command#setup:task:}"
+		prefix="var_task__${task_name}__task_"
 
-		if [ -n "${var_orchestration_run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
-			export ORCHESTRATION_RUN_FILE="$var_orchestration_run_file"
-		fi
+		type="${prefix}_type"
 
+		"$pod_script_env_file" "${!type}:task:$task_name"
+		;;
+	"group:task:"*)
+		task_name="${command#setup:task:}"
+		prefix="var_task__${task_name}__group_task_"
+
+		task_names="${prefix}_task_names"
+
+		task_names_values="${!task_names:-}"
+
+		info "[$task_name] group tasks: $task_names_values"
+
+		if [ -n "$task_names_values" ]; then
+			IFS=',' read -r -a tmp <<< "$task_names_values"
+			arr=("${tmp[@]}")
+
+			for task_name in "${arr[@]}"; do
+				"$pod_script_env_file" "main:task:$task_name"
+			done
+		fi
+		;;
+	"setup"|"fast-setup")
 		opts=()
-		opts+=( "--task_cmds=$var_run__tasks__setup" )
-		"$pod_script_upgrade_file" "$inner_cmd" "${opts[@]}"
+		opts+=( "--setup_task_name=${var_run__tasks__setup:-}" )
+		"$pod_script_upgrade_file" "$command" "${opts[@]}"
 		;;
 	"setup:main:network")
 		network_name="${var_main__env}-${var_main__ctx}-${var_main__pod_name}-network"
@@ -299,7 +309,7 @@ case "$command" in
 	"backup")
 		opts=()
 
-		opts+=( "--task_cmds=$var_run__tasks__backup" )
+		opts+=( "--backup_task_name=$var_run__tasks__backup" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
 		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )

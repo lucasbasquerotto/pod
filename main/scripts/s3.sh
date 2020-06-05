@@ -43,7 +43,9 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command - ${arg_task_name:-} (${arg_subtask_cmd:-})"
+title="$command"
+[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
+[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 function awscli_general {
 	>&2 echo ">$1 $arg_s3_service: aws ${*:2}"

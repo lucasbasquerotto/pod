@@ -6,8 +6,8 @@ pod_layer_dir="$POD_LAYER_DIR"
 pod_full_dir="$POD_FULL_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
-run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"
+main_file="${var_orchestration__main_file:-docker-compose.yml}"
+run_file="${var_orchestration__run_file:-docker-compose.run.yml}"
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color

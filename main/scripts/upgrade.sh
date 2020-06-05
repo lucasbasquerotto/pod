@@ -41,13 +41,14 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		task_names ) arg_task_names="${OPTARG:-}";;
+		task_cmds ) arg_task_cmds="${OPTARG:-}";;
 
 		task_name ) arg_task_name="${OPTARG:-}";;
-		task_name_verify ) arg_task_name_verify="${OPTARG:-}";;
-		task_name_remote ) arg_task_name_remote="${OPTARG:-}";;
-		task_name_local ) arg_task_name_local="${OPTARG:-}";;
-		task_name_new ) arg_task_name_new="${OPTARG:-}";;
+		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
+		subtask_cmd_verify ) arg_subtask_cmd_verify="${OPTARG:-}";;
+		subtask_cmd_remote ) arg_subtask_cmd_remote="${OPTARG:-}";;
+		subtask_cmd_local ) arg_subtask_cmd_local="${OPTARG:-}";;
+		subtask_cmd_new ) arg_subtask_cmd_new="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 
 		setup_run_new_task ) arg_setup_run_new_task="${OPTARG:-}";;
@@ -62,18 +63,20 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
+title="$command - ${arg_task_name:-} (${arg_subtask_cmd:-})"
+
 function run_tasks {
-  run_task_names="${1:-}"
+  run_task_cmds="${1:-}"
 
-	info "run_task_names: $run_task_names"
+	info "run_task_cmds: $run_task_cmds"
 
-  if [ -n "${run_task_names:-}" ]; then
-    IFS=',' read -r -a tmp <<< "${run_task_names}"
+  if [ -n "${run_task_cmds:-}" ]; then
+    IFS=',' read -r -a tmp <<< "${run_task_cmds}"
     arr=("${tmp[@]}")
 
-    for task_name in "${arr[@]}"; do
-      "$pod_script_env_file" "$task_name" "${args[@]}" \
-        --task_name="$task_name"
+    for task_cmd in "${arr[@]}"; do
+      "$pod_script_env_file" "$task_cmd" "${args[@]}" \
+        --task_cmd="$task_cmd"
     done
   fi
 }
@@ -101,45 +104,45 @@ case "$command" in
 		info "$command - ended"
 		;;
 	"setup"|"fast-setup")
-		run_tasks "${arg_task_names:-}"
+		run_tasks "${arg_task_cmds:-}"
 
     if [ "$command" = "setup" ]; then
       "$pod_script_env_file" migrate "${args[@]}"
     fi
 		;;
 	"setup:default")
-		info "$command ($arg_task_name) - start needed services"
+		info "$title - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
 		msg="verify if the setup should be done"
-		info "$command ($arg_task_name) - $msg "
-		skip="$("$pod_script_env_file" "${arg_task_name_verify}" "${args[@]}")"
+		info "$title - $msg"
+		skip="$("$pod_script_env_file" "$arg_subtask_cmd_verify" "${args[@]}")"
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="value of the verification should be true or false"
 			msg="$msg - result: $skip"
-			error "$command ($arg_task_name): $msg"
+			error "$title: $msg"
 		fi
 
 		if [ "$skip" = "true" ]; then
-			echo "$(date '+%F %T') - $command ($arg_task_name) - skipping..."
+			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		elif [ "${arg_setup_run_new_task:-}" = "true" ]; then
-			"$pod_script_env_file" "${arg_task_name_new}"
+			"$pod_script_env_file" "${arg_subtask_cmd_new}"
 		else
-			if [ -n "${arg_task_name_remote:-}" ]; then
-				info "$command ($arg_task_name) - restore - remote"
-				"$pod_script_env_file" "${arg_task_name_remote}" "${args[@]}"
+			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
+				info "$title - restore - remote"
+				"$pod_script_env_file" "${arg_subtask_cmd_remote}" "${args[@]}"
 			fi
 
-			if [ -n "${arg_task_name_local:-}" ]; then
-				info "$command ($arg_task_name) - restore - local"
-				"$pod_script_env_file" "${arg_task_name_local}" "${args[@]}"
+			if [ -n "${arg_subtask_cmd_local:-}" ]; then
+				info "$title - restore - local"
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" "${args[@]}"
 			fi
 		fi
 		;;
 	"setup:verify")
 		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
-		info "$command ($arg_task_name) - $msg"
+		info "$title - $msg"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
@@ -178,7 +181,7 @@ case "$command" in
 		SHELL
 		;;
 	"backup")
-		if [ -z "${arg_task_names:-}" ] ; then
+		if [ -z "${arg_task_cmds:-}" ] ; then
 			info "$command: no tasks defined - skipping..."
 			exit 0
 		fi
@@ -224,19 +227,19 @@ case "$command" in
 		SHELL
 
 		# main command - run backup sub-tasks
-		run_tasks "${arg_task_names:-}"
+		run_tasks "${arg_task_cmds:-}"
 		;;
 	"backup:default")
-		info "$command ($arg_task_name) - started"
+		info "$title - started"
 
 		if [ -z "${arg_backup_local_dir:-}" ] ; then
 			msg="The variable 'backup_local_dir' is not defined"
-			error "$command ($arg_task_name): $msg"
+			error "$title: $msg"
 		fi
 
 		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
 			msg="The variable 'backup_delete_old_days' is not defined"
-			error "$command ($arg_task_name): $msg"
+			error "$title: $msg"
 		fi
 
 		re_number='^[0-9]+$'
@@ -244,24 +247,24 @@ case "$command" in
 		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
 			msg="The variable 'backup_delete_old_days' should be a number"
 			msg="$msg (value=$arg_backup_delete_old_days)"
-			error "$command ($arg_task_name): $msg"
+			error "$title: $msg"
 		fi
 
-		if [ -z "${arg_task_name_verify:-}" ]; then
+		if [ -z "${arg_subtask_cmd_verify:-}" ]; then
 			skip="false"
 		else
-			info "$command ($arg_task_name) - verify if the backup should be done"
-			skip="$("$pod_script_env_file" "${arg_task_name_verify}" "${args[@]}")"
+			info "$title - verify if the backup should be done"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" "${args[@]}")"
 		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="value of the verification should be true or false"
 			msg="$msg - result: $skip"
-			error "$command ($arg_task_name): $msg"
+			error "$title: $msg"
 		fi
 
 		if [ "$skip" = "true" ]; then
-			echo "$(date '+%F %T') - $command ($arg_task_name) - skipping..."
+			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		else
 			info "$command - start needed services"
 			"$pod_script_env_file" up "$arg_toolbox_service"
@@ -271,17 +274,17 @@ case "$command" in
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 				mkdir -p "$arg_backup_local_dir"
 
-			if [ -n "${arg_task_name_local:-}" ]; then
-				info "$command ($arg_task_name) - backup - local"
-				"$pod_script_env_file" "${arg_task_name_local}" "${args[@]}"
+			if [ -n "${arg_subtask_cmd_local:-}" ]; then
+				info "$title - backup - local"
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" "${args[@]}"
 			fi
 
-			if [ -n "${arg_task_name_remote:-}" ]; then
-				info "$command ($arg_task_name) - backup - remote"
-				"$pod_script_env_file" "${arg_task_name_remote}" "${args[@]}"
+			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
+				info "$title - backup - remote"
+				"$pod_script_env_file" "${arg_subtask_cmd_remote}" "${args[@]}"
 			fi
 
-			info "$command ($arg_task_name) - clear old files"
+			info "$title - clear old files"
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
@@ -296,13 +299,13 @@ case "$command" in
 		fi
 		;;
 	"verify")
-		if [ -z "${arg_task_names:-}" ] ; then
+		if [ -z "${arg_task_cmds:-}" ] ; then
 			info "$command: no tasks defined - skipping..."
 			exit 0
 		fi
 
 		# main command - run verify sub-tasks
-		run_tasks "${arg_task_names:-}"
+		run_tasks "${arg_task_cmds:-}"
 		;;
 	*)
 		error "$command: invalid command"

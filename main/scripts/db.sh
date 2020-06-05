@@ -36,6 +36,8 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
+		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		db_service ) arg_db_service="${OPTARG:-}" ;;
 		db_cmd ) arg_db_cmd="${OPTARG:-}" ;;
 		db_name ) arg_db_name="${OPTARG:-}" ;;
@@ -54,9 +56,11 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
+title="$command - ${arg_task_name:-} (${arg_subtask_cmd:-})"
+
 case "$command" in
 	"db:main:connect:mysql")
-		"$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
+		"$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
 		;;
 	"db:main:tables:count:mysql")
 		"$pod_script_env_file" up "$arg_db_service"
@@ -91,7 +95,7 @@ case "$command" in
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
 				if [ "${arg_db_remote:-}" = "true" ]; then
-					info "$command - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
+					info "$title - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
 					sql_output="\$(mysql \
 						--user="$arg_db_user" \
 						--host="$arg_db_host" \
@@ -99,7 +103,7 @@ case "$command" in
 						--password="$arg_db_pass" \
 						-N -e "$sql_tables" 2>&1)" ||:
 				else
-					info "$command - wait for the local database $arg_db_name to be ready (\$msg)"
+					info "$title - wait for the local database $arg_db_name to be ready (\$msg)"
 					sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables" 2>&1)" ||:
 				fi
 
@@ -119,11 +123,11 @@ case "$command" in
 				fi
 			done
 
-			error "$command: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
+			error "$title: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
 		SHELL
 		;;
 	"db:restore:verify:mysql")
-		tables="$("$pod_script_env_file" "db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
+		tables="$("$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
 
 		if [ "$tables" != "0" ]; then
 			echo "true"
@@ -133,11 +137,11 @@ case "$command" in
 		;;
 	"db:restore:file:mysql")
 		if [ -z "$arg_db_task_base_dir" ]; then
-			error "$command: arg_db_task_base_dir not specified"
+			error "$title: arg_db_task_base_dir not specified"
 		fi
 
 		if [ -z "$arg_db_file_name" ]; then
-			error "$command: arg_db_file_name not specified"
+			error "$title: arg_db_file_name not specified"
 		fi
 
 		db_file="$arg_db_task_base_dir/$arg_db_file_name"
@@ -156,11 +160,11 @@ case "$command" in
 			extension=${db_file##*.}
 
 			if [ "\$extension" != "sql" ]; then
-				error "$command: db file extension should be sql - found: \$extension ($db_file)"
+				error "$title: db file extension should be sql - found: \$extension ($db_file)"
 			fi
 
 			if [ ! -f "$db_file" ]; then
-				error "$command: db file not found: $db_file"
+				error "$title: db file not found: $db_file"
 			fi
 
 			cmd="cat"
@@ -178,7 +182,7 @@ case "$command" in
 
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
-		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
@@ -188,7 +192,7 @@ case "$command" in
 	"db:backup:file:mongo")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mkdir -p "$arg_db_task_base_dir"
@@ -206,7 +210,7 @@ case "$command" in
 
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
-		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
@@ -254,6 +258,6 @@ case "$command" in
 		SHELL
 		;;
 	*)
-		error "$command: Invalid command"
+		error "$title: Invalid command"
 		;;
 esac

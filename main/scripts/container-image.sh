@@ -36,8 +36,10 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
+		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}" ;;
-		container_type ) arg_container_type="${OPTARG:-}" ;;		
+		container_type ) arg_container_type="${OPTARG:-}" ;;
 		registry_api_base_url ) arg_registry_api_base_url="${OPTARG:-}" ;;
 		registry_host ) arg_registry_host="${OPTARG:-}" ;;
 		registry_port ) arg_registry_port="${OPTARG:-}" ;;
@@ -58,7 +60,7 @@ case "$command" in
 	"container:image:tag:exists")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
-			
+
 			>&2 token="\$(curl -s -H "Content-Type: application/json" -X POST \
 				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
 				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
@@ -69,7 +71,7 @@ case "$command" in
 
 			if [ "\$exists" = "true" ]; then
 				echo "true"
-			else 
+			else
 				echo "false"
 			fi
 		SHELL
@@ -89,13 +91,16 @@ case "$command" in
 		if [ -n "$registry" ]; then
 			full_image_name="$registry:$full_image_name"
 		fi
-		
-		>&2 "$pod_script_env_file" "container:image:push:$arg_container_type" \
-			 --local_image="$arg_local_image" \
-			 --username="$arg_username" \
-			 --userpass="$arg_userpass" \
-			 --registry="$registry" \
-			 --full_image_name="$full_image_name"
+
+		>&2 "$pod_script_env_file" "run:container:image:push:$arg_container_type" \
+			--local_image="$arg_local_image" \
+			--username="$arg_username" \
+			--userpass="$arg_userpass" \
+			--registry="$registry" \
+			--full_image_name="$full_image_name" \
+			--task_name="$arg_task_name" \
+			--subtask_cmd="$arg_subtask_cmd" \
+
 		;;
 	"container:image:push:"*)
 		cli="${command#container:image:push:}"

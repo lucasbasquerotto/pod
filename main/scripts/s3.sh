@@ -29,17 +29,21 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
+		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		s3_service ) arg_s3_service="${OPTARG:-}";;
 		s3_endpoint ) arg_s3_endpoint="${OPTARG:-}";;
 		s3_bucket_name ) arg_s3_bucket_name="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}" ;;
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
-		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;; 
+		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
 done
 shift $((OPTIND-1))
+
+title="$command - ${arg_task_name:-} (${arg_subtask_cmd:-})"
 
 function awscli_general {
 	>&2 echo ">$1 $arg_s3_service: aws ${*:2}"
@@ -61,19 +65,19 @@ function awscli_is_empty_bucket {
 	mkdir -p "$error_log_dir"
 
 	error_filename="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
-	error_log_file="$error_log_dir/$error_filename"	
+	error_log_file="$error_log_dir/$error_filename"
 
 	if ! awscli_general "$cmd" \
 		s3 --endpoint="$arg_s3_endpoint" \
 		ls "s3://$arg_s3_bucket_name" \
-		2> "$error_log_file"; 
+		2> "$error_log_file";
 	then
 		if grep -q 'NoSuchBucket' "$error_log_file"; then
 			echo "true"
 			exit 0
 		fi
 	fi
-		
+
 	echo "false"
 }
 
@@ -87,7 +91,7 @@ function awscli_rb {
 	elif [ "$empty_bucket" = "false" ]; then
 		awscli_general "$cmd" s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 	else
-		error "$command - awscli_rb: invalid result (empty_bucket should be true or false): $empty_bucket"
+		error "$title - awscli_rb: invalid result (empty_bucket should be true or false): $empty_bucket"
 	fi
 }
 

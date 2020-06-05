@@ -17,12 +17,12 @@
 {% set var_run_custom = params.run_custom | default({}) %}
 
 {% set ns_run = namespace(vars={
-  'var_env': var_params.env_name,
-  'var_ctx': var_params.ctx_name,
-  'var_pod_name': var_params.pod.name,
-  'var_pod_inner_dir': var_pod_inner_dir,
-  'var_pod_env_dir': var_params.pod.env_dir,
-  'var_env_local_repo': var_params.pod.env_local_repo
+  'var_main__env': var_params.env_name,
+  'var_main__ctx': var_params.ctx_name,
+  'var_main__pod_name': var_params.pod.name,
+  'var_main__pod_inner_dir': var_pod_inner_dir,
+  'var_main__pod_env_dir': var_params.pod.env_dir,
+  'var_main__env_local_repo': var_params.pod.env_local_repo
 }) %}
 
 {% if (var_run | dict2items | list | length) > 0 %}

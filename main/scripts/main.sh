@@ -8,7 +8,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
-pod_script_run_file="$pod_layer_dir/main/scripts/$var_general_orchestration.sh"
+pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestration.sh"
 pod_script_container_file="$pod_layer_dir/main/scripts/container.sh"
 pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
 pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
@@ -87,6 +87,8 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"			# if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
+		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}";;
 		s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
@@ -97,7 +99,7 @@ while getopts ':-:' OPT; do
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
-		db_task_name ) arg_db_task_name="${OPTARG:-}";;
+		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
 		env_local_repo ) arg_env_local_repo="${OPTARG:-}";;
 		ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";;
 		setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
@@ -167,11 +169,11 @@ case "$command" in
 		fi
 
 		opts=()
-		opts+=( "--task_names=$var_tasks_setup" )
+		opts+=( "--task_cmds=$var_run__tasks__setup" )
 		"$pod_script_upgrade_file" "$inner_cmd" "${opts[@]}"
 		;;
 	"setup:main:network")
-		network_name="${var_env}-${var_ctx}-${var_pod_name}-network"
+		network_name="${var_main__env}-${var_main__ctx}-${var_main__pod_name}-network"
 		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
 
 		if [ -z "$network_result" ]; then
@@ -180,52 +182,62 @@ case "$command" in
 		fi
 		;;
 	"setup:task:"*)
-		prefix="var_setup_task_${command#setup:task:}"
-		task_name_verify="${prefix}_task_name_verify"
-		task_name_remote="${prefix}_task_name_remote"
-		task_name_local="${prefix}_task_name_local"
-		task_name_new="${prefix}_task_name_new"
+		task_name="${command#setup:task:}"
+		prefix="var_task__${task_name}__setup_task_"
+
+		subtask_cmd_verify="${prefix}_subtask_cmd_verify"
+		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
+		subtask_cmd_local="${prefix}_subtask_cmd_local"
+		subtask_cmd_new="${prefix}_subtask_cmd_new"
 		setup_run_new_task="${prefix}_setup_run_new_task"
 		setup_dest_base_dir="${prefix}_setup_dest_base_dir"
 
 		opts=()
 
-		opts+=( "--task_name=$command" )
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
 		opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir:-}" )
-		opts+=( "--task_name_verify=${!task_name_verify:-}" )
-		opts+=( "--task_name_remote=${!task_name_remote:-}" )
-		opts+=( "--task_name_local=${!task_name_local:-}" )
-		opts+=( "--task_name_new=${!task_name_new:-}" )
+		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
+		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
+		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
+		opts+=( "--subtask_cmd_new=${!subtask_cmd_new:-}" )
 		opts+=( "--setup_run_new_task=${!setup_run_new_task:-}" )
 
 		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
 		;;
-	"setup:verify:db:"*)
-		ctx="${command#setup:verify:db:}"
-		prefix="var_setup_verify_${ctx}"
-		db_task_name="${prefix}_db_task_name"
-		"$pod_script_env_file" "db:task:$ctx" --db_task_name="${!db_task_name}"
+	"setup:verify:db")
+		prefix="var_task__${arg_task_name}__setup_verify_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
+
+		opts=()
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
+
+		"$pod_script_env_file" "db:run" "${opts[@]}"
 		;;
-	"setup:verify:default:"*)
-		prefix="var_setup_verify_${command#setup:verify:default:}"
+	"setup:verify:default")
+		prefix="var_task__${arg_task_name}__setup_verify_"
+
 		setup_dest_dir_to_verify="${prefix}_setup_dest_dir_to_verify"
 
 		opts=()
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--toolbox_service=$arg_toolbox_service" )
+
 		opts+=( "--setup_dest_dir_to_verify=${!setup_dest_dir_to_verify}" )
 
-		if [ -z "${arg_task_name:-}" ]; then
-			opts+=( "--task_name=$command" )
-		fi
-
-		"$pod_script_upgrade_file" "setup:verify" "${opts[@]}" ${args[@]+"${args[@]}"}
+		"$pod_script_upgrade_file" "setup:verify" "${opts[@]}"
 		;;
-	"setup:remote:default:"*)
-		prefix="var_setup_remote_${command#setup:remote:default:}"
+	"setup:remote:default")
+		prefix="var_task__${arg_task_name}__setup_remote_"
 
 		task_kind="${prefix}_task_kind"
-		task_name_s3="${prefix}_task_name_s3"
+		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		restore_dest_file="${prefix}_restore_dest_file"
 		restore_tmp_dir="${prefix}_restore_tmp_dir"
 		restore_local_file="${prefix}_restore_local_file"
@@ -242,14 +254,16 @@ case "$command" in
 
 		opts=()
 
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--restore_zip_tmp_file_name=$cmd_path-$key.zip" )
 		opts+=( "--restore_dest_base_dir=${arg_setup_dest_base_dir}" )
 
 		opts+=( "--restore_tmp_dir=${!restore_tmp_dir}" )
 
 		opts+=( "--task_kind=${!task_kind:-}" )
-		opts+=( "--task_name_s3=${!task_name_s3:-}" )
+		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
 		opts+=( "--restore_local_file=${!restore_local_file:-}" )
 		opts+=( "--restore_remote_file=${!restore_remote_file:-}" )
@@ -265,75 +279,71 @@ case "$command" in
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
-	"setup:local:db:"*)
-		ctx="${command#setup:local:db:}"
-		prefix="var_setup_local_${ctx}"
-		db_task_name="${prefix}_db_task_name"
+	"setup:local:db")
+		prefix="var_task__${arg_task_name}__setup_local_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
-		opts+=( "--db_task_base_dir=${arg_setup_dest_base_dir}" )
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--db_task_base_dir=$arg_setup_dest_base_dir" )
 
-		opts+=( "--db_task_name=${!db_task_name}" )
+		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 		opts+=( "--db_file_name=${!db_file_name}" )
 
-		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		"$pod_script_env_file" "db:run" "${opts[@]}"
 		;;
 	"backup")
 		opts=()
 
-		opts+=( "--task_names=$var_tasks_backup" )
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
-		opts+=( "--backup_local_base_dir=$var_general_backup_local_base_dir" )
-		opts+=( "--backup_local_dir=$var_general_backup_local_base_dir/backup-$key" )
-		opts+=( "--backup_delete_old_days=$var_general_backup_delete_old_days" )
-
-		"$pod_script_upgrade_file" backup "${opts[@]}"
-		;;
-	"backup:ctx:"*)
-		prefix="var_backup_ctx_${command#backup:ctx:}"
-		task_names="${prefix}_task_names"
-
-		opts=()
-
-		opts+=( "--task_names=${!task_names}" )
-
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
-		opts+=( "--backup_local_base_dir=$var_general_backup_local_base_dir" )
-		opts+=( "--backup_local_dir=$var_general_backup_local_base_dir/backup-$key" )
-		opts+=( "--backup_delete_old_days=$var_general_backup_delete_old_days" )
+		opts+=( "--task_cmds=$var_run__tasks__backup" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
+		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
+		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )
+		opts+=( "--backup_delete_old_days=$var_run__general__backup_delete_old_days" )
 
 		"$pod_script_upgrade_file" backup "${opts[@]}"
 		;;
 	"backup:task:"*)
-		prefix="var_backup_task_${command#backup:task:}"
-		task_name_verify="${prefix}_task_name_verify"
-		task_name_local="${prefix}_task_name_local"
-		task_name_remote="${prefix}_task_name_remote"
+		task_name="${command#backup:task:}"
+		prefix="var_task__${task_name}__backup_task_"
+
+		subtask_cmd_verify="${prefix}_subtask_cmd_verify"
+		subtask_cmd_local="${prefix}_subtask_cmd_local"
+		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		backup_src_base_dir="${prefix}_backup_src_base_dir"
 		backup_local_static_dir="${prefix}_backup_local_static_dir"
 		backup_delete_old_days="${prefix}_backup_delete_old_days"
 
 		opts=()
 
-		opts+=( "--task_name=$command" )
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
+		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
+		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )
+		opts+=( "--backup_delete_old_days=$var_run__general__backup_delete_old_days" )
 
 		opts+=( "--backup_local_dir=${!backup_local_static_dir:-$arg_backup_local_dir}" )
 		opts+=( "--backup_delete_old_days=${!backup_delete_old_days:-$arg_backup_delete_old_days}" )
 
-		opts+=( "--task_name_verify=${!task_name_verify:-}" )
-		opts+=( "--task_name_local=${!task_name_local:-}" )
-		opts+=( "--task_name_remote=${!task_name_remote:-}" )
+		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
+		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
+		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
 		opts+=( "--backup_src_base_dir=${!backup_src_base_dir}" )
 
 		"$pod_script_upgrade_file" "backup:default" "${opts[@]}"
 		;;
 	"backup:remote:default:"*)
-		prefix="var_backup_remote_${command#backup:remote:default:}"
+		task_name="${command#backup:task:}"
+		prefix="var_task__${task_name}__backup_remote_"
+
 		task_kind="${prefix}_task_kind"
-		task_name_s3="${prefix}_task_name_s3"
+		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		backup_src_dir="${prefix}_backup_src_dir"
 		backup_src_file="${prefix}_backup_src_file"
 		backup_zip_file="${prefix}_backup_zip_file"
@@ -343,12 +353,14 @@ case "$command" in
 
 		opts=()
 
-		opts+=( "--toolbox_service=$var_general_toolbox_service" )
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_src_base_dir=$arg_backup_src_base_dir" )
 		opts+=( "--backup_local_dir=$arg_backup_local_dir" )
 
 		opts+=( "--task_kind=${!task_kind}" )
-		opts+=( "--task_name_s3=${!task_name_s3:-}" )
+		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
 		opts+=( "--backup_src_file=${!backup_src_file:-}" )
 		opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
@@ -358,23 +370,43 @@ case "$command" in
 
 		"$pod_script_remote_file" backup "${opts[@]}"
 		;;
-	"backup:local:db:"*)
-		ctx="${command#backup:local:db:}"
-		prefix="var_backup_local_${ctx}"
-		db_task_name="${prefix}_db_task_name"
+	"backup:local:db")
+		prefix="var_task__${arg_task_name}__backup_local_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
-		opts+=( "--db_task_base_dir=${arg_backup_src_base_dir}" )
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--db_task_base_dir=$arg_backup_src_base_dir" )
 
-		opts+=( "--db_task_name=${!db_task_name}" )
+		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 		opts+=( "--db_file_name=${!db_file_name}" )
 
-		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		"$pod_script_env_file" "db:run" "${opts[@]}"
 		;;
 	"db:task:"*)
-		prefix="var_db_${command#db:task:}"
+		task_name="${command#db:task:}"
+		prefix="var_task__${task_name}__db_task_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		db_file_name="${prefix}_db_file_name"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--db_subtask_cmd=${!db_subtask_cmd:-}" )
+		opts+=( "--db_file_name=${!db_file_name:-}" )
+		opts+=( "--db_task_base_dir=${!db_task_base_dir:-}" )
+
+		"$pod_script_env_file" "db:run" "${opts[@]}"
+		;;
+	"db:run")
+		prefix="var_task__${arg_task_name}__db_run_"
 
 		db_service="${prefix}_db_service"
 		db_cmd="${prefix}_db_cmd"
@@ -387,6 +419,9 @@ case "$command" in
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
+
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
 		opts+=( "--db_file_name=${arg_db_file_name:-}" )
@@ -401,13 +436,38 @@ case "$command" in
 		opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
 		opts+=( "--connection_sleep=${!connection_sleep:-}" )
 
-		"$pod_script_db_file" "$arg_db_task_name" "${opts[@]}"
+		"$pod_script_db_file" "$arg_db_subtask_cmd" "${opts[@]}"
 		;;
-	"db:main:"*)
-		"$pod_script_db_file" "$command" ${args[@]+"${args[@]}"}
+	"run:db:main:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_db_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"s3:task:"*)
-		prefix="var_s3_${command#s3:task:}"
+		task_name="${command#s3:task:}"
+		prefix="var_task__${task_name}__s3_task_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		db_file_name="${prefix}_db_file_name"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--s3_cmd=${!s3_cmd:-}" )
+		opts+=( "--arg_s3_src=${!arg_s3_src:-}" )
+		opts+=( "--arg_s3_remote_src=${!arg_s3_remote_src:-}" )
+		opts+=( "--arg_s3_src_rel=${!arg_s3_src_rel:-}" )
+		opts+=( "--arg_s3_dest=${!arg_s3_dest:-}" )
+		opts+=( "--arg_s3_remote_dest=${!arg_s3_remote_dest:-}" )
+		opts+=( "--arg_s3_dest_rel=${!arg_s3_dest_rel:-}" )
+		opts+=( "--arg_s3_file=${!arg_s3_file:-}" )
+
+		"$pod_script_env_file" "s3:run" "${opts[@]}"
+		;;
+	"s3:run")
+		prefix="var_task__${arg_task_name}__s3_run_"
+
 		cli="${prefix}_cli"
 		cli_cmd="${prefix}_cli_cmd"
 		service="${prefix}_service"
@@ -481,6 +541,9 @@ case "$command" in
 
 		opts=()
 
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
 		opts+=( "--s3_service=${!service:-}" )
 		opts+=( "--s3_endpoint=${!endpoint:-}" )
 		opts+=( "--s3_bucket_name=${!bucket_name:-}" )
@@ -496,22 +559,25 @@ case "$command" in
 		;;
 	"verify")
 		opts=()
-		opts+=( "--task_names=$var_tasks_verify" )
+		opts+=( "--task_cmds=$var_run__tasks__verify" )
 		"$pod_script_upgrade_file" "$command" "${opts[@]}"
 		;;
-	"verify:db:connection:"*)
-		ctx="${command#verify:db:connection:}"
-		prefix="var_verify_db_connection_${ctx}"
-		db_task_name="${prefix}_db_task_name"
+	"verify:db:connection")
+		prefix="var_task__${arg_task_name}__verify_db_connection_"
+
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
 
 		opts=()
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
 
-		opts+=( "--db_task_name=${!db_task_name}" )
+		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 
-		"$pod_script_env_file" "db:task:$ctx" "${opts[@]}"
+		"$pod_script_env_file" "db:run" "${opts[@]}"
 		;;
-	"container:image:"*)
-		"$pod_script_container_image_file" "$command" ${args[@]+"${args[@]}"}
+	"run:container:image:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

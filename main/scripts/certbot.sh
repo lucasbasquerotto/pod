@@ -34,6 +34,8 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
+		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		certbot_service ) arg_certbot_service="${OPTARG:-}";;
 		webservice_type ) arg_webservice_type="${OPTARG:-}";;
@@ -52,11 +54,15 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"
-data_file_done="$data_dir_done/done.txt"
+title="$command"
+[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
+[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
 	"certbot:setup")
+		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"
+		data_file_done="$data_dir_done/done.txt"
+
 		data_path="$arg_data_base_path/etc"
 		inner_path_base="/etc/letsencrypt"
 		dummy_certificate_days="1"
@@ -70,7 +76,7 @@ case "$command" in
 				test -f "$data_file_done" && echo "true" || echo "false")"
 
 			if [ "$has_file" != "false" ]; then
-				info "$command: Certificate already generated (delete the file $data_file_done to generate again)"
+				info "$title: Certificate already generated (delete the file $data_file_done to generate again)"
 				exit
 			fi
 		fi
@@ -79,28 +85,33 @@ case "$command" in
 			error "$command: [Error] Specify an email to generate a TLS certificate"
 		fi
 
-		info "$command: Creating dummy certificate for $arg_main_domain ..."
+		info "$title: Preparing the directory $arg_main_domain ..."
 
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" mkdir -p "$data_path/live/$arg_main_domain"
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			mkdir -p "$data_path/live/$arg_main_domain"
+
+		info "$title: Creating dummy certificate for $arg_main_domain ..."
 
 		inner_path="$inner_path_base/live/$arg_main_domain"
-		>&2 "$pod_script_env_file" run --rm --entrypoint "\
+		>&2 "$pod_script_env_file" run --entrypoint "ls -la '$inner_path'" "$arg_certbot_service"
+		>&2 "$pod_script_env_file" run --entrypoint "\
 			openssl req -x509 -nodes -newkey rsa:1024 -days $dummy_certificate_days\
 				-keyout '$inner_path/privkey.pem' \
 				-out '$inner_path/fullchain.pem' \
 				-subj '/CN=localhost'" "$arg_certbot_service"
 
-		info "$command: Starting $arg_webservice_type ..."
-		>&2 "$pod_script_env_file" "run:certbot:ws:start:$arg_webservice_type"
+		info "$title: Starting $arg_webservice_type ..."
+		>&2 "$pod_script_env_file" "run:certbot:ws:start:$arg_webservice_type" \
+			--webservice_service="$arg_webservice_service"
 
 		if [ "${arg_dev:-}" != "true" ]; then
-			info "$command: Deleting dummy certificate for $arg_main_domain ..."
-			>&2 "$pod_script_env_file" run --rm --entrypoint "\
+			info "$title: Deleting dummy certificate for $arg_main_domain ..."
+			>&2 "$pod_script_env_file" run --entrypoint "\
 				rm -Rf $inner_path_base/live/$arg_main_domain && \
 				rm -Rf $inner_path_base/archive/$arg_main_domain && \
 				rm -Rf $inner_path_base/renewal/$arg_main_domain.conf" "$arg_certbot_service"
 
-			info "$command: Requesting Let's Encrypt certificate for $arg_main_domain ..."
+			info "$title: Requesting Let's Encrypt certificate for $arg_main_domain ..."
 			#Join each domain to -d args
 			domain_args=""
 			for domain in "${arg_domains[@]}"; do
@@ -123,8 +134,9 @@ case "$command" in
 					--force-renewal \
 					--non-interactive" "$arg_certbot_service"
 
-			info "$command: Reloading $arg_webservice_type ..."
-			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type"
+			info "$title: Reloading $arg_webservice_type ..."
+			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
+				--webservice_service="$arg_webservice_service"
 
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
@@ -134,14 +146,19 @@ case "$command" in
 		fi
 		;;
 	"certbot:renew")
-		info "$command: Renewing the certificate for $main_domain ..."
-		>&2 "$pod_script_env_file" run --rm --entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
+		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"
+		data_file_done="$data_dir_done/done.txt"
 
-		info "$command: Reloading $arg_webservice_type ..."
-		>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type"
+		info "$title: Renewing the certificate for $main_domain ..."
+		>&2 "$pod_script_env_file" run --rm \
+			--entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
+
+		info "$title: Reloading $arg_webservice_type ..."
+		>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
+			--webservice_service="$arg_webservice_service"
 		;;
 	"certbot:ws:start:nginx")
-		>&2 "$pod_script_env_file" up -d "$arg_webservice_service"
+		>&2 "$pod_script_env_file" up "$arg_webservice_service"
 		>&2 "$pod_script_env_file" restart "$arg_webservice_service"
 		;;
 	"certbot:ws:reload:nginx")

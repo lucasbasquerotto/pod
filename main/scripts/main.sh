@@ -158,6 +158,14 @@ case "$command" in
 
 		"$pod_script_env_file" "${!type}:task:$task_name"
 		;;
+	"custom:task:"*)
+		task_name="${command#main:task:}"
+		prefix="var_task__${task_name}__custom_task_"
+
+		task="${prefix}_task"
+
+		"$pod_script_env_file" "${!task}"
+		;;
 	"group:task:"*)
 		task_name="${command#group:task:}"
 		prefix="var_task__${task_name}__group_task_"

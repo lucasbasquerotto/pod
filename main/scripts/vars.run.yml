@@ -30,6 +30,11 @@
     {% set var_run_item_obj = var_run_item.value %}
 
     {% if var_use_run_dict %}
+      {% if var_run_dict[var_run_item.value] is not defined %}
+        {% set error = {} %}
+        {{ error['error.property_not_defined_in_run_dict.' + var_run_item.value] }}
+      {% endif %}
+
       {% set var_run_item_obj = var_run_dict[var_run_item.value] %}
     {% endif %}
 
@@ -49,6 +54,11 @@
     {% set var_run_task_dict = var_run_task_item.value %}
 
     {% if var_use_run_tasks_dict %}
+      {% if var_run_tasks_dict[var_run_task_item.value] is not defined %}
+        {% set error = {} %}
+        {{ error['error.property_not_defined_in_run_tasks_dict.' + var_run_task_item.value] }}
+      {% endif %}
+
       {% set var_run_task_dict = var_run_tasks_dict[var_run_task_item.value] %}
     {% endif %}
 

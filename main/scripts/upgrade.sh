@@ -79,10 +79,10 @@ case "$command" in
 
 		if [[ "$command" = @("upgrade"|"fast-upgrade") ]]; then
 			info "$command - setup..."
-			"$pod_script_env_file" setup "${args[@]}"
+			"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
 		elif [ "$command" = "update" ]; then
 			info "$command - migrate..."
-			"$pod_script_env_file" migrate "${args[@]}"
+			"$pod_script_env_file" migrate ${args[@]+"${args[@]}"}
 		fi
 
 		info "$command - run..."
@@ -95,7 +95,7 @@ case "$command" in
 		fi
 
 		if [ "$command" = "setup" ]; then
-			"$pod_script_env_file" migrate "${args[@]}"
+			"$pod_script_env_file" migrate ${args[@]+"${args[@]}"}
 		fi
 		;;
 	"setup:default")
@@ -104,7 +104,7 @@ case "$command" in
 
 		msg="verify if the setup should be done"
 		info "$title - $msg"
-		skip="$("$pod_script_env_file" "$arg_subtask_cmd_verify" "${args[@]}")"
+		skip="$("$pod_script_env_file" "$arg_subtask_cmd_verify" ${args[@]+"${args[@]}"})"
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="value of the verification should be true or false"
@@ -119,12 +119,12 @@ case "$command" in
 		else
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				info "$title - restore - remote"
-				"$pod_script_env_file" "${arg_subtask_cmd_remote}" "${args[@]}"
+				"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
 			fi
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - restore - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" "${args[@]}"
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" ${args[@]+"${args[@]}"}
 			fi
 		fi
 		;;
@@ -241,7 +241,7 @@ case "$command" in
 			skip="false"
 		else
 			info "$title - verify if the backup should be done"
-			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" "${args[@]}")"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" ${args[@]+"${args[@]}"})"
 		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
@@ -263,12 +263,12 @@ case "$command" in
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - backup - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" "${args[@]}"
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" ${args[@]+"${args[@]}"}
 			fi
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				info "$title - backup - remote"
-				"$pod_script_env_file" "${arg_subtask_cmd_remote}" "${args[@]}"
+				"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
 			fi
 
 			info "$title - clear old files"

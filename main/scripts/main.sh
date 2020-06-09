@@ -15,6 +15,7 @@ pod_script_db_file="$pod_layer_dir/main/scripts/db.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
+pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -96,6 +97,7 @@ while getopts ':-:' OPT; do
 		backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
+		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		opts ) arg_opts=( "${@:OPTIND}" ); break;;
 		??* ) ;;	# bad long option
 		\? )	;;	# bad short option (error reported via getopts)
@@ -574,6 +576,64 @@ case "$command" in
 		inner_cmd="s3:${!cli}:${!cli_cmd}:$arg_s3_cmd"
 		info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
+		;;
+	"certbot:task:"*)
+		task_name="${command#certbot:task:}"
+		prefix="var_task__${task_name}__certbot_task_"
+
+		certbot_cmd="${prefix}_certbot_cmd"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--certbot_cmd=${!certbot_cmd}" )
+
+		"$pod_script_env_file" "certbot:run" "${opts[@]}"
+		;;
+	"certbot:run")
+		prefix="var_task__${arg_task_name}__certbot_run_"
+
+		toolbox_service="${prefix}_toolbox_service"
+		certbot_service="${prefix}_certbot_service"
+		webservice_service="${prefix}_webservice_service"
+		webservice_type="${prefix}_webservice_type"
+		data_base_path="${prefix}_data_base_path"
+		main_domain="${prefix}_main_domain"
+		domains="${prefix}_domains"
+		rsa_key_size="${prefix}_rsa_key_size"
+		email="${prefix}_email"
+		dev="${prefix}_dev"
+		staging="${prefix}_staging"
+		force="${prefix}_force"
+
+		webservice_type_value="${!webservice_type}"
+
+		opts=()
+
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=${!toolbox_service}" )
+		opts+=( "--certbot_service=${!certbot_service}" )
+		opts+=( "--webservice_type=${!webservice_type}" )
+		opts+=( "--data_base_path=${!data_base_path}" )
+		opts+=( "--main_domain=${!main_domain}" )
+		opts+=( "--domains=${!domains}" )
+		opts+=( "--rsa_key_size=${!rsa_key_size}" )
+		opts+=( "--email=${!email}" )
+
+		opts+=( "--webservice_service=${!webservice_service:-$webservice_type_value}" )
+		opts+=( "--dev=${!dev:-}" )
+		opts+=( "--staging=${!staging:-}" )
+		opts+=( "--force=${!force:-}" )
+
+		"$pod_script_certbot_file" "certbot:$arg_certbot_cmd" "${opts[@]}"
+		;;
+	"run:certbot:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_certbot_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"verify")
 		opts=()

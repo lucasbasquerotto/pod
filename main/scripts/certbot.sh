@@ -124,7 +124,7 @@ case "$command" in
 			# Enable staging mode if needed
 			if [ "${arg_staging:-}" != "false" ]; then staging_arg="--staging"; fi
 
-			>&2 "$pod_script_env_file" run --rm --entrypoint "\
+			>&2 "$pod_script_env_file" run --entrypoint "\
 				certbot certonly --webroot -w /var/www/certbot \
 					$staging_arg \
 					$email_arg \
@@ -150,7 +150,7 @@ case "$command" in
 		data_file_done="$data_dir_done/done.txt"
 
 		info "$title: Renewing the certificate for $main_domain ..."
-		>&2 "$pod_script_env_file" run --rm \
+		>&2 "$pod_script_env_file" run \
 			--entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
 
 		info "$title: Reloading $arg_webservice_type ..."

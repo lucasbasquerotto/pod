@@ -93,7 +93,6 @@ case "$command" in
 		info "$title: Creating dummy certificate for $arg_main_domain ..."
 
 		inner_path="$inner_path_base/live/$arg_main_domain"
-		>&2 "$pod_script_env_file" run --entrypoint "ls -la '$inner_path'" "$arg_certbot_service"
 		>&2 "$pod_script_env_file" run --entrypoint "\
 			openssl req -x509 -nodes -newkey rsa:1024 -days $dummy_certificate_days\
 				-keyout '$inner_path/privkey.pem' \
@@ -113,8 +112,9 @@ case "$command" in
 
 			info "$title: Requesting Let's Encrypt certificate for $arg_main_domain ..."
 			#Join each domain to -d args
+			IFS=' ' read -r -a domains_array <<< "$arg_domains"
 			domain_args=""
-			for domain in "${arg_domains[@]}"; do
+			for domain in "${domains_array[@]}"; do
 				domain_args="$domain_args -d '$domain'"
 			done
 

@@ -102,9 +102,12 @@ case "$command" in
 		info "$title - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
-		msg="verify if the setup should be done"
-		info "$title - $msg"
-		skip="$("$pod_script_env_file" "$arg_subtask_cmd_verify" ${args[@]+"${args[@]}"})"
+		if [ -z "${arg_subtask_cmd_verify:-}" ]; then
+			skip="false"
+		else
+			info "$title - verify if the setup should be done"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" ${args[@]+"${args[@]}"})"
+		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="value of the verification should be true or false"

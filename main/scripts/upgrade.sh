@@ -172,7 +172,7 @@ case "$command" in
 		SHELL
 		;;
 	"backup")
-		if [ -z "${arg_task_cmds:-}" ] ; then
+		if [ -z "${arg_backup_task_name:-}" ] ; then
 			info "$command: no tasks defined - skipping..."
 			exit 0
 		fi
@@ -287,15 +287,6 @@ case "$command" in
 					-ctime +$arg_backup_delete_old_days -empty -delete -print;
 			SHELL
 		fi
-		;;
-	"verify")
-		if [ -z "${arg_task_cmds:-}" ] ; then
-			info "$command: no tasks defined - skipping..."
-			exit 0
-		fi
-
-		# main command - run verify sub-tasks
-		run_tasks "${arg_task_cmds:-}"
 		;;
 	*)
 		error "$command: invalid command"

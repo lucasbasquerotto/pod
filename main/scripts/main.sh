@@ -89,7 +89,6 @@ while getopts ':-:' OPT; do
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
-		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
 		env_local_repo ) arg_env_local_repo="${OPTARG:-}";;
 		ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";;
@@ -338,6 +337,9 @@ case "$command" in
 		backup_local_static_dir="${prefix}_backup_local_static_dir"
 		backup_delete_old_days="${prefix}_backup_delete_old_days"
 
+		backup_local_dir="$var_run__general__backup_local_base_dir/backup-$key"
+		backup_delete_old_days="$var_run__general__backup_delete_old_days"
+
 		opts=()
 
 		opts+=( "--task_name=$task_name" )
@@ -346,10 +348,9 @@ case "$command" in
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
 		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )
-		opts+=( "--backup_delete_old_days=$var_run__general__backup_delete_old_days" )
 
-		opts+=( "--backup_local_dir=${!backup_local_static_dir:-$arg_backup_local_dir}" )
-		opts+=( "--backup_delete_old_days=${!backup_delete_old_days:-$arg_backup_delete_old_days}" )
+		opts+=( "--backup_local_dir=${!backup_local_static_dir:-$backup_local_dir}" )
+		opts+=( "--backup_delete_old_days=${!backup_delete_old_days:-$backup_delete_old_days}" )
 
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
@@ -358,9 +359,8 @@ case "$command" in
 
 		"$pod_script_upgrade_file" "backup:default" "${opts[@]}"
 		;;
-	"backup:remote:default:"*)
-		task_name="${command#backup:task:}"
-		prefix="var_task__${task_name}__backup_remote_"
+	"backup:remote:default")
+		prefix="var_task__${arg_task_name}__backup_remote_"
 
 		task_kind="${prefix}_task_kind"
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
@@ -373,8 +373,9 @@ case "$command" in
 
 		opts=()
 
-		opts+=( "--task_name=$task_name" )
+		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
+
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_src_base_dir=$arg_backup_src_base_dir" )
 		opts+=( "--backup_local_dir=$arg_backup_local_dir" )
@@ -636,9 +637,7 @@ case "$command" in
 		"$pod_script_certbot_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"verify")
-		opts=()
-		opts+=( "--task_cmds=$var_run__tasks__verify" )
-		"$pod_script_upgrade_file" "$command" "${opts[@]}"
+		"$pod_script_env_file" "main:task:$var_run__tasks__verify"
 		;;
 	"verify:db:connection")
 		prefix="var_task__${arg_task_name}__verify_db_connection_"

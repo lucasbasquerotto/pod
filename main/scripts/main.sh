@@ -404,7 +404,7 @@ case "$command" in
 		opts+=( "--db_task_base_dir=$arg_backup_src_base_dir" )
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-		opts+=( "--db_file_name=${!db_file_name}" )
+		opts+=( "--db_file_name=${!db_file_name:-}" )
 
 		"$pod_script_env_file" "db:run" "${opts[@]}"
 		;;
@@ -436,6 +436,7 @@ case "$command" in
 		db_port="${prefix}_db_port"
 		db_user="${prefix}_db_user"
 		db_pass="${prefix}_db_pass"
+		authentication_database="${prefix}_authentication_database"
 		db_connect_wait_secs="${prefix}_db_connect_wait_secs"
 		db_file_name="${prefix}_db_file_name"
 
@@ -454,6 +455,7 @@ case "$command" in
 		opts+=( "--db_port=${!db_port:-}" )
 		opts+=( "--db_user=${!db_user:-}" )
 		opts+=( "--db_pass=${!db_pass:-}" )
+		opts+=( "--authentication_database=${!authentication_database:-}" )
 		opts+=( "--db_connect_wait_secs=${!db_connect_wait_secs:-}" )
 		opts+=( "--connection_sleep=${!connection_sleep:-}" )
 

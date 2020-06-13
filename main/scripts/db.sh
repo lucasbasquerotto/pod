@@ -45,6 +45,7 @@ while getopts ':-:' OPT; do
 		db_port ) arg_db_port="${OPTARG:-}" ;;
 		db_user ) arg_db_user="${OPTARG:-}" ;;
 		db_pass ) arg_db_pass="${OPTARG:-}";;
+		authentication_database ) arg_authentication_database="${OPTARG:-}";;
 		db_remote ) arg_db_remote="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_connect_wait_secs) arg_db_connect_wait_secs="${OPTARG:-}" ;;
@@ -191,12 +192,15 @@ case "$command" in
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
 		SHELL
 		;;
-	"db:backup:file:mongo")
+	"db:backup:mongo")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
+		msg="backup database ($arg_db_name)"
+		msg="$msg to directory $arg_db_task_base_dir/$arg_db_name (inside service)"
+		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
+			rm -rf "$arg_db_task_base_dir/$arg_db_name"
 			mkdir -p "$arg_db_task_base_dir"
 			mongodump \
 				--host="$arg_db_host" \
@@ -204,6 +208,7 @@ case "$command" in
 				--username="$arg_db_user" \
 				--password="$arg_db_pass" \
 				--db="$arg_db_name" \
+				--authenticationDatabase="$arg_authentication_database" \
 				--out="$arg_db_task_base_dir"
 		SHELL
 		;;
@@ -222,6 +227,7 @@ case "$command" in
 				--username="$arg_db_user" \
 				--password="$arg_db_pass" \
 				--db="$arg_db_name" \
+				--authenticationDatabase="$arg_authentication_database"
 				"$backup_file"
 		SHELL
 		;;

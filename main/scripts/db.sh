@@ -132,6 +132,8 @@ case "$command" in
 	"db:restore:verify:mysql")
 		tables="$("$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"})"
 
+		>&2 echo "$tables tables found"
+
 		if [ "$tables" != "0" ]; then
 			echo "true"
 		else
@@ -191,6 +193,89 @@ case "$command" in
 			mkdir -p "$(dirname -- "$backup_file")"
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
 		SHELL
+		;;
+	"db:main:connect:mongo")
+		"$pod_script_env_file" "run:db:main:collections:count:mongo" ${args[@]+"${args[@]}"} > /dev/null
+		;;
+	"db:main:collections:count:mongo")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		re_number='^[0-9]+$'
+		cmd_args=( "exec-nontty" )
+
+		if [ "${arg_db_cmd:-}" = "run" ]; then
+			cmd_args=( "run" )
+		fi
+
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			function info {
+				msg="\$(date '+%F %T') - \${1:-}"
+				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
+			}
+
+			function error {
+				msg="\$(date '+%F %T') \${1:-}"
+				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				exit 2
+			}
+
+			end=\$((SECONDS+$arg_db_connect_wait_secs))
+			tables=""
+
+			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
+				current=\$((end-SECONDS))
+				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
+
+				if [ "${arg_db_remote:-}" = "true" ]; then
+					info "$title - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
+					output="\$(mongo "mongo/$arg_db_name" \
+						--host="$arg_db_host" \
+						--port="$arg_db_port" \
+						--username="$arg_db_user" \
+						--password="$arg_db_pass" \
+						--authenticationDatabase="$arg_authentication_database" \
+						--eval "db.stats().collections" 2>&1)" ||:
+				else
+					info "$title - wait for the local database $arg_db_name to be ready (\$msg)"
+					output="\$(mongo "mongo/$arg_db_name" \
+						--username="$arg_db_user" \
+						--password="$arg_db_pass" \
+						--authenticationDatabase="$arg_authentication_database" \
+						--eval "db.stats().collections" 2>&1)" ||:
+				fi
+
+				if [ -n "\$output" ]; then
+					collections="\$(echo "\$output" | tail -n 1)"
+				fi
+
+				if ! [[ \$collections =~ $re_number ]] ; then
+					collections=""
+				fi
+
+				if [ -z "\$collections" ]; then
+					sleep "${arg_connection_sleep:-5}"
+				else
+					echo "\$collections"
+					exit
+				fi
+			done
+
+			msg="Couldn't verify number of collections in the database $arg_db_name"
+			error "$title: \$msg - output:\n\$output"
+		SHELL
+		;;
+	"db:restore:verify:mongo")
+		collections="$("$pod_script_env_file" "run:db:main:collections:count:mongo" ${args[@]+"${args[@]}"})"
+
+		>&2 echo "$collections collections found"
+
+		if [ "$collections" != "0" ]; then
+			echo "true"
+		else
+			echo "false"
+		fi
 		;;
 	"db:backup:mongo")
 		"$pod_script_env_file" up "$arg_db_service"

@@ -160,7 +160,7 @@ case "$command" in
 		"$pod_script_env_file" "${!type}:task:$task_name"
 		;;
 	"custom:task:"*)
-		task_name="${command#main:task:}"
+		task_name="${command#custom:task:}"
 		prefix="var_task__${task_name}__custom_task_"
 
 		task="${prefix}_task"
@@ -229,6 +229,7 @@ case "$command" in
 	"setup:verify:db")
 		prefix="var_task__${arg_task_name}__setup_verify_"
 
+		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 
 		opts=()
@@ -236,7 +237,7 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 
-		"$pod_script_env_file" "db:run" "${opts[@]}"
+		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
 	"setup:verify:default")
 		prefix="var_task__${arg_task_name}__setup_verify_"
@@ -301,6 +302,7 @@ case "$command" in
 	"setup:local:db")
 		prefix="var_task__${arg_task_name}__setup_local_"
 
+		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_file_name="${prefix}_db_file_name"
 
@@ -313,7 +315,7 @@ case "$command" in
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 		opts+=( "--db_file_name=${!db_file_name}" )
 
-		"$pod_script_env_file" "db:run" "${opts[@]}"
+		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
 	"backup")
 		opts=()
@@ -394,6 +396,7 @@ case "$command" in
 	"backup:local:db")
 		prefix="var_task__${arg_task_name}__backup_local_"
 
+		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_file_name="${prefix}_db_file_name"
 
@@ -406,7 +409,7 @@ case "$command" in
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 		opts+=( "--db_file_name=${!db_file_name:-}" )
 
-		"$pod_script_env_file" "db:run" "${opts[@]}"
+		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
 	"db:task:"*)
 		task_name="${command#db:task:}"
@@ -424,10 +427,24 @@ case "$command" in
 		opts+=( "--db_file_name=${!db_file_name:-}" )
 		opts+=( "--db_task_base_dir=${!db_task_base_dir:-}" )
 
-		"$pod_script_env_file" "db:run" "${opts[@]}"
+		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
-	"db:run")
-		prefix="var_task__${arg_task_name}__db_run_"
+	"db:subtask:"*)
+		task_name="${command#db:subtask:}"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--db_subtask_cmd=${arg_db_subtask_cmd:-}" )
+		opts+=( "--db_file_name=${arg_db_file_name:-}" )
+		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
+
+		"$pod_script_env_file" "db:subtask" "${opts[@]}"
+		;;
+	"db:subtask")
+		prefix="var_task__${arg_task_name}__db_subtask_"
 
 		db_service="${prefix}_db_service"
 		db_cmd="${prefix}_db_cmd"
@@ -478,18 +495,37 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--s3_cmd=${!s3_cmd:-}" )
-		opts+=( "--arg_s3_src=${!arg_s3_src:-}" )
-		opts+=( "--arg_s3_remote_src=${!arg_s3_remote_src:-}" )
-		opts+=( "--arg_s3_src_rel=${!arg_s3_src_rel:-}" )
-		opts+=( "--arg_s3_dest=${!arg_s3_dest:-}" )
-		opts+=( "--arg_s3_remote_dest=${!arg_s3_remote_dest:-}" )
-		opts+=( "--arg_s3_dest_rel=${!arg_s3_dest_rel:-}" )
-		opts+=( "--arg_s3_file=${!arg_s3_file:-}" )
+		opts+=( "--s3_src=${!s3_src:-}" )
+		opts+=( "--s3_remote_src=${!s3_remote_src:-}" )
+		opts+=( "--s3_src_rel=${!s3_src_rel:-}" )
+		opts+=( "--s3_dest=${!s3_dest:-}" )
+		opts+=( "--s3_remote_dest=${!s3_remote_dest:-}" )
+		opts+=( "--s3_dest_rel=${!s3_dest_rel:-}" )
+		opts+=( "--s3_file=${!s3_file:-}" )
 
-		"$pod_script_env_file" "s3:run" "${opts[@]}"
+		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
-	"s3:run")
-		prefix="var_task__${arg_task_name}__s3_run_"
+	"s3:subtask:"*)
+		task_name="${command#s3:subtask:}"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--s3_cmd=${arg_s3_cmd:-}" )
+		opts+=( "--s3_src=${arg_s3_src:-}" )
+		opts+=( "--s3_remote_src=${arg_s3_remote_src:-}" )
+		opts+=( "--s3_src_rel=${arg_s3_src_rel:-}" )
+		opts+=( "--s3_dest=${arg_s3_dest:-}" )
+		opts+=( "--s3_remote_dest=${arg_s3_remote_dest:-}" )
+		opts+=( "--s3_dest_rel=${arg_s3_dest_rel:-}" )
+		opts+=( "--s3_file=${arg_s3_file:-}" )
+
+		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
+		;;
+	"s3:subtask")
+		prefix="var_task__${arg_task_name}__s3_subtask_"
 
 		cli="${prefix}_cli"
 		cli_cmd="${prefix}_cli_cmd"
@@ -593,10 +629,22 @@ case "$command" in
 
 		opts+=( "--certbot_cmd=${!certbot_cmd}" )
 
-		"$pod_script_env_file" "certbot:run" "${opts[@]}"
+		"$pod_script_env_file" "certbot:subtask" "${opts[@]}"
 		;;
-	"certbot:run")
-		prefix="var_task__${arg_task_name}__certbot_run_"
+	"certbot:subtask:"*)
+		task_name="${command#certbot:subtask:}"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--certbot_cmd=$arg_certbot_cmd" )
+
+		"$pod_script_env_file" "certbot:subtask" "${opts[@]}"
+		;;
+	"certbot:subtask")
+		prefix="var_task__${arg_task_name}__certbot_subtask_"
 
 		toolbox_service="${prefix}_toolbox_service"
 		certbot_service="${prefix}_certbot_service"
@@ -629,6 +677,7 @@ case "$command" in
 
 		opts+=( "--webservice_service=${!webservice_service:-$webservice_type_value}" )
 		opts+=( "--dev=${!dev:-}" )
+		opts+=( "--dev_renew_days=${!dev_renew_days:-}" )
 		opts+=( "--staging=${!staging:-}" )
 		opts+=( "--force=${!force:-}" )
 
@@ -644,6 +693,7 @@ case "$command" in
 	"verify:db:connection")
 		prefix="var_task__${arg_task_name}__verify_db_connection_"
 
+		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 
 		opts=()
@@ -652,7 +702,7 @@ case "$command" in
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 
-		"$pod_script_env_file" "db:run" "${opts[@]}"
+		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
 	"run:container:image:"*)
 		run_cmd="${command#run:}"

@@ -46,6 +46,7 @@ while getopts ':-:' OPT; do
 		rsa_key_size ) arg_rsa_key_size="${OPTARG:-}";;
 		email ) arg_email="${OPTARG:-}";;
 		dev ) arg_dev="${OPTARG:-}";;
+		dev_renew_days ) arg_dev_renew_days="${OPTARG:-}";;
 		staging ) arg_staging="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}";;
 		??* ) error "$command: Illegal option --$OPT" ;;  # bad long option
@@ -69,6 +70,17 @@ case "$command" in
 
 		if [ "${arg_dev:-}" = "true" ]; then
 			dummy_certificate_days="10000"
+
+			info "$title: Preparing the development certificate environment ..."
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+				set -eou pipefail
+
+				if [ -f "$data_file_done" ]; then
+					if [[ \$(find "$data_file_done" -mtime "+${arg_dev_renew_days:-7}" -print) ]]; then
+						rm -f "$data_file_done"
+					fi
+				fi
+			SHELL
 		fi
 
 		if [ "${arg_force:-}" != "true" ]; then
@@ -137,13 +149,13 @@ case "$command" in
 			info "$title: Reloading $arg_webservice_type ..."
 			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
 				--webservice_service="$arg_webservice_service"
-
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-				set -eou pipefail
-				mkdir -p "$data_dir_done"
-				echo "$(date '+%F %T')" >> "$data_file_done"
-			SHELL
 		fi
+
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+			mkdir -p "$data_dir_done"
+			echo "$(date '+%F %T')" >> "$data_file_done"
+		SHELL
 		;;
 	"certbot:renew")
 		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"

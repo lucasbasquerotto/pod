@@ -313,7 +313,8 @@ case "$command" in
 		opts+=( "--db_task_base_dir=$arg_setup_dest_base_dir" )
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-		opts+=( "--db_file_name=${!db_file_name}" )
+
+		opts+=( "--db_file_name=${!db_file_name:-}" )
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;

@@ -297,23 +297,20 @@ case "$command" in
 				--out="$arg_db_task_base_dir"
 		SHELL
 		;;
-	"db:restore:file:mongo")
+	"db:restore:mongo")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
-
-		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
+		info "$title: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
 			set -eou pipefail
-			mkdir -p "$(dirname -- "$backup_file")"
 			mongorestore \
 				--host="$arg_db_host" \
 				--port="$arg_db_port" \
 				--username="$arg_db_user" \
 				--password="$arg_db_pass" \
-				--db="$arg_db_name" \
-				--authenticationDatabase="$arg_authentication_database"
-				"$backup_file"
+				--nsInclude="$arg_db_name.*" \
+				--authenticationDatabase="$arg_authentication_database" \
+				"$arg_db_task_base_dir"
 		SHELL
 		;;
 	"db:connection:pg")

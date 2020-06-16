@@ -52,16 +52,20 @@ cmd_path="$(echo "$command" | tr : -)"
 
 case "$command" in
 	"u")
-		command="upgrade"
+		command="env"
+		inner_cmd="upgrade"
 		;;
 	"f")
-		command="fast-upgrade"
+		command="env"
+		inner_cmd="fast-upgrade"
 		;;
 	"t")
-		command="fast-update"
+		command="env"
+		inner_cmd="fast-update"
 		;;
 	"s")
-		command="fast-setup"
+		command="env"
+		inner_cmd="fast-setup"
 		;;
 	"p")
 		command="env"
@@ -259,6 +263,7 @@ case "$command" in
 		task_kind="${prefix}_task_kind"
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		restore_dest_file="${prefix}_restore_dest_file"
+		restore_dest_dir="${prefix}_restore_dest_dir"
 		restore_tmp_dir="${prefix}_restore_tmp_dir"
 		restore_local_file="${prefix}_restore_local_file"
 		restore_remote_file="${prefix}_restore_remote_file"
@@ -285,6 +290,7 @@ case "$command" in
 		opts+=( "--task_kind=${!task_kind:-}" )
 		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
+		opts+=( "--restore_dest_dir=${!restore_dest_dir:-}" )
 		opts+=( "--restore_local_file=${!restore_local_file:-}" )
 		opts+=( "--restore_remote_file=${!restore_remote_file:-}" )
 		opts+=( "--restore_remote_bucket_path_file=${!restore_remote_bucket_path_file:-}" )

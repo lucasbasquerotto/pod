@@ -51,6 +51,7 @@ while getopts ':-:' OPT; do
 
 		restore_dest_base_dir ) arg_restore_dest_base_dir="${OPTARG:-}";;
 		restore_dest_file ) arg_restore_dest_file="${OPTARG:-}";;
+		restore_dest_dir ) arg_restore_dest_dir="${OPTARG:-}";;
 		restore_tmp_dir ) arg_restore_tmp_dir="${OPTARG:-}";;
 		restore_local_file ) arg_restore_local_file="${OPTARG:-}" ;;
 		restore_remote_file ) arg_restore_remote_file="${OPTARG:-}" ;;
@@ -183,28 +184,32 @@ case "$command" in
 		;;
 	"restore")
 		restore_path=''
-		arg_restore_dest_base_dir_full="$arg_restore_dest_base_dir"
+		restore_dest_base_dir_full="$arg_restore_dest_base_dir"
+
+		if [ -n "${arg_restore_dest_dir:-}" ]; then
+			restore_dest_base_dir_full="$arg_restore_dest_base_dir/$arg_restore_dest_dir"
+		fi
 
 		if [ -n "${arg_restore_remote_bucket_path_dir:-}" ]; then
-			info "$title - create the restore destination directory ($arg_restore_dest_base_dir_full)"
+			info "$title - create the restore destination directory ($arg_restore_dest_base_dir)"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				mkdir -p "$arg_restore_dest_base_dir_full"
+				mkdir -p "$arg_restore_dest_base_dir"
 
 			s3_file=''
 
 			if [ -n "${arg_restore_dest_file:-}" ]; then
 				s3_file="$arg_restore_dest_file"
-				restore_path="$arg_restore_dest_base_dir_full/$arg_restore_dest_file"
+				restore_path="$arg_restore_dest_base_dir/$arg_restore_dest_file"
 			else
-				restore_path="$arg_restore_dest_base_dir_full"
+				restore_path="$arg_restore_dest_base_dir"
 			fi
 
-			msg="$arg_restore_remote_bucket_path_dir (s3) to $arg_restore_dest_base_dir_full"
+			msg="$arg_restore_remote_bucket_path_dir (s3) to $restore_dest_base_dir_full"
 			info "$title - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
 				--s3_src_rel="$arg_restore_remote_bucket_path_dir" \
 				--s3_remote_src="true" \
-				--s3_dest="$arg_restore_dest_base_dir_full" \
+				--s3_dest="$restore_dest_base_dir_full" \
 				--s3_file="$s3_file" \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$arg_subtask_cmd" \
@@ -217,12 +222,12 @@ case "$command" in
 			>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
 			msg="create the restore temporary directory ($arg_restore_tmp_dir)"
-			msg="$msg and the destination directory ($arg_restore_dest_base_dir_full)"
+			msg="$msg and the destination directory ($restore_dest_base_dir_full)"
 			info "$title - $msg"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 				mkdir -p "$arg_restore_tmp_dir"
-				mkdir -p "$arg_restore_dest_base_dir_full"
+				mkdir -p "$restore_dest_base_dir_full"
 			SHELL
 
 			if [ "${arg_restore_is_zip_file:-}" != "true" ]; then
@@ -293,8 +298,8 @@ case "$command" in
 
 						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
 
-						if [ "$restore_tmp_dir_full" != "$arg_restore_dest_base_dir_full" ]; then
-							cp -r "$restore_tmp_dir_full"/. "$arg_restore_dest_base_dir_full/"
+						if [ "$restore_tmp_dir_full" != "$restore_dest_base_dir_full" ]; then
+							cp -r "$restore_tmp_dir_full"/. "$restore_dest_base_dir_full/"
 							rm -rf "$restore_tmp_dir_full"
 						fi
 					SHELL
@@ -304,12 +309,12 @@ case "$command" in
 					error "$title - $msg"
 				fi
 
-				restore_path="$arg_restore_dest_base_dir_full"
+				restore_path="$restore_dest_base_dir_full"
 			elif [ "$arg_task_kind" = "file" ]; then
 				if [ "${arg_restore_is_zip_file:-}" = "true" ]; then
 					info "$title - unzip $restore_file to directory $arg_restore_tmp_dir"
 					intermediate="$arg_restore_tmp_dir/$arg_restore_zip_inner_file"
-					dest="$arg_restore_dest_base_dir_full/$arg_restore_dest_file"
+					dest="$restore_dest_base_dir_full/$arg_restore_dest_file"
 
 					if [ "$restore_file" != "$dest" ]; then
 						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
@@ -324,12 +329,12 @@ case "$command" in
 						SHELL
 					fi
 				else
-					info "$title - move $restore_file to directory $arg_restore_dest_base_dir_full"
+					info "$title - move $restore_file to directory $restore_dest_base_dir_full"
 					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-						mv "$restore_file" "$arg_restore_dest_base_dir_full/"
+						mv "$restore_file" "$restore_dest_base_dir_full/"
 				fi
 
-				restore_path="$arg_restore_dest_base_dir_full/$arg_restore_dest_file"
+				restore_path="$restore_dest_base_dir_full/$arg_restore_dest_file"
 			else
 				error "$title: $arg_task_kind: invalid value for arg_task_kind"
 			fi
@@ -339,16 +344,16 @@ case "$command" in
 			set -eou pipefail
 
 			if [ -n "${arg_restore_recursive_mode:-}" ]; then
-				chmod -R "$arg_restore_recursive_mode" "$arg_restore_dest_base_dir_full"
+				chmod -R "$arg_restore_recursive_mode" "$restore_dest_base_dir_full"
 			fi
 
 			if [ -n "${arg_restore_recursive_mode_dir:-}" ]; then
-				find "$arg_restore_dest_base_dir_full" -type d -print0 \
+				find "$restore_dest_base_dir_full" -type d -print0 \
 					| xargs -0 chmod "$arg_restore_recursive_mode_dir"
 			fi
 
 			if [ -n "${arg_restore_recursive_mode_file:-}" ]; then
-				find "$arg_restore_dest_base_dir_full" -type f -print0 \
+				find "$restore_dest_base_dir_full" -type f -print0 \
 					| xargs -0 chmod "$arg_restore_recursive_mode_file"
 			fi
 		SHELL

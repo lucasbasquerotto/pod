@@ -83,10 +83,15 @@ case "$command" in
 			fi
 		else
 			sudo docker-compose -f "$main_file" "$command" "${@}"
+		fi
+		;;
+	"build-run")
+		cd "$pod_full_dir/"
 
-			if [ -f "$run_file" ]; then
+		if [[ "$#" -eq 0 ]]; then
+				sudo docker-compose -f "$run_file" build
+		else
 				sudo docker-compose -f "$run_file" "$command" "${@}"
-			fi
 		fi
 		;;
 	"stop")

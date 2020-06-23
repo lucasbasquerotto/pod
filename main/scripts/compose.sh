@@ -56,11 +56,11 @@ case "$command" in
 		;;
 	"run-main")
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" run --rm "${@}"
+		sudo docker-compose -f "$main_file" run --rm --name="${1}_run" "${@}"
 		;;
 	"run")
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$run_file" run --rm "${@}"
+		sudo docker-compose -f "$run_file" run --rm --name="${1}_run" "${@}"
 		;;
 	"rm")
 		cd "$pod_full_dir/"

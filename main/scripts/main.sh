@@ -715,6 +715,53 @@ case "$command" in
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
+	"sync:verify:"*)
+		service="${command#sync:verify:}"
+		reload="$("$pod_script_env_file" "sync:prepare:$service")" || error "$command"
+
+		if [ "$reload" = "true" ]; then
+			"$pod_script_env_file" "sync:reload:$service"
+			"$pod_script_env_file" "sync:remove:$service"
+		fi
+		;;
+	"sync:prepare:"*)
+		service="${command#sync:prepare:}"
+		data_dir="/var/main/data"
+
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			dir="$data_dir/sync/$service"
+			file="\${dir}/reload"
+			new_file="\${dir}/reloading"
+
+			if [ -f "\$new_file" ]; then
+				echo "false"
+			elif [ -f "\$file" ]; then
+				>&2 touch "\$new_file"
+				>&2 rm -f "\$file"
+
+				echo "true"
+			else
+				echo "false"
+			fi
+		SHELL
+		;;
+	"sync:remove:"*)
+		service="${command#sync:remove:}"
+		data_dir="/var/main/data"
+
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			dir="$data_dir/sync/$service"
+			file="\${dir}/reloading"
+
+			if [ -f "\$file" ]; then
+				rm -f "\$file"
+			fi
+		SHELL
+		;;
 	*)
 		error "$command: invalid command"
 		;;

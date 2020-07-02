@@ -49,6 +49,9 @@ while getopts ':-:' OPT; do
 		nextcloud_protocol ) arg_nextcloud_protocol="${OPTARG:-}";;
 
 		mount_point ) arg_mount_point="${OPTARG:-}";;
+
+		datadir ) arg_datadir="${OPTARG:-}";;
+
 		bucket ) arg_bucket="${OPTARG:-}";;
 		hostname ) arg_hostname="${OPTARG:-}";;
 		port ) arg_port="${OPTARG:-}";;
@@ -71,7 +74,7 @@ title="$command"
 case "$command" in
 	"nextcloud:setup")
 		"$pod_script_env_file" up "$arg_nextcloud_service"
-		connect_wait_secs="${arg_connect_wait_secs:-60}"
+		connect_wait_secs="${arg_connect_wait_secs:-300}"
 
 		need_install="$(
 			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
@@ -120,11 +123,53 @@ case "$command" in
 		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
+			function info {
+				msg="\$(date '+%F %T') - \${1:-}"
+				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
+			}
+
 			php occ config:system:set trusted_domains 1 --value="$arg_nextcloud_domain"
 			php occ config:system:set overwrite.cli.url --value="$arg_nextcloud_url"
 			php occ config:system:set overwritehost --value="$arg_nextcloud_host"
 			php occ config:system:set overwriteprotocol --value="$arg_nextcloud_protocol"
+
+			mime_src="/tmp/main/config/mimetypemapping.json"
+			mime_dest="/var/www/html/config/mimetypemapping.json"
+
+			if [ -f "\$mime_src" ] && [ ! -f "\$mime_dest" ]; then
+				info "$title: copy mimetypemapping.json"
+				cp "\$mime_src" "\$mime_dest"
+			fi
 		SHELL
+		;;
+	"nextcloud:fs")
+		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_nextcloud_service"
+
+		info "$title: nextcloud enable files_external"
+		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+			php occ app:enable files_external
+
+		info "$title - verify defined mounts"
+		list="$("$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+			php occ files_external:list --output=json)" || error "nextcloud:fs - list"
+
+		info "$title - count defined mounts with the mount point equal to $arg_mount_point"
+		count="$(
+			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash \
+				<<-'SHELL' -s "$list" "$arg_mount_point"
+					set -eou pipefail
+					echo "$1" | jq '[.[] | select(.mount_point == "'"$2"'")] | length'
+				SHELL
+		)" || error "nextcloud:fs - count"
+
+		if [[ $count -eq 0 ]]; then
+			info "$title: defining fs storage ($arg_mount_point)..."
+			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+				php occ files_external:create "$arg_mount_point" \
+				local --config datadir="${arg_datadir}" "null::null"
+		else
+			info "$title: fs storage already defined ($arg_mount_point)"
+		fi
 		;;
 	"nextcloud:s3")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_nextcloud_service"
@@ -137,7 +182,7 @@ case "$command" in
 		list="$("$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
 			php occ files_external:list --output=json)" || error "nextcloud:s3 - list"
 
-		info "$title - count defined mounts"
+		info "$title - count defined mounts with the mount point equal to $arg_mount_point"
 		count="$(
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash \
 				<<-'SHELL' -s "$list" "$arg_mount_point"

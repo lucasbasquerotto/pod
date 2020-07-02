@@ -38,9 +38,14 @@ while getopts ':-:' OPT; do
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		nextcloud_service ) arg_nextcloud_service="${OPTARG:-}";;
+		connect_wait_secs ) arg_connect_wait_secs="${OPTARG:-}";;
+		connection_sleep ) arg_connection_sleep="${OPTARG:-}";;
 
 		admin_user ) arg_admin_user="${OPTARG:-}";;
 		admin_pass ) arg_admin_pass="${OPTARG:-}";;
+		nextcloud_url ) arg_nextcloud_url="${OPTARG:-}";;
+		nextcloud_domain ) arg_nextcloud_domain="${OPTARG:-}";;
+		nextcloud_protocol ) arg_nextcloud_protocol="${OPTARG:-}";;
 
 		mount_point ) arg_mount_point="${OPTARG:-}";;
 		bucket ) arg_bucket="${OPTARG:-}";;
@@ -65,15 +70,45 @@ title="$command"
 case "$command" in
 	"nextcloud:setup")
 		"$pod_script_env_file" up "$arg_nextcloud_service"
+		connect_wait_secs="${arg_connect_wait_secs:-60}"
 
-		installed="$(
-			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-'SHELL'
+		need_install="$(
+			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
 				set -eou pipefail
+
+				function info {
+					msg="\$(date '+%F %T') - \${1:-}"
+					>&2 echo -e "${GRAY}$command: \${msg}${NC}"
+				}
+
+				function error {
+					msg="\$(date '+%F %T') \${1:-}"
+					>&2 echo -e "${RED}$command: \${msg}${NC}"
+					exit 2
+				}
+
+				end=\$((SECONDS+$connect_wait_secs))
+				result="continue"
+
+				while [ -n "\${result:-}" ] && [ \$SECONDS -lt \$end ]; do
+					current=\$((end-SECONDS))
+					msg="$connect_wait_secs seconds - \$current second(s) remaining"
+
+					info "$title - wait for the installation to be ready (\$msg)"
+					result="\$(php occ list > /dev/null 2>&1 || echo "continue")"
+
+					if [ -n "\${result:-}" ]; then
+						sleep "${arg_connection_sleep:-5}"
+					fi
+				done
+
 				php occ list | grep '^ *maintenance:install ' | wc -l || :
 			SHELL
 		)" || error "nextcloud:setup"
 
-		if [[ ${installed:-0} -ne 0 ]]; then
+		>&2 echo "need_install=$need_install"
+
+		if [[ ${need_install:-0} -ne 0 ]]; then
 			info "$title: installing nextcloud..."
 			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" php occ maintenance:install \
 				--admin-user="$arg_admin_user" \
@@ -81,16 +116,29 @@ case "$command" in
 		else
 			info "$title: nextcloud already installed"
 		fi
+
+		info "$title: define domain and protocol ($arg_nextcloud_domain)"
+		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			php occ config:system:set trusted_domains 1 --value="$arg_nextcloud_domain"
+			php occ config:system:set overwrite.cli.url --value="$arg_nextcloud_url"
+			php occ config:system:set overwritehost --value="$arg_nextcloud_domain"
+			php occ config:system:set overwriteprotocol --value="$arg_nextcloud_protocol"
+		SHELL
 		;;
 	"nextcloud:s3")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_nextcloud_service"
 
 		info "$title: nextcloud enable files_external"
-		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" php occ app:enable files_external
+		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+			php occ app:enable files_external
 
+		info "$title - verify defined mounts"
 		list="$("$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
-      php occ files_external:list --output=json)" || error "nextcloud:s3 - list"
+			php occ files_external:list --output=json)" || error "nextcloud:s3 - list"
 
+		info "$title - count defined mounts"
 		count="$(
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash \
 				<<-'SHELL' -s "$list" "$arg_mount_point"

@@ -45,6 +45,7 @@ while getopts ':-:' OPT; do
 		admin_pass ) arg_admin_pass="${OPTARG:-}";;
 		nextcloud_url ) arg_nextcloud_url="${OPTARG:-}";;
 		nextcloud_domain ) arg_nextcloud_domain="${OPTARG:-}";;
+		nextcloud_host ) arg_nextcloud_host="${OPTARG:-}";;
 		nextcloud_protocol ) arg_nextcloud_protocol="${OPTARG:-}";;
 
 		mount_point ) arg_mount_point="${OPTARG:-}";;
@@ -106,8 +107,6 @@ case "$command" in
 			SHELL
 		)" || error "nextcloud:setup"
 
-		>&2 echo "need_install=$need_install"
-
 		if [[ ${need_install:-0} -ne 0 ]]; then
 			info "$title: installing nextcloud..."
 			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" php occ maintenance:install \
@@ -123,7 +122,7 @@ case "$command" in
 
 			php occ config:system:set trusted_domains 1 --value="$arg_nextcloud_domain"
 			php occ config:system:set overwrite.cli.url --value="$arg_nextcloud_url"
-			php occ config:system:set overwritehost --value="$arg_nextcloud_domain"
+			php occ config:system:set overwritehost --value="$arg_nextcloud_host"
 			php occ config:system:set overwriteprotocol --value="$arg_nextcloud_protocol"
 		SHELL
 		;;

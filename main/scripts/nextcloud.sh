@@ -77,7 +77,7 @@ case "$command" in
 		connect_wait_secs="${arg_connect_wait_secs:-300}"
 
 		need_install="$(
-			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
+			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
 				function info {
@@ -112,7 +112,7 @@ case "$command" in
 
 		if [[ ${need_install:-0} -ne 0 ]]; then
 			info "$title: installing nextcloud..."
-			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" php occ maintenance:install \
+			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" php occ maintenance:install \
 				--admin-user="$arg_admin_user" \
 				--admin-pass="$arg_admin_pass"
 		else
@@ -120,7 +120,7 @@ case "$command" in
 		fi
 
 		info "$title: define domain and protocol ($arg_nextcloud_domain)"
-		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
 			function info {
@@ -146,11 +146,11 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_nextcloud_service"
 
 		info "$title: nextcloud enable files_external"
-		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+		"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
 			php occ app:enable files_external
 
 		info "$title - verify defined mounts"
-		list="$("$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+		list="$("$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
 			php occ files_external:list --output=json)" || error "nextcloud:fs - list"
 
 		info "$title - count defined mounts with the mount point equal to $arg_mount_point"
@@ -164,7 +164,7 @@ case "$command" in
 
 		if [[ $count -eq 0 ]]; then
 			info "$title: defining fs storage ($arg_mount_point)..."
-			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
 				php occ files_external:create "$arg_mount_point" \
 				local --config datadir="${arg_datadir}" "null::null"
 		else
@@ -175,11 +175,11 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_nextcloud_service"
 
 		info "$title: nextcloud enable files_external"
-		"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+		"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
 			php occ app:enable files_external
 
 		info "$title - verify defined mounts"
-		list="$("$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" \
+		list="$("$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
 			php occ files_external:list --output=json)" || error "nextcloud:s3 - list"
 
 		info "$title - count defined mounts with the mount point equal to $arg_mount_point"
@@ -193,7 +193,7 @@ case "$command" in
 
 		if [[ $count -eq 0 ]]; then
 			info "$title: defining s3 storage ($arg_mount_point)..."
-			"$pod_script_env_file" exec -T -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
+			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
 				php occ files_external:create "$arg_mount_point" \

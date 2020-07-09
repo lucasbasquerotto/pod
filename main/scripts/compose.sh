@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
+# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
 pod_layer_dir="$POD_LAYER_DIR"
@@ -8,6 +8,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
 run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"
+file=''
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -30,12 +31,55 @@ fi
 
 shift;
 
+args=("$@")
+
+while getopts ':u:-:' OPT; do
+	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+		OPT="${OPTARG%%=*}"       # extract long option name
+		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+	fi
+	case "$OPT" in
+		main ) file="$main_file";;
+		run ) file="$run_file";;
+		u|user )
+			arg_user="${OPTARG:-}"
+
+			if [ -z "$arg_user" ]; then
+				arg_user="${2:-}"
+
+				if [ -z "$arg_entrypoint" ]; then
+					error "user not defined"
+				fi
+
+				shift;
+			fi
+			;;
+		entrypoint )
+			arg_entrypoint="${OPTARG:-}"
+
+			if [ -z "$arg_entrypoint" ]; then
+				arg_entrypoint="${2:-}"
+
+				if [ -z "$arg_entrypoint" ]; then
+					error "entrypoint not defined"
+				fi
+
+				shift;
+			fi
+			;;
+		??* ) OPTIND=$((OPTIND-1)); break;;
+		\? ) OPTIND=$((OPTIND-1));  break;;
+	esac
+done
+shift $((OPTIND-1))
+
 case "$command" in
 	"up")
 		cd "$pod_full_dir/"
 		sudo docker-compose -f "$main_file" up -d --remove-orphans "${@}"
 		;;
-	"exec-nontty")
+	"exec"|"exec-nontty")
 		cd "$pod_full_dir/"
 
 		service="${1:-}"
@@ -52,74 +96,85 @@ case "$command" in
 			error "[$command] container not found (or not running) for service $service"
 		fi
 
-		sudo docker exec -i "$container" "${@}"
-		;;
-	"run-main")
-		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" run --rm "${@}"
+		opts=()
+
+		if [ "$command" = "exec-nontty" ]; then
+			opts+=( "-i" )
+		fi
+
+		if [ -n "${arg_user:-}" ]; then
+			opts+=( "--user" "${arg_user:-}" )
+		fi
+
+		if [ -n "${arg_entrypoint:-}" ]; then
+			opts+=( "--entrypoint" "${arg_entrypoint:-}" )
+		fi
+
+		sudo docker exec ${opts[@]+"${opts[@]}"} "$container" "${@}"
 		;;
 	"run")
+		service="${1:-}"
+
+		if [ -z "$service" ]; then
+			error "[$command] service not specified"
+		fi
+
+		shift;
+
+		opts=()
+
+		if [ -n "${arg_user:-}" ]; then
+			opts+=( "--user" "${arg_user:-}" )
+		fi
+
+		if [ -n "${arg_entrypoint:-}" ]; then
+			opts+=( "--entrypoint" "${arg_entrypoint:-}" )
+		fi
+
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$run_file" run --rm "${@}"
+		sudo docker-compose -f "${file:-$run_file}" run --rm --name="${service}_run" ${opts[@]+"${opts[@]}"} "$service" "${@}"
 		;;
-	# "run")
-	# 	cd "$pod_full_dir/"
-	# 	sudo docker-compose -f "$run_file" run --rm --name="${1}_run" "${@}"
-	# 	;;
 	"rm")
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" rm --stop -v --force "${@}"
 
-		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
-			sudo docker-compose -f "$run_file" rm --stop -v --force "${@}"
-		fi
-		;;
-	"build")
-		cd "$pod_full_dir/"
-
-		if [[ "$#" -eq 0 ]]; then
-			# sudo docker-compose -f "$main_file" pull
-			sudo docker-compose -f "$main_file" build
+		if [[ "${#args[@]}" -ne 0 ]]; then
+			sudo docker-compose -f "${file:-$main_file}" rm --stop -v --force "${@}"
+		else
+			sudo docker-compose -f "${file:-$main_file}" rm --stop -v --force
 
 			if [ -f "$run_file" ]; then
-				# sudo docker-compose -f "$run_file" pull
-				sudo docker-compose -f "$run_file" build
+				sudo docker-compose -f "$run_file" rm --stop -v --force
 			fi
+		fi
+		;;
+	"build"|"stop")
+		cd "$pod_full_dir/"
+
+		if [[ "${#args[@]}" -ne 0 ]]; then
+			sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
 		else
-			sudo docker-compose -f "$main_file" "$command" "${@}"
-		fi
-		;;
-	"build-run")
-		cd "$pod_full_dir/"
+			sudo docker-compose -f "${file:-$main_file}" "$command"
 
-		if [[ "$#" -eq 0 ]]; then
-				sudo docker-compose -f "$run_file" build
-		else
-				sudo docker-compose -f "$run_file" "$command" "${@}"
+			if [ -f "$run_file" ]; then
+				sudo docker-compose -f "$run_file" "$command"
+			fi
 		fi
 		;;
-	"stop")
+	"restart"|"logs"|"ps")
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" "$command" "${@}"
+		sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
+		;;
+	"sh"|"ash"|"zsh"|"bash")
+		service="${1:-}"
 
-		if [ -f "$run_file" ] && [[ "$#" -eq 0 ]]; then
-			sudo docker-compose -f "$run_file" "$command" "${@}"
+		if [ -z "$service" ]; then
+			error "[$command] service not specified"
 		fi
-		;;
-	"exec"|"restart"|"logs"|"ps")
-		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" "$command" "${@}"
-		;;
-	"ps-run")
-		cd "$pod_full_dir/"
 
-		if [ -f "$run_file" ]; then
-			sudo docker-compose -f "$run_file" ps "${@}"
-		fi
-		;;
-	"sh"|"bash")
+		shift;
+
 		cd "$pod_full_dir/"
-		sudo docker-compose -f "$main_file" exec "${1}" /bin/"$command"
+		sudo docker-compose -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
 		;;
 	*)
 		error "$command: invalid command"

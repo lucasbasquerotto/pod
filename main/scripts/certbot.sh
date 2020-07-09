@@ -68,6 +68,8 @@ case "$command" in
 		inner_path_base="/etc/letsencrypt"
 		dummy_certificate_days="1"
 
+		"$pod_script_env_file" up "$arg_toolbox_service"
+
 		if [ "${arg_dev:-}" = "true" ]; then
 			dummy_certificate_days="10000"
 

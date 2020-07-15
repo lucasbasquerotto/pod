@@ -16,6 +16,7 @@ pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
 pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
+pod_script_nginx_file="$pod_layer_dir/main/scripts/nginx.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -711,10 +712,6 @@ case "$command" in
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
-	"run:container:image:"*)
-		run_cmd="${command#run:}"
-		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
-		;;
 	"sync:verify:"*)
 		service="${command#sync:verify:}"
 		reload="$("$pod_script_env_file" "sync:prepare:$service")" || error "$command"
@@ -761,6 +758,14 @@ case "$command" in
 				rm -f "\$file"
 			fi
 		SHELL
+		;;
+	"run:container:image:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
+		;;
+	"run:nginx:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_nginx_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

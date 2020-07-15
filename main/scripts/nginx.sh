@@ -41,6 +41,7 @@ while getopts ':-:' OPT; do
 		max_ips ) arg_max_ips="${OPTARG:-}";;
 		output_file ) arg_output_file="${OPTARG:-}";;
 		manual_file ) arg_manual_file="${OPTARG:-}";;
+		allowed_hosts_file ) arg_allowed_hosts_file="${OPTARG:-}";;
 		log_file_day ) arg_log_file_day="${OPTARG:-}";;
 		log_file_last_day ) arg_log_file_last_day="${OPTARG:-}";;
 		amount_day ) arg_amount_day="${OPTARG:-}";;
@@ -111,25 +112,35 @@ case "$command" in
 							output_aux="\n\$i";
 
 							# do nothing if ip already exists in manual file
-							if [ -f "$arg_manual_file" ]; then
-								if grep -qE "^(\$ip|#[ ]*\$ip|##[ ]*\$ip)" "$arg_manual_file"; then
+							if [ -n "${arg_manual_file:-}" ] && [ -f "${arg_manual_file:-}" ]; then
+								if grep -qE "^(\$ip|#[ ]*\$ip|##[ ]*\$ip)" "${arg_manual_file:-}"; then
 									output_aux=''
 								fi
 							fi
 
-							# if [ -n "\$output_aux" ]; then
-							# 	host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
+							if [ -n "\$output_aux" ]; then
+								host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
+								>&2 echo "host=\$host"
 
-							# 	if [ -n "\$host" ]; then
-							# 		if [[ \$host == *.googlebot.com ]] || [[ \$host == *.google.com ]]; then
-							# 			ip_host="$(host "\$host" | awk '{ print $NF }' ||:)"
+								if [ -n "\$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
+									regex="^[ ]*[^#^ ].*$"
+									allowed_hosts="\$(grep -E "\$regex" "${arg_allowed_hosts_file:-}" ||:)"
 
-							# 			if [ -n "\$ip_host" ] && [ "\$ip" = "\$ip_host" ]; then
-							# 				output_aux="\n## \$i";
-							# 			fi
-							# 		fi
-							# 	fi
-							# fi
+									if [ -n "\$allowed_hosts" ]; then
+										while read -r allowed_host; do
+											if [[ \$host == \$allowed_host ]]; then
+												ip_host="$(host "\$host" | awk '{ print $NF }' ||:)"
+
+												if [ -n "\$ip_host" ] && [ "\$ip" = "\$ip_host" ]; then
+													output_aux="\n## \$i (\$host)";
+												fi
+
+												break;
+											fi
+										done <<< "\$(echo -e "\$allowed_hosts")"
+									fi
+								fi
+							fi
 
 							output="\$output\$output_aux";
 						fi
@@ -148,40 +159,40 @@ case "$command" in
 
 			iba1=\$(md5sum "$arg_output_file")
 
-			if [ -n "$arg_log_file_last_day" ] && [ -f "$arg_log_file_last_day" ]; then
-				if [ "$arg_amount_day" -le "0" ]; then
-					error "$command: amount_day ($arg_amount_day) should be greater than 0"
+			if [ -n "${arg_log_file_last_day:-}" ] && [ -f "${arg_log_file_last_day:-}" ]; then
+				if [ "${arg_amount_day:-}" -le "0" ]; then
+					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
 				fi
 
-				info "$command: define ips to block (more than $arg_amount_day requests in the last day) - $arg_log_file_last_day"
-				ipstoblock "$arg_log_file_last_day" "$arg_amount_day"
+				info "$command: define ips to block (more than ${arg_amount_day:-} requests in the last day) - ${arg_log_file_last_day:-}"
+				ipstoblock "${arg_log_file_last_day:-}" "${arg_amount_day:-}"
 			fi
 
-			if [ -n "$arg_log_file_day" ] && [ -f "$arg_log_file_day" ]; then
-				if [ "$arg_amount_day" -le "0" ]; then
-					error "$command: amount_day ($arg_amount_day) should be greater than 0"
+			if [ -n "${arg_log_file_day:-}" ] && [ -f "${arg_log_file_day:-}" ]; then
+				if [ "${arg_amount_day:-}" -le "0" ]; then
+					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
 				fi
 
-				info "$command: define ips to block (more than $arg_amount_day requests in a day) - $arg_log_file_day"
-				ipstoblock "$arg_log_file_day" "$arg_amount_day"
+				info "$command: define ips to block (more than ${arg_amount_day:-} requests in a day) - ${arg_log_file_day:-}"
+				ipstoblock "${arg_log_file_day:-}" "${arg_amount_day:-}"
 			fi
 
-			if [ -n "$arg_log_file_last_hour" ] && [ -f "$arg_log_file_last_hour" ]; then
-				if [ "$arg_amount_hour" -le "0" ]; then
-					error "$command: amount_hour ($arg_amount_hour) should be greater than 0"
+			if [ -n "${arg_log_file_last_hour:-}" ] && [ -f "${arg_log_file_last_hour:-}" ]; then
+				if [ "${arg_amount_hour:-}" -le "0" ]; then
+					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
 				fi
 
-				info "$command: define ips to block (more than $arg_amount_hour requests in the last hour) - $arg_log_file_last_hour"
-				ipstoblock "$arg_log_file_last_hour" "$arg_amount_hour"
+				info "$command: define ips to block (more than ${arg_amount_hour:-} requests in the last hour) - ${arg_log_file_last_hour:-}"
+				ipstoblock "${arg_log_file_last_hour:-}" "${arg_amount_hour:-}"
 			fi
 
-			if [ -n "$arg_log_file_hour" ] && [ -f "$arg_log_file_hour" ]; then
-				if [ "$arg_amount_hour" -le "0" ]; then
-					error "$command: amount_hour ($arg_amount_hour) should be greater than 0"
+			if [ -n "${arg_log_file_hour:-}" ] && [ -f "${arg_log_file_hour:-}" ]; then
+				if [ "${arg_amount_hour:-}" -le "0" ]; then
+					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
 				fi
 
-				info "$command: define ips to block (more than $arg_amount_hour requests in an hour) - $arg_log_file_hour"
-				ipstoblock "$arg_log_file_hour" "$arg_amount_hour"
+				info "$command: define ips to block (more than ${arg_amount_hour:-} requests in an hour) - ${arg_log_file_hour:-}"
+				ipstoblock "${arg_log_file_hour:-}" "${arg_amount_hour:-}"
 			fi
 
 			iba2=\$(md5sum "$arg_output_file")

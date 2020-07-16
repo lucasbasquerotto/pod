@@ -744,6 +744,8 @@ case "$command" in
 		if [ "$execute" = "true" ]; then
 			"$pod_script_env_file" "action:exec:$arg_task_name"
 			"$pod_script_env_file" "action:remove:$arg_task_name" "${opts[@]}"
+		else
+			>&2 echo "skipping..."
 		fi
 		;;
 	"action:verify:"*)

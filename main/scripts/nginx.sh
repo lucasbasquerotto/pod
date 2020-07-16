@@ -81,6 +81,10 @@ case "$command" in
 				exit 2
 			}
 
+			function invalid_cidr_network() {
+				[[ "\$1" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]] && echo "0" || echo "1"
+			}
+
 			function ipstoblock {
 				nginx_file_path="\${1:-}"
 				amount="\${2:-10}"
@@ -105,43 +109,48 @@ case "$command" in
 
 					while read -r i; do
 						ip="\$(echo "\$i" | awk '{print \$1}')"
+						invalid_ip="\$(invalid_cidr_network "\$ip")" ||:
 
-						# include ip if it isn't already defined
-						# it will be considered as defined even if it is commented
-						if ! grep -qE "^(\$ip[ ]|#[ ]*\$ip[ ]|##[ ]*\$ip[ ])" "$arg_output_file"; then
-							output_aux="\n\$i";
+						if [ "\${invalid_ip:-1}" = "1" ]; then
+							>&2 echo "invalid ip: \$ip";
+						else
+							# include ip if it isn't already defined
+							# it will be considered as defined even if it is commented
+							if ! grep -qE "^(\$ip[ ]|[#]+[ ]*\$ip[ ])" "$arg_output_file"; then
+								output_aux="\n\$i";
 
-							# do nothing if ip already exists in manual file
-							if [ -n "${arg_manual_file:-}" ] && [ -f "${arg_manual_file:-}" ]; then
-								if grep -qE "^(\$ip|#[ ]*\$ip|##[ ]*\$ip)" "${arg_manual_file:-}"; then
-									output_aux=''
-								fi
-							fi
-
-							if [ -n "\$output_aux" ]; then
-								host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
-
-								if [ -n "\$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
-									regex="^[ ]*[^#^ ].*$"
-									allowed_hosts="\$(grep -E "\$regex" "${arg_allowed_hosts_file:-}" ||:)"
-
-									if [ -n "\$allowed_hosts" ]; then
-										while read -r allowed_host; do
-											if [[ \$host == \$allowed_host ]]; then
-												ip_host="$(host "\$host" | awk '{ print $NF }' ||:)"
-
-												if [ -n "\$ip_host" ] && [ "\$ip" = "\$ip_host" ]; then
-													output_aux="\n## \$i (\$host)";
-												fi
-
-												break;
-											fi
-										done <<< "\$(echo -e "\$allowed_hosts")"
+								# do nothing if ip already exists in manual file
+								if [ -n "${arg_manual_file:-}" ] && [ -f "${arg_manual_file:-}" ]; then
+									if grep -qE "^(\$ip|#[ ]*\$ip|##[ ]*\$ip)" "${arg_manual_file:-}"; then
+										output_aux=''
 									fi
 								fi
-							fi
 
-							output="\$output\$output_aux";
+								if [ -n "\$output_aux" ]; then
+									host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
+
+									if [ -n "\$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
+										regex="^[ ]*[^#^ ].*$"
+										allowed_hosts="\$(grep -E "\$regex" "${arg_allowed_hosts_file:-}" ||:)"
+
+										if [ -n "\$allowed_hosts" ]; then
+											while read -r allowed_host; do
+												if [[ \$host == \$allowed_host ]]; then
+													ip_host="$(host "\$host" | awk '{ print $NF }' ||:)"
+
+													if [ -n "\$ip_host" ] && [ "\$ip" = "\$ip_host" ]; then
+														output_aux="\n## \$i (\$host)";
+													fi
+
+													break;
+												fi
+											done <<< "\$(echo -e "\$allowed_hosts")"
+										fi
+									fi
+								fi
+
+								output="\$output\$output_aux";
+							fi
 						fi
 					done <<< "\$(echo -e "\$ips_most_requests")"
 

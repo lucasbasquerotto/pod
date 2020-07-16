@@ -102,6 +102,7 @@ while getopts ':-:' OPT; do
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
+		action_dir ) arg_action_dir="${OPTARG:-}";;
 		opts ) arg_opts=( "${@:OPTIND}" ); break;;
 		??* ) ;;	# bad long option
 		\? )	;;	# bad short option (error reported via getopts)
@@ -712,25 +713,46 @@ case "$command" in
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
-	"sync:verify:"*)
-		service="${command#sync:verify:}"
-		reload="$("$pod_script_env_file" "sync:prepare:$service")" || error "$command"
+	"action:task:"*)
+		task_name="${command#action:task:}"
+		prefix="var_task__${task_name}__action_task_"
 
-		if [ "$reload" = "true" ]; then
-			"$pod_script_env_file" "sync:reload:$service"
-			"$pod_script_env_file" "sync:remove:$service"
+		toolbox_service="${prefix}_toolbox_service"
+		action_dir="${prefix}_action_dir"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=${!toolbox_service}" )
+		opts+=( "--action_dir=${!action_dir}" )
+
+		"$pod_script_env_file" "action:subtask" "${opts[@]}"
+		;;
+	"action:subtask")
+		opts=()
+
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=$arg_toolbox_service" )
+		opts+=( "--action_dir=$arg_action_dir" )
+
+		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" || error "$command"
+
+		if [ "$execute" = "true" ]; then
+			"$pod_script_env_file" "action:exec:$arg_task_name"
+			"$pod_script_env_file" "action:remove:$arg_task_name" "${opts[@]}"
 		fi
 		;;
-	"sync:prepare:"*)
-		service="${command#sync:prepare:}"
-		data_dir="/var/main/data"
-
+	"action:verify:"*)
 		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
-			dir="$data_dir/sync/$service"
-			file="\${dir}/reload"
-			new_file="\${dir}/reloading"
+			dir="$arg_action_dir"
+			file="\${dir}/$arg_task_name"
+			new_file="\${dir}/$arg_task_name.running"
 
 			if [ -f "\$new_file" ]; then
 				echo "false"
@@ -744,15 +766,12 @@ case "$command" in
 			fi
 		SHELL
 		;;
-	"sync:remove:"*)
-		service="${command#sync:remove:}"
-		data_dir="/var/main/data"
-
+	"action:remove:"*)
 		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
-			dir="$data_dir/sync/$service"
-			file="\${dir}/reloading"
+			dir="$arg_action_dir"
+			file="\${dir}/$arg_task_name.running"
 
 			if [ -f "\$file" ]; then
 				rm -f "\$file"

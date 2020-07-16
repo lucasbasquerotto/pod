@@ -120,7 +120,6 @@ case "$command" in
 
 							if [ -n "\$output_aux" ]; then
 								host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
-								>&2 echo "host=\$host"
 
 								if [ -n "\$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
 									regex="^[ ]*[^#^ ].*$"

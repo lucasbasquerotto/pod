@@ -16,7 +16,6 @@ pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
 pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
-pod_script_nginx_file="$pod_layer_dir/main/scripts/nginx.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -95,15 +94,12 @@ while getopts ':-:' OPT; do
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
-		env_local_repo ) arg_env_local_repo="${OPTARG:-}";;
-		ctl_layer_dir ) arg_ctl_layer_dir="${OPTARG:-}";;
 		setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
 		backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
-		opts ) arg_opts=( "${@:OPTIND}" ); break;;
 		??* ) ;;	# bad long option
 		\? )	;;	# bad short option (error reported via getopts)
 	esac
@@ -137,9 +133,6 @@ case "$command" in
 		;;
 	"prepare")
 		>&2 info "$command - do nothing..."
-		;;
-	"local:prepare")
-		"$arg_ctl_layer_dir/run" dev-cmd bash "/root/w/r/$arg_env_local_repo/run" ${arg_opts[@]+"${arg_opts[@]}"}
 		;;
 	"migrate")
 		>&2 info "$command - do nothing..."
@@ -783,10 +776,6 @@ case "$command" in
 	"run:container:image:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
-		;;
-	"run:nginx:"*)
-		run_cmd="${command#run:}"
-		"$pod_script_nginx_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

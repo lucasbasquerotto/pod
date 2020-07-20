@@ -100,8 +100,8 @@ while getopts ':-:' OPT; do
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
-		??* ) ;;	# bad long option
-		\? )	;;	# bad short option (error reported via getopts)
+		??* ) ;; ## ignore
+		\? )  ;; ## ignore
 	esac
 done
 shift $((OPTIND-1))

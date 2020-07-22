@@ -114,7 +114,7 @@ start="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
 		;;
 	*)
 		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - start${NC}"
@@ -138,7 +138,7 @@ case "$command" in
 		>&2 info "$command - do nothing..."
 		;;
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
 
 		if [ -n "${var_orchestration__main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
 			export ORCHESTRATION_MAIN_FILE="$var_orchestration__main_file"
@@ -786,7 +786,7 @@ end="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash")
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
 		;;
 	*)
 		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - end${NC}"

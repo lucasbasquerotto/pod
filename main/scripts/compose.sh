@@ -176,6 +176,9 @@ case "$command" in
 		cd "$pod_full_dir/"
 		sudo docker-compose -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
 		;;
+	"system:df")
+		sudo docker system df
+		;;
 	*)
 		error "$command: invalid command"
 		;;

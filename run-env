@@ -67,7 +67,54 @@ export "POD_FULL_DIR=$pod_full_dir"
 export "POD_TMP_DIR=$pod_tmp_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
 
-"${pod_script_env_file}" "${@}"
+data_dir="${var_data_dir:-}"
+
+if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
+	data_dir="$pod_layer_dir/$var_data_dir_rel"
+fi
+
+if [ -n "${data_dir:-}" ]; then
+	script_log_file_dir="$data_dir/log/main"
+
+	if [ ! -d "$script_log_file_dir" ]; then
+		[ -d "$data_dir" ] && [ "$(stat -c "%U" "$data_dir")" != "$(whoami)" ] \
+			&& mkdircmd=( sudo mkdir ) \
+			|| mkdircmd=( mkdir )
+			
+		"${mkdircmd[@]}" -p "${script_log_file_dir}"
+	fi
+
+	[ -d "$script_log_file_dir" ] && [ "$(stat -c "%U" "$script_log_file_dir")" != "$(whoami)" ] \
+		&& cmdprefix=( sudo ) \
+		|| cmdprefix=()
+
+	teecmd=${cmdprefix+"${cmdprefix[@]}"}
+	teecmd+=( tee )
+
+	log_file_tmp="${script_log_file_dir}/tmp.run.$(date '+%Y-%m-%d.%H-%M-%S').$$.log"
+
+	{
+		echo "#######################################################################"
+		echo "$(date '+%F %T') [run-env] [${1:-}] [log] start ($arg_pod_vars_dir)"
+		"${pod_script_env_file}" "${@}" 
+		echo "$(date '+%F %T') [run-env] [${1:-}] [log] end ($arg_pod_vars_dir)"
+		echo "#######################################################################"
+	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
+
+	log_file="${script_log_file_dir}/run.$(date '+%Y-%m-%d').log"
+
+	catcmd=${cmdprefix+"${cmdprefix[@]}"}
+	catcmd+=( cat )
+
+	"${catcmd[@]}" "$log_file_tmp" | "${teecmd[@]}" --append "$log_file"	
+
+	rmcmd=${cmdprefix+"${cmdprefix[@]}"}
+	rmcmd+=( rm )
+	
+	"${rmcmd[@]}" -f "$log_file_tmp"
+else
+	"${pod_script_env_file}" "${@}"
+fi
 
 end="$(date '+%F %T')"
 msg="[run-env] [${1:-}] end ($arg_pod_vars_dir)"

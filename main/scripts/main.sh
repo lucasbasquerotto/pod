@@ -752,10 +752,18 @@ case "$command" in
 			if [ -f "\$new_file" ]; then
 				echo "false"
 			elif [ -f "\$file" ]; then
-				>&2 touch "\$new_file"
+				echo "$$" >> "\$new_file"
 				>&2 rm -f "\$file"
+				pid="\$(head -n 1 "\$new_file")"
 
-				echo "true"
+				>&2 echo "pid=$$"
+				>&2 echo "pid_file=\$pid"
+
+				if [ "\$pid" = "$$" ]; then
+					echo "true"
+				else
+					echo "false"
+				fi
 			else
 				echo "false"
 			fi

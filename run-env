@@ -88,7 +88,7 @@ if [ -n "${data_dir:-}" ]; then
 		&& cmdprefix=( sudo ) \
 		|| cmdprefix=()
 
-	teecmd=${cmdprefix+"${cmdprefix[@]}"}
+	teecmd=( ${cmdprefix+"${cmdprefix[@]}"} )
 	teecmd+=( tee )
 
 	log_file_tmp="${script_log_file_dir}/tmp.run.$(date '+%Y-%m-%d.%H-%M-%S').$$.log"
@@ -103,12 +103,12 @@ if [ -n "${data_dir:-}" ]; then
 
 	log_file="${script_log_file_dir}/run.$(date '+%Y-%m-%d').log"
 
-	catcmd=${cmdprefix+"${cmdprefix[@]}"}
+	catcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
 	catcmd+=( cat )
 
 	"${catcmd[@]}" "$log_file_tmp" | "${teecmd[@]}" --append "$log_file"	
 
-	rmcmd=${cmdprefix+"${cmdprefix[@]}"}
+	rmcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
 	rmcmd+=( rm )
 	
 	"${rmcmd[@]}" -f "$log_file_tmp"

@@ -756,9 +756,6 @@ case "$command" in
 				>&2 rm -f "\$file"
 				pid="\$(head -n 1 "\$new_file")"
 
-				>&2 echo "pid=$$"
-				>&2 echo "pid_file=\$pid"
-
 				if [ "\$pid" = "$$" ]; then
 					echo "true"
 				else

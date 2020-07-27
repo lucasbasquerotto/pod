@@ -83,7 +83,6 @@ while getopts ':-:' OPT; do
 	fi
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;
-		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}";;
 		s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
@@ -100,6 +99,8 @@ while getopts ':-:' OPT; do
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
+		action_skip_check ) arg_action_skip_check="${OPTARG:-}";;
+		status ) arg_status="${OPTARG:-}";;
 		??* ) ;; ## ignore
 		\? )  ;; ## ignore
 	esac
@@ -246,7 +247,7 @@ case "$command" in
 		opts=()
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--toolbox_service=$arg_toolbox_service" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
 		opts+=( "--setup_dest_dir_to_verify=${!setup_dest_dir_to_verify}" )
 
@@ -729,14 +730,20 @@ case "$command" in
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
-		opts+=( "--toolbox_service=$arg_toolbox_service" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--action_dir=$arg_action_dir" )
 
-		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" || error "$command"
+		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" \
+			|| error "$command"
 
 		if [ "$execute" = "true" ]; then
-			"$pod_script_env_file" "action:exec:$arg_task_name"
-			"$pod_script_env_file" "action:remove:$arg_task_name" "${opts[@]}"
+			"$pod_script_env_file" "action:exec:$arg_task_name" && status="$?" || status="$?"
+			"$pod_script_env_file" "action:remove:$arg_task_name" \
+				--status="$status" "${opts[@]}"
+			
+			if [ "$status" != "0" ]; then
+				error "$command - status=$status"
+			fi
 		else
 			>&2 echo "skipping..."
 		fi
@@ -751,9 +758,13 @@ case "$command" in
 
 			if [ -f "\$new_file" ]; then
 				echo "false"
-			elif [ -f "\$file" ]; then
+			elif [ "${arg_action_skip_check:-}" = "true" ] || [ -f "\$file" ]; then
 				echo "$$" >> "\$new_file"
-				>&2 rm -f "\$file"
+
+				if [ "${arg_action_skip_check:-}" != "true" ]; then
+					>&2 rm -f "\$file"
+				fi
+
 				pid="\$(head -n 1 "\$new_file")"
 
 				if [ "\$pid" = "$$" ]; then
@@ -772,11 +783,58 @@ case "$command" in
 
 			dir="$arg_action_dir"
 			file="\${dir}/$arg_task_name.running"
+			error_file="\${dir}/$arg_task_name.error"
 
 			if [ -f "\$file" ]; then
+				if [ "${arg_status:-}" != "0" ]; then
+					echo "\$(date '+%F %T')" >> "\$error_file"
+				fi
+
 				rm -f "\$file"
 			fi
 		SHELL
+			
+		if [ "${arg_status:-}" != "0" ]; then
+			error "$command - status=${arg_status:-}"
+		fi
+		;;
+	"unique:task:"*)
+		task_name="${command#unique:task:}"
+		prefix="var_task__${task_name}__unique_task_"
+
+		toolbox_service="${prefix}_toolbox_service"
+		action_dir="${prefix}_action_dir"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=${!toolbox_service}" )
+		opts+=( "--action_dir=${!action_dir}" )
+
+		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
+		;;
+	"unique:subtask")
+		opts=()
+
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
+		opts+=( "--action_dir=$arg_action_dir" )
+		opts+=( "--action_skip_check=true" )
+
+		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" \
+			|| error "$command"
+
+		if [ "$execute" = "true" ]; then
+			"$pod_script_env_file" "unique:exec:$arg_task_name" && status="$?" || status="$?"
+			"$pod_script_env_file" "action:remove:$arg_task_name" \
+				--status="$status" "${opts[@]}"
+		else
+			error "$command: process already running"
+		fi
 		;;
 	"run:container:image:"*)
 		run_cmd="${command#run:}"

@@ -787,7 +787,7 @@ case "$command" in
 
 			if [ -f "\$file" ]; then
 				if [ "${arg_status:-}" != "0" ]; then
-					echo "\$(date '+%F %T')" >> "\$error_file"
+					echo "\$(date '+%F %T')" > "\$error_file"
 				fi
 
 				rm -f "\$file"

@@ -68,34 +68,31 @@ title="$command"
 [ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
-	"upgrade"|"fast-upgrade"|"update"|"fast-update")
-		if [ "$command" != "fast-upgrade" ]; then
-			info "$command - prepare..."
-			"$pod_script_env_file" prepare
-		fi
+	"upgrade")
+		info "$command - start"
+
+		info "$command - prepare..."
+		"$pod_script_env_file" prepare
 
 		info "$command - build..."
 		"$pod_script_env_file" build
 
-		if [[ "$command" = @("upgrade"|"fast-upgrade") ]]; then
-			info "$command - setup..."
-			"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
-		elif [ "$command" = "update" ]; then
-			info "$command - migrate..."
-			"$pod_script_env_file" migrate ${args[@]+"${args[@]}"}
-		fi
+		info "$command - setup..."
+		"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
 
-		info "$command - run..."
-		"$pod_script_env_file" up
 		info "$command - ended"
 		;;
-	"setup"|"fast-setup")
+	"setup")
 		if [ -n "${arg_setup_task_name:-}" ]; then
 			"$pod_script_env_file" "main:task:$arg_setup_task_name"
 		fi
 
 		if [ "$command" = "setup" ]; then
-			"$pod_script_env_file" migrate ${args[@]+"${args[@]}"}
+			info "$command - migrate..."
+			"$pod_script_env_file" migrate
+
+			info "$command - up..."
+			"$pod_script_env_file" up
 		fi
 		;;
 	"setup:default")

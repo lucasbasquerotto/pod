@@ -55,22 +55,6 @@ case "$command" in
 		command="env"
 		inner_cmd="upgrade"
 		;;
-	"f")
-		command="env"
-		inner_cmd="fast-upgrade"
-		;;
-	"t")
-		command="env"
-		inner_cmd="fast-update"
-		;;
-	"s")
-		command="env"
-		inner_cmd="fast-setup"
-		;;
-	"p")
-		command="env"
-		inner_cmd="prepare"
-		;;
 esac
 
 args=("$@")
@@ -98,6 +82,7 @@ while getopts ':-:' OPT; do
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
+		bg_dir ) arg_bg_dir="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
 		action_skip_check ) arg_action_skip_check="${OPTARG:-}";;
 		status ) arg_status="${OPTARG:-}";;
@@ -126,7 +111,7 @@ case "$command" in
 	"env")
 		"$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
 		;;
-	"upgrade"|"fast-upgrade"|"update"|"fast-update")
+	"upgrade")
 		"$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"stop-to-upgrade")
@@ -186,7 +171,7 @@ case "$command" in
 			done
 		fi
 		;;
-	"setup"|"fast-setup")
+	"setup")
 		opts=()
 		opts+=( "--setup_task_name=${var_run__tasks__setup:-}" )
 		"$pod_script_upgrade_file" "$command" "${opts[@]}"
@@ -707,6 +692,30 @@ case "$command" in
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
+	"bg:task:"*)
+		task_name="${command#bg:task:}"
+		prefix="var_task__${task_name}__bg_task_"
+
+		bg_dir="${prefix}_bg_dir"
+		action_dir="${prefix}_action_dir"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--bg_dir=${!bg_dir}" )
+		opts+=( "--action_dir=${!action_dir}" )
+
+		"$pod_script_env_file" "action:subtask" "${opts[@]}"
+		;;
+	"bg:subtask")
+		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
+			--toolbox_service="$var_run__general__toolbox_service" \
+			--action_dir="$arg_action_dir" \
+			>> "$arg_bg_dir/$arg_task_name.log" 2>&1
+		tail --pid="$pid" -n 2 -f "$arg_bg_dir/$arg_task_name.log"
+		;;
 	"action:task:"*)
 		task_name="${command#action:task:}"
 		prefix="var_task__${task_name}__action_task_"
@@ -740,7 +749,7 @@ case "$command" in
 			"$pod_script_env_file" "action:exec:$arg_task_name" && status="$?" || status="$?"
 			"$pod_script_env_file" "action:remove:$arg_task_name" \
 				--status="$status" "${opts[@]}"
-			
+
 			if [ "$status" != "0" ]; then
 				error "$command - status=$status"
 			fi
@@ -793,7 +802,7 @@ case "$command" in
 				rm -f "\$file"
 			fi
 		SHELL
-			
+
 		if [ "${arg_status:-}" != "0" ]; then
 			error "$command - status=${arg_status:-}"
 		fi

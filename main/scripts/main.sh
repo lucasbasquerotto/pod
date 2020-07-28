@@ -713,8 +713,14 @@ case "$command" in
 		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
 			--action_dir="$arg_action_dir" \
 			>> "$arg_bg_file" 2>&1 &
+
 		pid=$!
-		tail --pid="$pid" -n 2 -f "$arg_bg_file"
+		tail --pid="$pid" -n 2 -f "$arg_bg_file"		
+		wait "$pid" && status=$? || status=$?
+		
+		if [[ $status -ne 0 ]]; then
+			error "$command:$arg_task_name"
+		fi
 		;;
 	"action:task:"*)
 		task_name="${command#action:task:}"

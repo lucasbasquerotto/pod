@@ -82,7 +82,7 @@ while getopts ':-:' OPT; do
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
-		bg_dir ) arg_bg_dir="${OPTARG:-}";;
+		bg_file ) arg_bg_file="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
 		action_skip_check ) arg_action_skip_check="${OPTARG:-}";;
 		status ) arg_status="${OPTARG:-}";;
@@ -696,7 +696,7 @@ case "$command" in
 		task_name="${command#bg:task:}"
 		prefix="var_task__${task_name}__bg_task_"
 
-		bg_dir="${prefix}_bg_dir"
+		bg_file="${prefix}_bg_file"
 		action_dir="${prefix}_action_dir"
 
 		opts=()
@@ -704,17 +704,17 @@ case "$command" in
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
-		opts+=( "--bg_dir=${!bg_dir}" )
+		opts+=( "--bg_file=${!bg_file}" )
 		opts+=( "--action_dir=${!action_dir}" )
 
 		"$pod_script_env_file" "action:subtask" "${opts[@]}"
 		;;
 	"bg:subtask")
 		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
-			--toolbox_service="$var_run__general__toolbox_service" \
 			--action_dir="$arg_action_dir" \
-			>> "$arg_bg_dir/$arg_task_name.log" 2>&1
-		tail --pid="$pid" -n 2 -f "$arg_bg_dir/$arg_task_name.log"
+			>> "$arg_bg_file" 2>&1 &
+		pid=$!
+		tail --pid="$pid" -n 2 -f "$arg_bg_file"
 		;;
 	"action:task:"*)
 		task_name="${command#action:task:}"
@@ -728,8 +728,19 @@ case "$command" in
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
-		opts+=( "--toolbox_service=${!toolbox_service}" )
 		opts+=( "--action_dir=${!action_dir}" )
+
+		"$pod_script_env_file" "action:subtask" "${opts[@]}"
+		;;
+	"action:subtask:"*)
+		task_name="${command#action:subtask:}"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--action_dir=$arg_action_dir" )
 
 		"$pod_script_env_file" "action:subtask" "${opts[@]}"
 		;;
@@ -821,6 +832,18 @@ case "$command" in
 
 		opts+=( "--toolbox_service=${!toolbox_service}" )
 		opts+=( "--action_dir=${!action_dir}" )
+
+		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
+		;;
+	"unique:subtask:"*)
+		task_name="${command#unique:subtask:}"
+
+		opts=()
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--action_dir=$arg_action_dir" )
 
 		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
 		;;

@@ -49,6 +49,8 @@ while getopts ':-:' OPT; do
 		backup_bucket_sync ) arg_backup_bucket_sync="${OPTARG:-}";;
 		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
 
+		restore_use_s3 ) arg_restore_use_s3="${OPTARG:-}";;
+		restore_s3_sync ) arg_restore_s3_sync="${OPTARG:-}";;
 		restore_dest_base_dir ) arg_restore_dest_base_dir="${OPTARG:-}";;
 		restore_dest_file ) arg_restore_dest_file="${OPTARG:-}";;
 		restore_dest_dir ) arg_restore_dest_dir="${OPTARG:-}";;
@@ -190,7 +192,7 @@ case "$command" in
 			restore_dest_base_dir_full="$arg_restore_dest_base_dir/$arg_restore_dest_dir"
 		fi
 
-		if [ -n "${arg_restore_remote_bucket_path_dir:-}" ]; then
+		if [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" = "true" ]; then
 			info "$title - create the restore destination directory ($arg_restore_dest_base_dir)"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 				mkdir -p "$arg_restore_dest_base_dir"
@@ -204,10 +206,10 @@ case "$command" in
 				restore_path="$arg_restore_dest_base_dir"
 			fi
 
-			msg="$arg_restore_remote_bucket_path_dir (s3) to $restore_dest_base_dir_full"
+			msg="/${arg_restore_remote_bucket_path_dir:-} (s3) to $restore_dest_base_dir_full"
 			info "$title - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
-				--s3_src_rel="$arg_restore_remote_bucket_path_dir" \
+				--s3_src_rel="${arg_restore_remote_bucket_path_dir:-}" \
 				--s3_remote_src="true" \
 				--s3_dest="$restore_dest_base_dir_full" \
 				--s3_file="$s3_file" \
@@ -258,7 +260,10 @@ case "$command" in
 
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					curl -L -o "$restore_file" -k "$arg_restore_remote_file"
-			elif [ -n "${arg_restore_remote_bucket_path_file:-}" ]; then
+			elif [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" != "true" ]; then
+				if [ -z "${arg_restore_remote_bucket_path_file:-}" ]; then
+					error "$title - restore_remote_bucket_path_file not defined"
+				fi
 				msg="$title - $arg_toolbox_service - $arg_subtask_cmd_s3"
 				msg="$msg - restore a file from remote bucket"
 				info "$msg [$arg_restore_remote_bucket_path_file (s3) -> $restore_local_dest]"
@@ -269,8 +274,7 @@ case "$command" in
 					--s3_src_rel="$arg_restore_remote_bucket_path_file" \
 					--s3_dest="$restore_file" \
 					--task_name="$arg_task_name" \
-					--subtask_cmd="$arg_subtask_cmd" \
-
+					--subtask_cmd="$arg_subtask_cmd"
 			else
 				error "$title: no source provided"
 			fi
@@ -296,7 +300,7 @@ case "$command" in
 
 						rm -rf "$restore_tmp_dir_full"
 
-						unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
+						unzip -o ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
 
 						if [ "$restore_tmp_dir_full" != "$restore_dest_base_dir_full" ]; then
 							cp -r "$restore_tmp_dir_full"/. "$restore_dest_base_dir_full/"
@@ -320,7 +324,7 @@ case "$command" in
 						>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 							set -eou pipefail
 
-							unzip ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
+							unzip -o ${unzip_opts[@]+"${unzip_opts[@]}"} "$restore_file" -d "$arg_restore_tmp_dir"
 
 							if [ "$intermediate" != "$dest" ]; then
 								mv "$intermediate" "$dest"

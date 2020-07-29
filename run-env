@@ -9,6 +9,12 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+function error {
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
+}
+
 if [ -z "$arg_pod_vars_dir" ]; then
 	msg="[error] enter the vars directory parameter"
 	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
@@ -97,7 +103,13 @@ if [ -n "${data_dir:-}" ]; then
 	{
 		echo "#######################################################################"
 		echo "$(date '+%F %T') [run-env] [${1:-}] [log] start ($arg_pod_vars_dir)"
-		"${pod_script_env_file}" "${@}"
+
+		"${pod_script_env_file}" "${@}" && status=$? || status=$?
+
+		if [[ $status -ne 0 ]]; then
+			error "${1:-} - exited with status $status"
+		fi
+
 		echo "$(date '+%F %T') [run-env] [${1:-}] [log] end ($arg_pod_vars_dir)"
 		echo "#######################################################################"
 	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
@@ -107,14 +119,18 @@ if [ -n "${data_dir:-}" ]; then
 	catcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
 	catcmd+=( cat )
 
-	"${catcmd[@]}" "$log_file_tmp" | "${teecmd[@]}" --append "$log_file"
+	"${catcmd[@]}" "$log_file_tmp" | "${teecmd[@]}" --append "$log_file" >/dev/null
 
 	rmcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
 	rmcmd+=( rm )
 
 	"${rmcmd[@]}" -f "$log_file_tmp"
 else
-	"${pod_script_env_file}" "${@}"
+	"${pod_script_env_file}" "${@}" && status=$? || status=$?
+
+	if [[ $status -ne 0 ]]; then
+		error "${1:-} - exited with status $status"
+	fi
 fi
 
 end="$(date '+%F %T')"

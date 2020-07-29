@@ -243,6 +243,9 @@ case "$command" in
 
 		task_kind="${prefix}_task_kind"
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
+
+		restore_use_s3="${prefix}_restore_use_s3"
+		restore_s3_sync="${prefix}_restore_s3_sync"
 		restore_dest_file="${prefix}_restore_dest_file"
 		restore_dest_dir="${prefix}_restore_dest_dir"
 		restore_tmp_dir="${prefix}_restore_tmp_dir"
@@ -270,6 +273,8 @@ case "$command" in
 
 		opts+=( "--task_kind=${!task_kind:-}" )
 		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
+		opts+=( "--restore_use_s3=${!restore_use_s3:-}" )
+		opts+=( "--restore_s3_sync=${!restore_s3_sync:-}" )
 		opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
 		opts+=( "--restore_dest_dir=${!restore_dest_dir:-}" )
 		opts+=( "--restore_local_file=${!restore_local_file:-}" )
@@ -710,14 +715,16 @@ case "$command" in
 		"$pod_script_env_file" "action:subtask" "${opts[@]}"
 		;;
 	"bg:subtask")
+		touch "$arg_bg_file"
+
 		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
 			--action_dir="$arg_action_dir" \
 			>> "$arg_bg_file" 2>&1 &
 
 		pid=$!
-		tail --pid="$pid" -n 2 -f "$arg_bg_file"		
+		tail --pid="$pid" -n 2 -f "$arg_bg_file"
 		wait "$pid" && status=$? || status=$?
-		
+
 		if [[ $status -ne 0 ]]; then
 			error "$command:$arg_task_name"
 		fi
@@ -781,6 +788,10 @@ case "$command" in
 			dir="$arg_action_dir"
 			file="\${dir}/$arg_task_name"
 			new_file="\${dir}/$arg_task_name.running"
+
+			if [ ! -d "$arg_action_dir" ]; then
+				mkdir -p "$arg_action_dir"
+			fi
 
 			if [ -f "\$new_file" ]; then
 				echo "false"
@@ -867,7 +878,7 @@ case "$command" in
 			|| error "$command"
 
 		if [ "$execute" = "true" ]; then
-			"$pod_script_env_file" "unique:exec:$arg_task_name" && status="$?" || status="$?"
+			"$pod_script_env_file" "action:exec:$arg_task_name" && status="$?" || status="$?"
 			"$pod_script_env_file" "action:remove:$arg_task_name" \
 				--status="$status" "${opts[@]}"
 		else

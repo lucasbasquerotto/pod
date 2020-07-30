@@ -50,7 +50,6 @@ shift;
 
 inner_cmd=''
 key="$(date '+%Y%m%d_%H%M%S_%3N')"
-cmd_path="$(echo "$command" | tr : -)"
 
 case "$command" in
 	"u")
@@ -202,7 +201,22 @@ case "$command" in
 		subtask_cmd_local="${prefix}_subtask_cmd_local"
 		subtask_cmd_new="${prefix}_subtask_cmd_new"
 		setup_run_new_task="${prefix}_setup_run_new_task"
-		setup_dest_base_dir="${prefix}_setup_dest_base_dir"
+		is_compressed_file="${prefix}_is_compressed_file"
+		compress_type="${prefix}_compress_type"
+		compressed_src_file="${prefix}_compressed_src_file"
+		uncompressed_dest_dir="${prefix}_uncompressed_dest_dir"
+		compress_pass="${prefix}_compress_pass"
+		is_move_dest="${prefix}_is_move_dest"
+		move_src="${prefix}_move_src"
+		move_dest="${prefix}_move_dest"
+		recursive_dir="${prefix}_recursive_dir"
+		recursive_mode="${prefix}_recursive_mode"
+		recursive_mode_dir="${prefix}_recursive_mode_dir"
+		recursive_mode_file="${prefix}_recursive_mode_file"
+		is_clear_file="${prefix}_is_clear_file"
+		file_to_clear="${prefix}_file_to_clear"
+		is_clear_dir="${prefix}_is_clear_dir"
+		dir_to_clear="${prefix}_dir_to_clear"
 
 		opts=()
 
@@ -210,12 +224,28 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
-		opts+=( "--setup_dest_base_dir=${!setup_dest_base_dir:-}" )
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
 		opts+=( "--subtask_cmd_new=${!subtask_cmd_new:-}" )
 		opts+=( "--setup_run_new_task=${!setup_run_new_task:-}" )
+		
+		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
+		opts+=( "--compress_type=${!compress_type:-}" )
+		opts+=( "--compressed_src_file=${!compressed_src_file:-}" )
+		opts+=( "--uncompressed_dest_dir=${!uncompressed_dest_dir:-}" )
+		opts+=( "--compress_pass=${!compress_pass:-}" )
+		opts+=( "--is_move_dest=${!is_move_dest:-}" )
+		opts+=( "--move_src=${!move_src:-}" )
+		opts+=( "--move_dest=${!move_dest:-}" )
+		opts+=( "--recursive_dir=${!recursive_dir:-}" )
+		opts+=( "--recursive_mode=${!recursive_mode:-}" )
+		opts+=( "--recursive_mode_dir=${!recursive_mode_dir:-}" )
+		opts+=( "--recursive_mode_file=${!recursive_mode_file:-}" )
+		opts+=( "--is_clear_file=${!is_clear_file:-}" )
+		opts+=( "--file_to_clear=${!file_to_clear:-}" )
+		opts+=( "--is_clear_dir=${!is_clear_dir:-}" )
+		opts+=( "--dir_to_clear=${!dir_to_clear:-}" )
 
 		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
 		;;
@@ -249,53 +279,29 @@ case "$command" in
 	"setup:remote:default")
 		prefix="var_task__${arg_task_name}__setup_remote_"
 
-		task_kind="${prefix}_task_kind"
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
-
 		restore_use_s3="${prefix}_restore_use_s3"
 		restore_s3_sync="${prefix}_restore_s3_sync"
-		restore_dest_file="${prefix}_restore_dest_file"
 		restore_dest_dir="${prefix}_restore_dest_dir"
-		restore_tmp_dir="${prefix}_restore_tmp_dir"
-		restore_local_file="${prefix}_restore_local_file"
+		restore_dest_file="${prefix}_restore_dest_file"
 		restore_remote_file="${prefix}_restore_remote_file"
-		restore_remote_bucket_path_file="${prefix}_restore_remote_bucket_path_file"
-		restore_remote_bucket_path_dir="${prefix}_restore_remote_bucket_path_dir"
-		restore_is_compressed_file="${prefix}_restore_is_compressed_file"
-		restore_compressed_pass="${prefix}_restore_compressed_pass"
-		restore_compressed_inner_dir="${prefix}_restore_compressed_inner_dir"
-		restore_compressed_inner_file="${prefix}_restore_compressed_inner_file"
-		restore_recursive_mode="${prefix}restore_recursive_mode"
-		restore_recursive_mode_dir="${prefix}restore_recursive_mode_dir"
-		restore_recursive_mode_file="${prefix}restore_recursive_mode_file"
+		restore_bucket_path_dir="${prefix}_restore_bucket_path_dir"
+		restore_bucket_path_file="${prefix}_restore_bucket_path_file"
 
 		opts=()
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--restore_zip_tmp_file_name=$cmd_path-$key.zip" )
-		opts+=( "--restore_dest_base_dir=${arg_setup_dest_base_dir}" )
 
-		opts+=( "--restore_tmp_dir=${!restore_tmp_dir}" )
-
-		opts+=( "--task_kind=${!task_kind:-}" )
 		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--restore_use_s3=${!restore_use_s3:-}" )
 		opts+=( "--restore_s3_sync=${!restore_s3_sync:-}" )
-		opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
 		opts+=( "--restore_dest_dir=${!restore_dest_dir:-}" )
-		opts+=( "--restore_local_file=${!restore_local_file:-}" )
+		opts+=( "--restore_dest_file=${!restore_dest_file:-}" )
 		opts+=( "--restore_remote_file=${!restore_remote_file:-}" )
-		opts+=( "--restore_remote_bucket_path_file=${!restore_remote_bucket_path_file:-}" )
-		opts+=( "--restore_remote_bucket_path_dir=${!restore_remote_bucket_path_dir:-}" )
-		opts+=( "--restore_is_compressed_file=${!restore_is_compressed_file:-}" )
-		opts+=( "--restore_compressed_pass=${!restore_compressed_pass:-}" )
-		opts+=( "--restore_compressed_inner_dir=${!restore_compressed_inner_dir:-}" )
-		opts+=( "--restore_compressed_inner_file=${!restore_compressed_inner_file:-}" )
-		opts+=( "--restore_recursive_mode=${!restore_recursive_mode:-}" )
-		opts+=( "--restore_recursive_mode_dir=${!restore_recursive_mode_dir:-}" )
-		opts+=( "--restore_recursive_mode_file=${!restore_recursive_mode_file:-}" )
+		opts+=( "--restore_bucket_path_dir=${!restore_bucket_path_dir:-}" )
+		opts+=( "--restore_bucket_path_file=${!restore_bucket_path_file:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
@@ -321,33 +327,16 @@ case "$command" in
 			"$pod_script_env_file" "setup:local:db" "${opts[@]}"
 		fi
 		;;
-	"setup:local:uncompress")
-		prefix="var_task__${arg_task_name}__setup_local_uncompress_"
-
-		compress_type="${prefix}_compress_type"
-		src_file="${prefix}_src_file"
-		compress_pass="${prefix}_compress_pass"
-
-		opts=()
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--dest_dir=$arg_setup_dest_base_dir" )
-
-		opts+=( "--src_file=${!src_file}" )
-		opts+=( "--compress_pass=${!compress_pass:-}" )
-
-		"$pod_script_env_file" "uncompress:$compress_type" "${opts[@]}"
-		;;
 	"setup:local:db")
 		prefix="var_task__${arg_task_name}__setup_local_db_"
 
 		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		db_task_base_dir="${prefix}_db_task_base_dir"
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
-		opts+=( "--db_task_base_dir=$arg_setup_dest_base_dir" )
+		opts+=( "--db_task_base_dir=${!db_task_base_dir}" )
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
 		opts+=( "--db_file_name=${!db_file_name:-}" )
 

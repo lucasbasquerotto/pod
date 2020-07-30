@@ -51,15 +51,11 @@ while getopts ':-:' OPT; do
 
 		restore_use_s3 ) arg_restore_use_s3="${OPTARG:-}";;
 		restore_s3_sync ) arg_restore_s3_sync="${OPTARG:-}";;
-		restore_dest_base_dir ) arg_restore_dest_base_dir="${OPTARG:-}";;
-		restore_dest_file ) arg_restore_dest_file="${OPTARG:-}";;
 		restore_dest_dir ) arg_restore_dest_dir="${OPTARG:-}";;
+		restore_dest_file ) arg_restore_dest_file="${OPTARG:-}";;
 		restore_remote_file ) arg_restore_remote_file="${OPTARG:-}" ;;
-		restore_remote_bucket_path_file ) arg_restore_remote_bucket_path_file="${OPTARG:-}";;
-		restore_remote_bucket_path_dir ) arg_restore_remote_bucket_path_dir="${OPTARG:-}" ;;
-		restore_recursive_mode ) arg_restore_recursive_mode="${OPTARG:-}";;
-		restore_recursive_mode_dir ) arg_restore_recursive_mode_dir="${OPTARG:-}";;
-		restore_recursive_mode_file ) arg_restore_recursive_mode_file="${OPTARG:-}";;
+		restore_bucket_path_dir ) arg_restore_bucket_path_dir="${OPTARG:-}";;
+		restore_bucket_path_file ) arg_restore_bucket_path_file="${OPTARG:-}";;
 
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -133,66 +129,58 @@ case "$command" in
 		fi
 		;;
 	"restore")
-		restore_path=''
-		restore_dest_base_dir_full="$arg_restore_dest_base_dir"
-
-		if [ -n "${arg_restore_dest_dir:-}" ]; then
-			restore_dest_base_dir_full="$arg_restore_dest_base_dir/$arg_restore_dest_dir"
-		fi
-
 		if [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" = "true" ]; then
-			info "$title - create the restore destination directory ($arg_restore_dest_base_dir)"
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				mkdir -p "$arg_restore_dest_base_dir"
-
-			s3_file=''
-
-			if [ -n "${arg_restore_dest_file:-}" ]; then
-				s3_file="$arg_restore_dest_file"
-				restore_path="$arg_restore_dest_base_dir/$arg_restore_dest_file"
-			else
-				restore_path="$arg_restore_dest_base_dir"
+			if [ -z "${arg_restore_dest_dir:-}" ] && [ -z "${arg_restore_dest_file:-}" ]; then
+				error "$title: restore_dest_dir and restore_dest_file parameters are both empty"
+			elif [ -n "${arg_restore_dest_dir:-}" ] && [ -n "${arg_restore_dest_file:-}" ]; then
+				error "$title: restore_dest_dir and restore_dest_file parameters are both specified"
 			fi
 
-			msg="/${arg_restore_remote_bucket_path_dir:-} (s3) to $restore_dest_base_dir_full"
+			restore_dest_dir="${arg_restore_dest_dir:-$(dirname "$arg_restore_dest_file")}"
+
+			info "$title - create the restore destination directory (${restore_dest_dir:-})"
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				mkdir -p "$restore_dest_dir"
+
+			msg="/${arg_restore_bucket_path_dir:-} (s3) to ${restore_dest_dir:-}"
 			info "$title - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
-				--s3_src_rel="${arg_restore_remote_bucket_path_dir:-}" \
+				--s3_src_rel="${arg_restore_bucket_path_dir:-}" \
 				--s3_remote_src="true" \
-				--s3_dest="$restore_dest_base_dir_full" \
-				--s3_file="$s3_file" \
+				--s3_dest="$restore_dest_dir" \
+				--s3_file="${arg_restore_dest_file:-}" \
 				--task_name="$arg_task_name" \
-				--subtask_cmd="$arg_subtask_cmd" \
-
+				--subtask_cmd="$arg_subtask_cmd"
 		else
-			restore_file=""
-			restore_local_dest=""
-
-			info "$title - $arg_toolbox_service - restore"
+			info "$title - restore"
 			>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
-			info "$title - create the destination directory ($restore_dest_base_dir_full)"
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" mkdir -p "$restore_dest_base_dir_full"
+			if [ -z "${arg_restore_dest_file:-}" ]; then
+				error "$title: restore_dest_file parameter is empty"
+			fi
+
+			msg="create the destination directory for the file"
+			info "$title - $msg (${arg_restore_dest_file:-})"
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				mkdir -p "$(dirname "$arg_restore_dest_file")"
 
 			if [ -n "${arg_restore_remote_file:-}" ]; then
-				info "$title - restore from remote file"
-				restore_file="$restore_file_default"
+				msg="${arg_restore_remote_file:-} to ${arg_restore_dest_file:-}"
+				info "$title - restore from remote file ($msg)"
 
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					curl -L -o "$arg_dest_file" -k "$arg_restore_remote_file"
 			elif [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" != "true" ]; then
-				if [ -z "${arg_restore_remote_bucket_path_file:-}" ]; then
-					error "$title - restore_remote_bucket_path_file not defined"
+				if [ -z "${arg_restore_bucket_path_file:-}" ]; then
+					error "$title - restore_bucket_path_file parameter not defined"
 				fi
-				msg="$title - $arg_toolbox_service - $arg_subtask_cmd_s3"
-				msg="$msg - restore a file from remote bucket"
-				info "$msg [$arg_restore_remote_bucket_path_file (s3) -> $restore_local_dest]"
 
-				restore_file="$restore_file_default"
+				msg="${arg_restore_bucket_path_file:-} (s3) -> ${arg_restore_dest_file:-}"
+				info "$title - ${arg_subtask_cmd_s3:-} - restore a file from a remote bucket [$msg]"
 
 				>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=cp \
-					--s3_src_rel="$arg_restore_remote_bucket_path_file" \
-					--s3_dest="$restore_file" \
+					--s3_src_rel="$arg_restore_bucket_path_file" \
+					--s3_dest="$arg_restore_dest_file" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$arg_subtask_cmd"
 			else
@@ -217,8 +205,6 @@ case "$command" in
 		# 			| xargs -0 chmod "$arg_restore_recursive_mode_file"
 		# 	fi
 		# SHELL
-
-		info "$title - restored at: $restore_path"
 		;;
 	*)
 		error "$title: invalid command"

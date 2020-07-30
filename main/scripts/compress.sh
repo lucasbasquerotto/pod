@@ -43,7 +43,7 @@ while getopts ':-:' OPT; do
 		dest_file ) arg_dest_file="${OPTARG:-}";;
 		dest_dir ) arg_dest_dir="${OPTARG:-}";;
 		flat ) arg_flat="${OPTARG:-}";;
-		zip_pass ) arg_zip_pass="${OPTARG:-}";;
+		compress_pass ) arg_compress_pass="${OPTARG:-}";;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -65,8 +65,8 @@ case "$command" in
 
 		zip_opts=()
 
-		if [ -n "${arg_zip_pass:-}" ]; then
-			zip_opts=( "--password" "$arg_zip_pass" )
+		if [ -n "${arg_compress_pass:-}" ]; then
+			zip_opts=( "--password" "$arg_compress_pass" )
 		fi
 
 		if [ "$arg_task_kind" = "dir" ]; then
@@ -113,8 +113,8 @@ case "$command" in
 
 		zip_opts=()
 
-		if [ -n "${arg_zip_pass:-}" ]; then
-			zip_opts=( "-P" "$arg_zip_pass" )
+		if [ -n "${arg_compress_pass:-}" ]; then
+			zip_opts=( "-P" "$arg_compress_pass" )
 		fi
 
 		msg="$arg_src_file to $arg_dest_dir (inside toolbox)"

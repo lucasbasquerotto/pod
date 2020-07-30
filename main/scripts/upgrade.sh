@@ -120,7 +120,7 @@ case "$command" in
 		else
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				if [ "${arg_local:-}" = "true" ]; then
-					echo "$title - restore - remote - skipping (local)..."
+					error "$title - restore - remote cmd with local flag"
 				else
 					info "$title - restore - remote"
 					"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}

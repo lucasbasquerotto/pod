@@ -261,10 +261,10 @@ case "$command" in
 		restore_remote_file="${prefix}_restore_remote_file"
 		restore_remote_bucket_path_file="${prefix}_restore_remote_bucket_path_file"
 		restore_remote_bucket_path_dir="${prefix}_restore_remote_bucket_path_dir"
-		restore_is_zip_file="${prefix}_restore_is_zip_file"
-		restore_zip_pass="${prefix}_restore_zip_pass"
-		restore_zip_inner_dir="${prefix}_restore_zip_inner_dir"
-		restore_zip_inner_file="${prefix}_restore_zip_inner_file"
+		restore_is_compressed_file="${prefix}_restore_is_compressed_file"
+		restore_compressed_pass="${prefix}_restore_compressed_pass"
+		restore_compressed_inner_dir="${prefix}_restore_compressed_inner_dir"
+		restore_compressed_inner_file="${prefix}_restore_compressed_inner_file"
 		restore_recursive_mode="${prefix}restore_recursive_mode"
 		restore_recursive_mode_dir="${prefix}restore_recursive_mode_dir"
 		restore_recursive_mode_file="${prefix}restore_recursive_mode_file"
@@ -289,31 +289,66 @@ case "$command" in
 		opts+=( "--restore_remote_file=${!restore_remote_file:-}" )
 		opts+=( "--restore_remote_bucket_path_file=${!restore_remote_bucket_path_file:-}" )
 		opts+=( "--restore_remote_bucket_path_dir=${!restore_remote_bucket_path_dir:-}" )
-		opts+=( "--restore_is_zip_file=${!restore_is_zip_file:-}" )
-		opts+=( "--restore_zip_pass=${!restore_zip_pass:-}" )
-		opts+=( "--restore_zip_inner_dir=${!restore_zip_inner_dir:-}" )
-		opts+=( "--restore_zip_inner_file=${!restore_zip_inner_file:-}" )
+		opts+=( "--restore_is_compressed_file=${!restore_is_compressed_file:-}" )
+		opts+=( "--restore_compressed_pass=${!restore_compressed_pass:-}" )
+		opts+=( "--restore_compressed_inner_dir=${!restore_compressed_inner_dir:-}" )
+		opts+=( "--restore_compressed_inner_file=${!restore_compressed_inner_file:-}" )
 		opts+=( "--restore_recursive_mode=${!restore_recursive_mode:-}" )
 		opts+=( "--restore_recursive_mode_dir=${!restore_recursive_mode_dir:-}" )
 		opts+=( "--restore_recursive_mode_file=${!restore_recursive_mode_file:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
-	"setup:local:db")
+	"setup:local:default")
 		prefix="var_task__${arg_task_name}__setup_local_"
+
+		task_name="${prefix}_task_name"
+		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		is_compressed_file="${prefix}_is_compressed_file"
+		is_db_setup="${prefix}_is_db_setup"
+
+		opts=()
+
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--setup_dest_base_dir=$arg_setup_dest_base_dir" )
+
+		if [ "${!is_compressed_file:-}" = "true" ]; then
+			"$pod_script_env_file" "setup:local:uncompress" "${opts[@]}"
+		fi
+
+		if [ "${!is_db_setup:-}" = "true" ]; then
+			"$pod_script_env_file" "setup:local:db" "${opts[@]}"
+		fi
+		;;
+	"setup:local:uncompress")
+		prefix="var_task__${arg_task_name}__setup_local_uncompress_"
+
+		compress_type="${prefix}_compress_type"
+		src_file="${prefix}_src_file"
+		compress_pass="${prefix}_compress_pass"
+
+		opts=()
+		opts+=( "--task_name=$arg_task_name" )
+		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
+		opts+=( "--dest_dir=$arg_setup_dest_base_dir" )
+
+		opts+=( "--src_file=${!src_file}" )
+		opts+=( "--compress_pass=${!compress_pass:-}" )
+
+		"$pod_script_env_file" "uncompress:$compress_type" "${opts[@]}"
+		;;
+	"setup:local:db")
+		prefix="var_task__${arg_task_name}__setup_local_db_"
 
 		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
-
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--db_task_base_dir=$arg_setup_dest_base_dir" )
-
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-
 		opts+=( "--db_file_name=${!db_file_name:-}" )
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
@@ -374,7 +409,7 @@ case "$command" in
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		backup_src_dir="${prefix}_backup_src_dir"
 		backup_src_file="${prefix}_backup_src_file"
-		backup_zip_file="${prefix}_backup_zip_file"
+		backup_compressed_file="${prefix}_backup_compressed_file"
 		backup_bucket_static_dir="${prefix}_backup_bucket_static_dir"
 		backup_bucket_sync="${prefix}_backup_bucket_sync"
 		backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
@@ -392,7 +427,7 @@ case "$command" in
 		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
 		opts+=( "--backup_src_file=${!backup_src_file:-}" )
-		opts+=( "--backup_zip_file=${!backup_zip_file:-}" )
+		opts+=( "--backup_compressed_file=${!backup_compressed_file:-}" )
 		opts+=( "--backup_bucket_static_dir=${!backup_bucket_static_dir:-}" )
 		opts+=( "--backup_bucket_sync=${!backup_bucket_sync:-}" )
 		opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )

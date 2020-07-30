@@ -17,6 +17,7 @@ pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
 pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
+pod_script_compress_file="$pod_layer_dir/main/scripts/compress.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -900,6 +901,9 @@ case "$command" in
 	"run:container:image:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
+		;;
+	"compress:"*|"uncompress:"*)
+		"$pod_script_compress_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

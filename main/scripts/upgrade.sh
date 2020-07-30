@@ -43,6 +43,7 @@ while getopts ':-:' OPT; do
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
+		local ) arg_local="${OPTARG:-}";;
 		subtask_cmd_verify ) arg_subtask_cmd_verify="${OPTARG:-}";;
 		subtask_cmd_remote ) arg_subtask_cmd_remote="${OPTARG:-}";;
 		subtask_cmd_local ) arg_subtask_cmd_local="${OPTARG:-}";;
@@ -84,7 +85,7 @@ case "$command" in
 		;;
 	"setup")
 		if [ -n "${arg_setup_task_name:-}" ]; then
-			"$pod_script_env_file" "main:task:$arg_setup_task_name"
+			"$pod_script_env_file" "main:task:$arg_setup_task_name" --local="${arg_local:-}"
 		fi
 
 		if [ "$command" = "setup" ]; then
@@ -118,8 +119,12 @@ case "$command" in
 			"$pod_script_env_file" "${arg_subtask_cmd_new}"
 		else
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
-				info "$title - restore - remote"
-				"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+				if [ "${arg_local:-}" = "true" ]; then
+					echo "$title - restore - remote - skipping (local)..."
+				else
+					info "$title - restore - remote"
+					"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+				fi
 			fi
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
@@ -214,7 +219,7 @@ case "$command" in
 				-ctime +$arg_backup_delete_old_days -empty -delete -print;
 		SHELL
 
-		"$pod_script_env_file" "main:task:$arg_backup_task_name"
+		"$pod_script_env_file" "main:task:$arg_backup_task_name" --local="${arg_local:-}"
 		;;
 	"backup:default")
 		info "$title - started"
@@ -267,8 +272,12 @@ case "$command" in
 			fi
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
-				info "$title - backup - remote"
-				"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+				if [ "${arg_local:-}" = "true" ]; then
+					echo "$title - backup - remote - skipping (local)..."
+				else
+					info "$title - backup - remote"
+					"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+				fi
 			fi
 
 			info "$title - clear old files"

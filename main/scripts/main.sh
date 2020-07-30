@@ -8,6 +8,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 . "${pod_vars_dir}/vars.sh"
 
+pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestration.sh"
 pod_script_container_file="$pod_layer_dir/main/scripts/container.sh"
 pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
@@ -67,6 +68,7 @@ while getopts ':-:' OPT; do
 	fi
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;
+		local ) arg_local="${OPTARG:-}";;
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}";;
 		s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
@@ -136,13 +138,17 @@ case "$command" in
 
 		"$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
+	"local:task:"*)
+		task_name="${command#local:task:}"
+		"$pod_script_env_file" "main:task:$task_name" --local="true"
+		;;
 	"main:task:"*)
 		task_name="${command#main:task:}"
 		prefix="var_task__${task_name}__task_"
 
 		type="${prefix}_type"
 
-		"$pod_script_env_file" "${!type}:task:$task_name"
+		"$pod_script_env_file" "${!type}:task:$task_name" --local="${arg_local:-}"
 		;;
 	"custom:task:"*)
 		task_name="${command#custom:task:}"
@@ -150,7 +156,7 @@ case "$command" in
 
 		task="${prefix}_task"
 
-		"$pod_script_env_file" "${!task}"
+		"$pod_script_env_file" "${!task}" --local="${arg_local:-}"
 		;;
 	"group:task:"*)
 		task_name="${command#group:task:}"
@@ -167,12 +173,13 @@ case "$command" in
 			arr=("${tmp[@]}")
 
 			for task_name in "${arr[@]}"; do
-				"$pod_script_env_file" "main:task:$task_name"
+				"$pod_script_env_file" "main:task:$task_name" --local="${arg_local:-}"
 			done
 		fi
 		;;
 	"setup")
 		opts=()
+		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--setup_task_name=${var_run__tasks__setup:-}" )
 		"$pod_script_upgrade_file" "$command" "${opts[@]}"
 		;;
@@ -310,9 +317,13 @@ case "$command" in
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
+	"local.backup")
+		"$pod_main_run_file" backup --local="true"
+		;;
 	"backup")
 		opts=()
 
+		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--backup_task_name=$var_run__tasks__backup" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
@@ -339,6 +350,7 @@ case "$command" in
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--local=${arg_local:-}" )
 
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
@@ -726,7 +738,7 @@ case "$command" in
 		wait "$pid" && status=$? || status=$?
 
 		if [[ $status -ne 0 ]]; then
-			error "$command:$arg_task_name"
+			error "$command:$arg_task_name - exited with status $status"
 		fi
 		;;
 	"action:task:"*)
@@ -775,7 +787,7 @@ case "$command" in
 				--status="$status" "${opts[@]}"
 
 			if [ "$status" != "0" ]; then
-				error "$command - status=$status"
+				error "$command exited with status $status"
 			fi
 		else
 			>&2 echo "skipping..."
@@ -832,7 +844,7 @@ case "$command" in
 		SHELL
 
 		if [ "${arg_status:-}" != "0" ]; then
-			error "$command - status=${arg_status:-}"
+			error "$command exited with status ${arg_status:-}"
 		fi
 		;;
 	"unique:task:"*)

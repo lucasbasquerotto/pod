@@ -56,6 +56,16 @@ title="$command"
 
 case "$command" in
 	"compress:zip")
+		if [ -z "${arg_dest_file:-}" ]; then
+			error "$title: dest_file parameter not specified"
+		fi
+
+		if [ -z "${arg_src_file:-}" ] && [ -z "${arg_src_dir:-}" ]; then
+			error "$title: src_file and src_dir parameters are both empty"
+		elif [ -n "${arg_src_file:-}" ] && [ -n "${arg_src_dir:-}" ]; then
+			error "$title: src_file and src_dir parameters are both specified"
+		fi
+
 		extension="${arg_dest_file##*.}"
 		expected_extension="zip"
 
@@ -104,6 +114,14 @@ case "$command" in
 		fi
 		;;
 	"uncompress:zip")
+		if [ -z "${arg_src_file:-}" ]; then
+			error "$title: src_file parameter not specified"
+		fi
+
+		if [ -z "${arg_dest_dir:-}" ]; then
+			error "$title: dest_dir parameter is empty"
+		fi
+
 		extension="${arg_src_file##*.}"
 		expected_extension="zip"
 
@@ -119,7 +137,6 @@ case "$command" in
 
 		msg="$arg_src_file to $arg_dest_dir (inside toolbox)"
 		info "$title - uncompress file - $msg"
-
 		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			unzip -o ${zip_opts[@]+"${zip_opts[@]}"} "$arg_src_file" -d "$arg_dest_dir"
 		;;

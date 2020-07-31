@@ -77,10 +77,7 @@ while getopts ':-:' OPT; do
 		s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
-		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
-		setup_dest_base_dir ) arg_setup_dest_base_dir="${OPTARG:-}";;
-		backup_src_base_dir ) arg_backup_src_base_dir="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
 		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
@@ -320,11 +317,9 @@ case "$command" in
 		opts=()
 
 		opts+=( "--local=${arg_local:-}" )
-		opts+=( "--backup_task_name=$var_run__tasks__backup" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
-		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )
-		opts+=( "--backup_delete_old_days=$var_run__general__backup_delete_old_days" )
+		opts+=( "--backup_task_name=$var_run__tasks__backup" )
+		opts+=( "--backup_is_delete_old=$var_run__general__backup_is_delete_old" )
 
 		"$pod_script_upgrade_file" backup "${opts[@]}"
 		;;
@@ -333,63 +328,66 @@ case "$command" in
 		prefix="var_task__${task_name}__backup_task_"
 
 		subtask_cmd_verify="${prefix}_subtask_cmd_verify"
-		subtask_cmd_local="${prefix}_subtask_cmd_local"
 		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
-		backup_src_base_dir="${prefix}_backup_src_base_dir"
-		backup_local_static_dir="${prefix}_backup_local_static_dir"
-		backup_delete_old_days="${prefix}_backup_delete_old_days"
-
-		backup_local_dir="$var_run__general__backup_local_base_dir/backup-$key"
-		backup_delete_old_days="$var_run__general__backup_delete_old_days"
+		subtask_cmd_local="${prefix}_subtask_cmd_local"
+		subtask_cmd_new="${prefix}_subtask_cmd_new"
+		is_compressed_file="${prefix}_is_compressed_file"
+		compress_type="${prefix}_compress_type"
+		compress_src_file="${prefix}_compress_src_file"
+		compress_dest_dir="${prefix}_compress_dest_dir"
+		compress_pass="${prefix}_compress_pass"
+		recursive_dir="${prefix}_recursive_dir"
+		recursive_mode="${prefix}_recursive_mode"
+		recursive_mode_dir="${prefix}_recursive_mode_dir"
+		recursive_mode_file="${prefix}_recursive_mode_file"
+		move_src="${prefix}_move_src"
+		move_dest="${prefix}_move_dest"
+		file_to_clear="${prefix}_file_to_clear"
+		dir_to_clear="${prefix}_dir_to_clear"
 
 		opts=()
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--local=${arg_local:-}" )
-
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--backup_local_base_dir=$var_run__general__backup_local_base_dir" )
-		opts+=( "--backup_local_dir=$var_run__general__backup_local_base_dir/backup-$key" )
-
-		opts+=( "--backup_local_dir=${!backup_local_static_dir:-$backup_local_dir}" )
-		opts+=( "--backup_delete_old_days=${!backup_delete_old_days:-$backup_delete_old_days}" )
 
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
-		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
 		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
-		opts+=( "--backup_src_base_dir=${!backup_src_base_dir}" )
+		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
+		opts+=( "--subtask_cmd_new=${!subtask_cmd_new:-}" )
+		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
+		opts+=( "--compress_type=${!compress_type:-}" )
+		opts+=( "--compress_src_file=${!compress_src_file:-}" )
+		opts+=( "--compress_dest_dir=${!compress_dest_dir:-}" )
+		opts+=( "--compress_pass=${!compress_pass:-}" )
+		opts+=( "--recursive_dir=${!recursive_dir:-}" )
+		opts+=( "--recursive_mode=${!recursive_mode:-}" )
+		opts+=( "--recursive_mode_dir=${!recursive_mode_dir:-}" )
+		opts+=( "--recursive_mode_file=${!recursive_mode_file:-}" )
+		opts+=( "--move_src=${!move_src:-}" )
+		opts+=( "--move_dest=${!move_dest:-}" )
+		opts+=( "--file_to_clear=${!file_to_clear:-}" )
+		opts+=( "--dir_to_clear=${!dir_to_clear:-}" )
 
 		"$pod_script_upgrade_file" "backup:default" "${opts[@]}"
 		;;
 	"backup:remote:default")
 		prefix="var_task__${arg_task_name}__backup_remote_"
 
-		task_kind="${prefix}_task_kind"
 		subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		backup_src_dir="${prefix}_backup_src_dir"
 		backup_src_file="${prefix}_backup_src_file"
-		backup_compressed_file="${prefix}_backup_compressed_file"
-		backup_bucket_static_dir="${prefix}_backup_bucket_static_dir"
-		backup_bucket_sync="${prefix}_backup_bucket_sync"
 		backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
 
 		opts=()
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
-
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--backup_src_base_dir=$arg_backup_src_base_dir" )
-		opts+=( "--backup_local_dir=$arg_backup_local_dir" )
 
-		opts+=( "--task_kind=${!task_kind}" )
 		opts+=( "--subtask_cmd_s3=${!subtask_cmd_s3:-}" )
 		opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
 		opts+=( "--backup_src_file=${!backup_src_file:-}" )
-		opts+=( "--backup_compressed_file=${!backup_compressed_file:-}" )
-		opts+=( "--backup_bucket_static_dir=${!backup_bucket_static_dir:-}" )
-		opts+=( "--backup_bucket_sync=${!backup_bucket_sync:-}" )
 		opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )
 
 		"$pod_script_remote_file" backup "${opts[@]}"
@@ -399,15 +397,16 @@ case "$command" in
 
 		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		db_task_base_dir="${prefix}_db_task_base_dir"
 		db_file_name="${prefix}_db_file_name"
 
 		opts=()
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--db_task_base_dir=$arg_backup_src_base_dir" )
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
+		opts+=( "--db_task_base_dir=${!db_task_base_dir}" )
 		opts+=( "--db_file_name=${!db_file_name:-}" )
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"

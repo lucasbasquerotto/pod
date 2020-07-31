@@ -55,14 +55,13 @@ while getopts ':-:' OPT; do
 		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
 
 		backup_task_name ) arg_backup_task_name="${OPTARG:-}";;
-		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
-		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
-		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
+		backup_is_delete_old ) arg_backup_is_delete_old="${OPTARG:-}";;
 
 		is_compressed_file ) arg_is_compressed_file="${OPTARG:-}";;
 		compress_type ) arg_compress_type="${OPTARG:-}";;
 		compress_src_file ) arg_compress_src_file="${OPTARG:-}";;
 		compress_dest_dir ) arg_compress_dest_dir="${OPTARG:-}";;
+		compress_flat ) arg_compress_dest_dir="${OPTARG:-}";;
 		compress_pass ) arg_compress_pass="${OPTARG:-}";;
 
 		recursive_dir ) arg_recursive_dir="${OPTARG:-}";;
@@ -264,73 +263,25 @@ case "$command" in
 		SHELL
 		;;
 	"backup")
+		status=0
+
 		if [ -z "${arg_backup_task_name:-}" ] ; then
-			info "$command: no tasks defined - skipping..."
-			exit 0
+			info "$command: no backup task defined..."
+		else
+			"$pod_script_env_file" "main:task:$arg_backup_task_name" \
+				--local="${arg_local:-}" && status=$? || status=$?
 		fi
 
-		if [ -z "${arg_backup_local_base_dir:-}" ] ; then
-			msg="The variable 'backup_local_base_dir' is not defined"
-			error "$command: $msg"
+		if [ "${arg_backup_is_delete_old:-}" = "true" ] ; then
+			"$pod_script_env_file" "delete:old"
 		fi
 
-		if [ -z "${arg_backup_local_dir:-}" ] ; then
-			msg="The variable 'backup_local_dir' is not defined"
-			error "$command: $msg"
+		if [[ $status -ne 0 ]]; then
+			error "${1:-} - exited with status $status"
 		fi
-
-		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
-			msg="The variable 'backup_delete_old_days' is not defined"
-			error "$command: $msg"
-		fi
-
-		re_number='^[0-9]+$'
-
-		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
-			msg="The variable 'backup_delete_old_days' should be a number"
-			msg="$msg (value=$arg_backup_delete_old_days)"
-			error "$command: $msg"
-		fi
-
-		info "$command - start needed services"
-		"$pod_script_env_file" up "$arg_toolbox_service"
-
-		info "$command - create the backup base directory and clear old files"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-			set -eou pipefail
-			mkdir -p "$arg_backup_local_base_dir"
-
-			# remove old files and directories
-			find "$arg_backup_local_base_dir"/ -mindepth 1 \
-				-ctime +$arg_backup_delete_old_days -delete -print;
-
-			# remove old and empty directories
-			find "$arg_backup_local_base_dir"/ -mindepth 1 -type d \
-				-ctime +$arg_backup_delete_old_days -empty -delete -print;
-		SHELL
-
-		"$pod_script_env_file" "main:task:$arg_backup_task_name" --local="${arg_local:-}"
 		;;
 	"backup:default")
 		info "$title - started"
-
-		if [ -z "${arg_backup_local_dir:-}" ] ; then
-			msg="The variable 'backup_local_dir' is not defined"
-			error "$title: $msg"
-		fi
-
-		if [ -z "${arg_backup_delete_old_days:-}" ] ; then
-			msg="The variable 'backup_delete_old_days' is not defined"
-			error "$title: $msg"
-		fi
-
-		re_number='^[0-9]+$'
-
-		if ! [[ $arg_backup_delete_old_days =~ $re_number ]] ; then
-			msg="The variable 'backup_delete_old_days' should be a number"
-			msg="$msg (value=$arg_backup_delete_old_days)"
-			error "$title: $msg"
-		fi
 
 		if [ -z "${arg_subtask_cmd_verify:-}" ]; then
 			skip="false"
@@ -341,46 +292,103 @@ case "$command" in
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
 			msg="value of the verification should be true or false"
-			msg="$msg - result: $skip"
-			error "$title: $msg"
+			error "$title: $msg - result: $skip"
 		fi
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		else
-			info "$command - start needed services"
+			info "$command - start the needed services"
 			"$pod_script_env_file" up "$arg_toolbox_service"
-
-			msg="create the backup directory (if there isn't yet)"
-			info "$command - $msg ($arg_backup_local_dir)"
-			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				mkdir -p "$arg_backup_local_dir"
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - backup - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" ${args[@]+"${args[@]}"}
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$arg_subtask_cmd"
 			fi
+
+			if [ "${arg_is_compressed_file:-}" = "true" ]; then
+				info "$title - backup - compress"
+				"$pod_script_env_file" "compress:$arg_compress_type"\
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$command" \
+					--toolbox_service="$arg_toolbox_service" \
+					--src_file="${arg_compress_src_file:-}" \
+					--src_dir="${arg_compress_src_dir:-}" \
+					--dest_file="$arg_compress_dest_file" \
+					--flat="${arg_compress_flat:-}" \
+					--compress_pass="${arg_compress_pass:-}"
+			fi
+
+			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+				set -eou pipefail
+
+				function info {
+					msg="\$(date '+%F %T') - \${1:-}"
+					>&2 echo -e "${GRAY}\${msg}${NC}"
+				}
+
+				if [ -n "${arg_move_src:-}" ]; then
+					info "$title: move from ${arg_move_src:-} to ${arg_move_dest:-}"
+
+					if [ -z "${arg_move_dest:-}" ]; then
+						error "$title: move_dest parameter not specified (move_src=$arg_move_src)"
+					fi
+
+					if [ -d "$arg_move_src" ]; then
+						(shopt -s dotglob; mv -v "$arg_move_src"/* "$arg_move_dest")
+					else
+						mv -v "$arg_move_src" "$arg_move_dest"
+					fi
+				fi
+
+				if [ -n "${arg_recursive_mode:-}" ]; then
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
+					fi
+
+					chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
+				fi
+
+				if [ -n "${arg_recursive_mode_dir:-}" ]; then
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
+					fi
+
+					find "$arg_recursive_dir" -type d -print0 | xargs -0 chmod "$arg_recursive_mode_dir"
+				fi
+
+				if [ -n "${arg_recursive_mode_file:-}" ]; then
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
+					fi
+
+					find "$arg_recursive_dir" -type f -print0 | xargs -0 chmod "$arg_recursive_mode_file"
+				fi
+			SHELL
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				if [ "${arg_local:-}" = "true" ]; then
 					echo "$title - backup - remote - skipping (local)..."
 				else
 					info "$title - backup - remote"
-					"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+						--task_name="$arg_task_name" \
+						--subtask_cmd="$arg_subtask_cmd"
 				fi
 			fi
 
-			info "$title - clear old files"
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
-				# remove old files and directories
-				find "$arg_backup_local_dir"/ -mindepth 1 \
-					-ctime +$arg_backup_delete_old_days -delete -print;
+				if [ -n "${arg_file_to_clear:-}" ]; then
+					rm -f "$arg_file_to_clear"
+				fi
 
-				# remove old and empty directories
-				find "$arg_backup_local_dir"/ -mindepth 1 -type d \
-					-ctime +$arg_backup_delete_old_days -empty -delete -print;
+				if [ -n "${arg_dir_to_clear:-}" ]; then
+					rm -rf "$arg_dir_to_clear"
+				fi
 			SHELL
 		fi
 		;;

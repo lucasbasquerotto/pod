@@ -203,19 +203,16 @@ case "$command" in
 		setup_run_new_task="${prefix}_setup_run_new_task"
 		is_compressed_file="${prefix}_is_compressed_file"
 		compress_type="${prefix}_compress_type"
-		compressed_src_file="${prefix}_compressed_src_file"
-		uncompressed_dest_dir="${prefix}_uncompressed_dest_dir"
+		compress_src_file="${prefix}_compress_src_file"
+		compress_dest_dir="${prefix}_compress_dest_dir"
 		compress_pass="${prefix}_compress_pass"
-		is_move_dest="${prefix}_is_move_dest"
-		move_src="${prefix}_move_src"
-		move_dest="${prefix}_move_dest"
 		recursive_dir="${prefix}_recursive_dir"
 		recursive_mode="${prefix}_recursive_mode"
 		recursive_mode_dir="${prefix}_recursive_mode_dir"
 		recursive_mode_file="${prefix}_recursive_mode_file"
-		is_clear_file="${prefix}_is_clear_file"
+		move_src="${prefix}_move_src"
+		move_dest="${prefix}_move_dest"
 		file_to_clear="${prefix}_file_to_clear"
-		is_clear_dir="${prefix}_is_clear_dir"
 		dir_to_clear="${prefix}_dir_to_clear"
 
 		opts=()
@@ -229,22 +226,18 @@ case "$command" in
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
 		opts+=( "--subtask_cmd_new=${!subtask_cmd_new:-}" )
 		opts+=( "--setup_run_new_task=${!setup_run_new_task:-}" )
-		
 		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
 		opts+=( "--compress_type=${!compress_type:-}" )
-		opts+=( "--compressed_src_file=${!compressed_src_file:-}" )
-		opts+=( "--uncompressed_dest_dir=${!uncompressed_dest_dir:-}" )
+		opts+=( "--compress_src_file=${!compress_src_file:-}" )
+		opts+=( "--compress_dest_dir=${!compress_dest_dir:-}" )
 		opts+=( "--compress_pass=${!compress_pass:-}" )
-		opts+=( "--is_move_dest=${!is_move_dest:-}" )
-		opts+=( "--move_src=${!move_src:-}" )
-		opts+=( "--move_dest=${!move_dest:-}" )
 		opts+=( "--recursive_dir=${!recursive_dir:-}" )
 		opts+=( "--recursive_mode=${!recursive_mode:-}" )
 		opts+=( "--recursive_mode_dir=${!recursive_mode_dir:-}" )
 		opts+=( "--recursive_mode_file=${!recursive_mode_file:-}" )
-		opts+=( "--is_clear_file=${!is_clear_file:-}" )
+		opts+=( "--move_src=${!move_src:-}" )
+		opts+=( "--move_dest=${!move_dest:-}" )
 		opts+=( "--file_to_clear=${!file_to_clear:-}" )
-		opts+=( "--is_clear_dir=${!is_clear_dir:-}" )
 		opts+=( "--dir_to_clear=${!dir_to_clear:-}" )
 
 		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
@@ -305,30 +298,8 @@ case "$command" in
 
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
-	"setup:local:default")
-		prefix="var_task__${arg_task_name}__setup_local_"
-
-		task_name="${prefix}_task_name"
-		db_subtask_cmd="${prefix}_db_subtask_cmd"
-		is_compressed_file="${prefix}_is_compressed_file"
-		is_db_setup="${prefix}_is_db_setup"
-
-		opts=()
-
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--setup_dest_base_dir=$arg_setup_dest_base_dir" )
-
-		if [ "${!is_compressed_file:-}" = "true" ]; then
-			"$pod_script_env_file" "setup:local:uncompress" "${opts[@]}"
-		fi
-
-		if [ "${!is_db_setup:-}" = "true" ]; then
-			"$pod_script_env_file" "setup:local:db" "${opts[@]}"
-		fi
-		;;
 	"setup:local:db")
-		prefix="var_task__${arg_task_name}__setup_local_db_"
+		prefix="var_task__${arg_task_name}__setup_local_"
 
 		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"

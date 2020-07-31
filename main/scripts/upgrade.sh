@@ -58,24 +58,20 @@ while getopts ':-:' OPT; do
 		backup_local_base_dir ) arg_backup_local_base_dir="${OPTARG:-}";;
 		backup_local_dir ) arg_backup_local_dir="${OPTARG:-}";;
 		backup_delete_old_days ) arg_backup_delete_old_days="${OPTARG:-}";;
-		
+
 		is_compressed_file ) arg_is_compressed_file="${OPTARG:-}";;
 		compress_type ) arg_compress_type="${OPTARG:-}";;
 		compress_src_file ) arg_compress_src_file="${OPTARG:-}";;
 		compress_dest_dir ) arg_compress_dest_dir="${OPTARG:-}";;
 		compress_pass ) arg_compress_pass="${OPTARG:-}";;
-		
-		is_move_dest ) arg_is_move_dest="${OPTARG:-}";;
-		move_src ) arg_move_src="${OPTARG:-}";;
-		move_dest ) arg_move_dest="${OPTARG:-}";;
+
 		recursive_dir ) arg_recursive_dir="${OPTARG:-}";;
 		recursive_mode ) arg_recursive_mode="${OPTARG:-}";;
 		recursive_mode_dir ) arg_recursive_mode_dir="${OPTARG:-}";;
 		recursive_mode_file ) arg_recursive_mode_file="${OPTARG:-}";;
-
-		is_clear_file ) arg_is_clear_file="${OPTARG:-}";;
+		move_src ) arg_move_src="${OPTARG:-}";;
+		move_dest ) arg_move_dest="${OPTARG:-}";;
 		file_to_clear ) arg_file_to_clear="${OPTARG:-}";;
-		is_clear_dir ) arg_is_clear_dir="${OPTARG:-}";;
 		dir_to_clear ) arg_dir_to_clear="${OPTARG:-}";;
 		??* ) ;;	# bad long option
 		\? )	exit 2 ;;	# bad short option (error reported via getopts)
@@ -123,13 +119,14 @@ case "$command" in
 			skip="false"
 		else
 			info "$title - verify if the setup should be done"
-			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" ${args[@]+"${args[@]}"})"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$arg_subtask_cmd")"
 		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
-			msg="value of the verification should be true or false"
-			msg="$msg - result: $skip"
-			error "$title: $msg"
+			msg="the value of the verification should be true or false"
+			error "$title: $msg - result: $skip"
 		fi
 
 		if [ "$skip" = "true" ]; then
@@ -142,12 +139,14 @@ case "$command" in
 					error "$title - restore - remote cmd with local flag"
 				else
 					info "$title - restore - remote"
-					"$pod_script_env_file" "${arg_subtask_cmd_remote}" ${args[@]+"${args[@]}"}
+					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+						--task_name="$arg_task_name" \
+						--subtask_cmd="$arg_subtask_cmd"
 				fi
 			fi
 
 			if [ "${arg_is_compressed_file:-}" = "true" ]; then
-				info "$title - restore - local"
+				info "$title - restore - uncompress"
 				"$pod_script_env_file" "uncompress:$arg_compress_type"\
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
@@ -160,38 +159,65 @@ case "$command" in
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
-				if [ "${arg_is_move_dest:-}" = "true" ]; then
-					mv "$arg_move_src" "$arg_move_dest"
-				fi
+				function info {
+					msg="\$(date '+%F %T') - \${1:-}"
+					>&2 echo -e "${GRAY}\${msg}${NC}"
+				}
 
 				if [ -n "${arg_recursive_mode:-}" ]; then
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
+					fi
+
 					chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
 				fi
 
 				if [ -n "${arg_recursive_mode_dir:-}" ]; then
-					find "$arg_recursive_dir" -type d -print0 \
-						| xargs -0 chmod "$arg_recursive_mode_dir"
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
+					fi
+
+					find "$arg_recursive_dir" -type d -print0 | xargs -0 chmod "$arg_recursive_mode_dir"
 				fi
 
 				if [ -n "${arg_recursive_mode_file:-}" ]; then
-					find "$arg_recursive_dir" -type f -print0 \
-						| xargs -0 chmod "$arg_recursive_mode_file"
+					if [ -z "${arg_recursive_dir:-}" ]; then
+						error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
+					fi
+
+					find "$arg_recursive_dir" -type f -print0 | xargs -0 chmod "$arg_recursive_mode_file"
+				fi
+
+				if [ -n "${arg_move_src:-}" ]; then
+					info "$title: move from ${arg_move_src:-} to ${arg_move_dest:-}"
+
+					if [ -z "${arg_move_dest:-}" ]; then
+						error "$title: move_dest parameter not specified (move_src=$arg_move_src)"
+					fi
+
+					if [ -d "$arg_move_src" ]; then
+						(shopt -s dotglob; mv -v "$arg_move_src"/* "$arg_move_dest")
+					else
+						mv -v "$arg_move_src" "$arg_move_dest"
+					fi
 				fi
 			SHELL
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - restore - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" ${args[@]+"${args[@]}"}
+				"$pod_script_env_file" "${arg_subtask_cmd_local}" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$arg_subtask_cmd"
 			fi
 
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 				set -eou pipefail
 
-				if [ "${arg_is_clear_file:-}" = "true" ]; then
+				if [ -n "${arg_file_to_clear:-}" ]; then
 					rm -f "$arg_file_to_clear"
 				fi
 
-				if [ "${arg_is_clear_dir:-}" = "true" ]; then
+				if [ -n "${arg_dir_to_clear:-}" ]; then
 					rm -rf "$arg_dir_to_clear"
 				fi
 			SHELL

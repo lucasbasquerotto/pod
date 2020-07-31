@@ -60,6 +60,8 @@ while getopts ':-:' OPT; do
 		is_compressed_file ) arg_is_compressed_file="${OPTARG:-}";;
 		compress_type ) arg_compress_type="${OPTARG:-}";;
 		compress_src_file ) arg_compress_src_file="${OPTARG:-}";;
+		compress_src_dir ) arg_compress_src_dir="${OPTARG:-}";;
+		compress_dest_file ) arg_compress_dest_file="${OPTARG:-}";;
 		compress_dest_dir ) arg_compress_dest_dir="${OPTARG:-}";;
 		compress_flat ) arg_compress_dest_dir="${OPTARG:-}";;
 		compress_pass ) arg_compress_pass="${OPTARG:-}";;
@@ -120,7 +122,8 @@ case "$command" in
 			info "$title - verify if the setup should be done"
 			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
 				--task_name="$arg_task_name" \
-				--subtask_cmd="$arg_subtask_cmd")"
+				--subtask_cmd="$arg_subtask_cmd" \
+				--local="${arg_local:-}")"
 		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
@@ -287,7 +290,8 @@ case "$command" in
 			skip="false"
 		else
 			info "$title - verify if the backup should be done"
-			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" ${args[@]+"${args[@]}"})"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
+				--local="${arg_local:-}")"
 		fi
 
 		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
@@ -309,11 +313,24 @@ case "$command" in
 			fi
 
 			if [ "${arg_is_compressed_file:-}" = "true" ]; then
+				if [ -z "${arg_compress_src_file:-}" ] && [ -z "${arg_compress_src_dir:-}" ]; then
+					error "$title: compress_src_file and compress_src_dir parameters are both empty"
+				elif [ -n "${arg_compress_src_file:-}" ] && [ -n "${arg_compress_src_dir:-}" ]; then
+					error "$title: compress_src_file and compress_src_dir parameters are both specified"
+				fi
+
+				if [ -n "${arg_compress_src_file:-}" ]; then
+					task_kind="file"
+				else
+					task_kind="dir"
+				fi
+
 				info "$title - backup - compress"
 				"$pod_script_env_file" "compress:$arg_compress_type"\
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
+					--task_kind="$task_kind" \
 					--src_file="${arg_compress_src_file:-}" \
 					--src_dir="${arg_compress_src_dir:-}" \
 					--dest_file="$arg_compress_dest_file" \

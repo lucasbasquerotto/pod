@@ -78,6 +78,16 @@ case "$command" in
 		if [ -n "${arg_compress_pass:-}" ]; then
 			zip_opts=( "--password" "$arg_compress_pass" )
 		fi
+		
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			dest_file_base_dir="\$(dirname "$arg_dest_file")"
+
+			if [ ! -d "\$dest_file_base_dir" ]; then
+				mkdir -p "\$dest_file_base_dir"
+			fi
+		SHELL
 
 		if [ "$arg_task_kind" = "dir" ]; then
 			msg="$arg_src_dir to $arg_dest_file (inside toolbox)"
@@ -89,8 +99,8 @@ case "$command" in
 					cd "$arg_src_dir"
 					zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./
 				else
-					base_dir="$(dirname "$arg_src_dir")"
-					main_dir="$(basename "$arg_src_dir")"
+					base_dir="\$(dirname "$arg_src_dir")"
+					main_dir="\$(basename "$arg_src_dir")"
 					cd "\$base_dir"
 					zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./"\$main_dir"
 				fi
@@ -134,6 +144,14 @@ case "$command" in
 		if [ -n "${arg_compress_pass:-}" ]; then
 			zip_opts=( "-P" "$arg_compress_pass" )
 		fi
+		
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+			set -eou pipefail
+
+			if [ ! -d "$arg_dest_dir" ]; then
+				mkdir -p "$arg_dest_dir"
+			fi
+		SHELL
 
 		msg="$arg_src_file to $arg_dest_dir (inside toolbox)"
 		info "$title - uncompress file - $msg"

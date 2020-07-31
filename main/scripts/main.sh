@@ -201,6 +201,8 @@ case "$command" in
 		is_compressed_file="${prefix}_is_compressed_file"
 		compress_type="${prefix}_compress_type"
 		compress_src_file="${prefix}_compress_src_file"
+		compress_src_dir="${prefix}_compress_src_dir"
+		compress_dest_file="${prefix}_compress_dest_file"
 		compress_dest_dir="${prefix}_compress_dest_dir"
 		compress_pass="${prefix}_compress_pass"
 		recursive_dir="${prefix}_recursive_dir"
@@ -216,6 +218,7 @@ case "$command" in
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
@@ -226,6 +229,8 @@ case "$command" in
 		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
 		opts+=( "--compress_type=${!compress_type:-}" )
 		opts+=( "--compress_src_file=${!compress_src_file:-}" )
+		opts+=( "--compress_src_dir=${!compress_src_dir:-}" )
+		opts+=( "--compress_dest_file=${!compress_dest_file:-}" )
 		opts+=( "--compress_dest_dir=${!compress_dest_dir:-}" )
 		opts+=( "--compress_pass=${!compress_pass:-}" )
 		opts+=( "--recursive_dir=${!recursive_dir:-}" )
@@ -334,6 +339,8 @@ case "$command" in
 		is_compressed_file="${prefix}_is_compressed_file"
 		compress_type="${prefix}_compress_type"
 		compress_src_file="${prefix}_compress_src_file"
+		compress_src_dir="${prefix}_compress_src_dir"
+		compress_dest_file="${prefix}_compress_dest_file"
 		compress_dest_dir="${prefix}_compress_dest_dir"
 		compress_pass="${prefix}_compress_pass"
 		recursive_dir="${prefix}_recursive_dir"
@@ -349,6 +356,7 @@ case "$command" in
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
+		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
@@ -358,6 +366,8 @@ case "$command" in
 		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
 		opts+=( "--compress_type=${!compress_type:-}" )
 		opts+=( "--compress_src_file=${!compress_src_file:-}" )
+		opts+=( "--compress_src_dir=${!compress_src_dir:-}" )
+		opts+=( "--compress_dest_file=${!compress_dest_file:-}" )
 		opts+=( "--compress_dest_dir=${!compress_dest_dir:-}" )
 		opts+=( "--compress_pass=${!compress_pass:-}" )
 		opts+=( "--recursive_dir=${!recursive_dir:-}" )

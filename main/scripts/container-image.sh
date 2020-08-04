@@ -22,7 +22,7 @@ function error {
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	error "No command entered (db)."
+	error "No command entered."
 fi
 
 shift;

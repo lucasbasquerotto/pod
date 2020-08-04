@@ -18,6 +18,7 @@ pod_script_s3_file="$pod_layer_dir/main/scripts/s3.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
 pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
 pod_script_compress_file="$pod_layer_dir/main/scripts/compress.sh"
+pod_script_util_file="$pod_layer_dir/main/scripts/util.sh"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
@@ -49,7 +50,6 @@ fi
 shift;
 
 inner_cmd=''
-key="$(date '+%Y%m%d_%H%M%S_%3N')"
 
 case "$command" in
 	"u")
@@ -336,6 +336,9 @@ case "$command" in
 		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		subtask_cmd_local="${prefix}_subtask_cmd_local"
 		subtask_cmd_new="${prefix}_subtask_cmd_new"
+		backup_date_format="${prefix}_backup_date_format"
+		backup_time_format="${prefix}_backup_time_format"
+		backup_datetime_format="${prefix}_backup_datetime_format"
 		is_compressed_file="${prefix}_is_compressed_file"
 		compress_type="${prefix}_compress_type"
 		compress_src_file="${prefix}_compress_src_file"
@@ -363,6 +366,9 @@ case "$command" in
 		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
 		opts+=( "--subtask_cmd_new=${!subtask_cmd_new:-}" )
+		opts+=( "--backup_date_format=${!backup_date_format:-}" )
+		opts+=( "--backup_time_format=${!backup_time_format:-}" )
+		opts+=( "--backup_datetime_format=${!backup_datetime_format:-}" )
 		opts+=( "--is_compressed_file=${!is_compressed_file:-}" )
 		opts+=( "--compress_type=${!compress_type:-}" )
 		opts+=( "--compress_src_file=${!compress_src_file:-}" )
@@ -388,6 +394,9 @@ case "$command" in
 		backup_src_dir="${prefix}_backup_src_dir"
 		backup_src_file="${prefix}_backup_src_file"
 		backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
+		backup_date_format="${prefix}_backup_date_format"
+		backup_time_format="${prefix}_backup_time_format"
+		backup_datetime_format="${prefix}_backup_datetime_format"
 
 		opts=()
 
@@ -399,6 +408,9 @@ case "$command" in
 		opts+=( "--backup_src_dir=${!backup_src_dir:-}" )
 		opts+=( "--backup_src_file=${!backup_src_file:-}" )
 		opts+=( "--backup_bucket_sync_dir=${!backup_bucket_sync_dir:-}" )
+		opts+=( "--backup_date_format=${!backup_date_format:-}" )
+		opts+=( "--backup_time_format=${!backup_time_format:-}" )
+		opts+=( "--backup_datetime_format=${!backup_datetime_format:-}" )
 
 		"$pod_script_remote_file" backup "${opts[@]}"
 		;;
@@ -908,6 +920,10 @@ case "$command" in
 		;;
 	"compress:"*|"uncompress:"*)
 		"$pod_script_compress_file" "$command" ${args[@]+"${args[@]}"}
+		;;
+	"run:util:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_util_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

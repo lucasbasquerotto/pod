@@ -2,8 +2,6 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
-pod_layer_dir="$POD_LAYER_DIR"
-
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -13,14 +11,10 @@ function error {
 	exit 2
 }
 
-if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
-	error "This project must not be in the '/' directory"
-fi
-
 command="${1:-}"
 
 if [ -z "$command" ]; then
-	error "No command entered (compose)."
+	error "No command entered."
 fi
 
 shift;

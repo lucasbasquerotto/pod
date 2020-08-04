@@ -42,6 +42,9 @@ while getopts ':-:' OPT; do
 		backup_src_dir ) arg_backup_src_dir="${OPTARG:-}";;
 		backup_src_file ) arg_backup_src_file="${OPTARG:-}";;
 		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
+		backup_date_format ) arg_backup_date_format="${OPTARG:-}";;
+		backup_time_format ) arg_backup_time_format="${OPTARG:-}";;
+		backup_datetime_format ) arg_backup_datetime_format="${OPTARG:-}";;
 
 		restore_use_s3 ) arg_restore_use_s3="${OPTARG:-}";;
 		restore_s3_sync ) arg_restore_s3_sync="${OPTARG:-}";;
@@ -104,9 +107,23 @@ case "$command" in
 			info "$title - $msg - $arg_backup_src_dir to /${arg_backup_bucket_sync_dir:-} (s3)"
 		fi
 
+		backup_bucket_sync_dir="${arg_backup_bucket_sync_dir:-}"
+
+		if [ -n "${arg_backup_bucket_sync_dir:-}" ]; then
+			backup_bucket_sync_dir="$("$pod_script_env_file" "run:util:replace_placeholders" \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$command" \
+				--toolbox_service="$arg_toolbox_service" \
+				--value="${arg_backup_bucket_sync_dir:-}" \
+				--date_format="${arg_backup_date_format:-}" \
+				--time_format="${arg_backup_time_format:-}" \
+				--datetime_format="${arg_backup_datetime_format:-}")" \
+				|| error "$command: replace_placeholders (backup_bucket_sync_dir)"
+		fi
+
 		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
 			--s3_src="$backup_src_dir" \
-			--s3_dest_rel="${arg_backup_bucket_sync_dir:-}" \
+			--s3_dest_rel="$backup_bucket_sync_dir" \
 			--s3_remote_dest="true" \
 			--s3_file="$backup_bucket_file" \
 			--task_name="$arg_task_name" \

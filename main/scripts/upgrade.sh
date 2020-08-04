@@ -2,7 +2,6 @@
 # shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
-pod_layer_dir="$POD_LAYER_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 GRAY="\033[0;90m"
@@ -19,10 +18,6 @@ function error {
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }
-
-if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
-	error "This project must not be in the '/' directory"
-fi
 
 command="${1:-}"
 
@@ -56,6 +51,9 @@ while getopts ':-:' OPT; do
 
 		backup_task_name ) arg_backup_task_name="${OPTARG:-}";;
 		backup_is_delete_old ) arg_backup_is_delete_old="${OPTARG:-}";;
+		backup_date_format ) arg_backup_date_format="${OPTARG:-}";;
+		backup_time_format ) arg_backup_time_format="${OPTARG:-}";;
+		backup_datetime_format ) arg_backup_datetime_format="${OPTARG:-}";;
 
 		is_compressed_file ) arg_is_compressed_file="${OPTARG:-}";;
 		compress_type ) arg_compress_type="${OPTARG:-}";;
@@ -325,17 +323,41 @@ case "$command" in
 					task_kind="dir"
 				fi
 
+				dest_file="$("$pod_script_env_file" "run:util:replace_placeholders" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$command" \
+					--toolbox_service="$arg_toolbox_service" \
+					--value="$arg_compress_dest_file" \
+					--date_format="${arg_backup_date_format:-}" \
+					--time_format="${arg_backup_time_format:-}" \
+					--datetime_format="${arg_backup_datetime_format:-}")" \
+					|| error "$command: replace_placeholders (dest_file)"
+
 				info "$title - backup - compress"
-				"$pod_script_env_file" "compress:$arg_compress_type"\
+				"$pod_script_env_file" "compress:$arg_compress_type" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
 					--task_kind="$task_kind" \
 					--src_file="${arg_compress_src_file:-}" \
 					--src_dir="${arg_compress_src_dir:-}" \
-					--dest_file="$arg_compress_dest_file" \
+					--dest_file="$dest_file" \
 					--flat="${arg_compress_flat:-}" \
 					--compress_pass="${arg_compress_pass:-}"
+			fi
+
+			move_dest="${arg_move_dest:-}"
+
+			if [ -n "${move_dest:-}" ]; then
+				move_dest="$("$pod_script_env_file" "run:util:replace_placeholders" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$command" \
+					--toolbox_service="$arg_toolbox_service" \
+					--value="$move_dest" \
+					--date_format="${arg_backup_date_format:-}" \
+					--time_format="${arg_backup_time_format:-}" \
+					--datetime_format="${arg_backup_datetime_format:-}")" \
+					|| error "$command: replace_placeholders (move_dest)"
 			fi
 
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL

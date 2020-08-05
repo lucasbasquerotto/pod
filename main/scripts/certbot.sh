@@ -1,7 +1,7 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 GRAY="\033[0;90m"
@@ -27,6 +27,7 @@ fi
 
 shift;
 
+# shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
@@ -163,7 +164,7 @@ case "$command" in
 		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"
 		data_file_done="$data_dir_done/done.txt"
 
-		info "$title: Renewing the certificate for $main_domain ..."
+		info "$title: Renewing the certificate for $arg_main_domain ..."
 		>&2 "$pod_script_env_file" run \
 			--entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
 

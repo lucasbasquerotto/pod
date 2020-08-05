@@ -1,19 +1,16 @@
 #!/bin/bash
 set -eou pipefail
 
-default_dev="n"
 default_dir_path="$HOME/dev"
 default_pod_dir_name="lrd-pod"
 default_git_repo_ctl="https://github.com/lucasbasquerotto/ansible-manager"
 
 CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-RED='\033[0;31m'
 NC='\033[0m' # No Color
-    
+
 start="$(date '+%F %X')"
 
-read -e -p "Is this a development environment? [Y/n] " yn
+read -er -p "Is this a development environment? [Y/n] " yn
 dev=""
 
 if [[ $yn == "y" || $yn == "Y" ]]; then
@@ -23,15 +20,17 @@ else
     echo "non-development"
 fi
 
-read -e -p "Enter the directory path: " -i "$default_dir_path" dir_path
+read -er -p "Enter the directory path: " -i "$default_dir_path" dir_path
 mkdir -p "$dir_path"
 
 cd "$dir_path/"
 
-read -e -p "Enter the pod directory name to run at the end of the setup: " \
+read -er -p "Enter the pod directory name to run at the end of the setup: " \
     -i "$default_pod_dir_name" pod_dir_name
 
-read -e -p "Enter the controller git repository: " \-i "$default_git_repo_ctl" git_repo_ctl
+read -er -p "Enter the controller git repository: " \
+    -i "$default_git_repo_ctl" git_repo_ctl
+
 git clone "$git_repo_ctl" ctl
 
 if [ "$dev" = true ]; then

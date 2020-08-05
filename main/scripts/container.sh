@@ -1,5 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153
 set -eou pipefail
 
 RED='\033[0;31m'

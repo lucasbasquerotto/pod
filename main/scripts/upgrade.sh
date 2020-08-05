@@ -1,7 +1,7 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 GRAY="\033[0;90m"
@@ -29,6 +29,7 @@ shift;
 
 args=( "$@" )
 
+# shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then	 # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"			 # extract long option name
@@ -86,11 +87,11 @@ case "$command" in
 	"upgrade")
 		info "$command - start"
 
-		info "$command - prepare..."
-		"$pod_script_env_file" prepare
-
 		info "$command - build..."
 		"$pod_script_env_file" build
+
+		info "$command - prepare..."
+		"$pod_script_env_file" prepare
 
 		info "$command - setup..."
 		"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
@@ -147,7 +148,7 @@ case "$command" in
 
 			if [ "${arg_is_compressed_file:-}" = "true" ]; then
 				info "$title - restore - uncompress"
-				"$pod_script_env_file" "uncompress:$arg_compress_type"\
+				"$pod_script_env_file" "run:uncompress:$arg_compress_type"\
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
@@ -334,7 +335,7 @@ case "$command" in
 					|| error "$command: replace_placeholders (dest_file)"
 
 				info "$title - backup - compress"
-				"$pod_script_env_file" "compress:$arg_compress_type" \
+				"$pod_script_env_file" "run:compress:$arg_compress_type" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \

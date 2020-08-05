@@ -1,8 +1,9 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_tmp_dir="$POD_TMP_DIR"
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 function error {
@@ -22,6 +23,7 @@ fi
 
 shift;
 
+# shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name

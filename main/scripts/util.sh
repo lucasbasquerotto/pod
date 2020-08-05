@@ -1,7 +1,7 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 GRAY="\033[0;90m"
@@ -27,6 +27,7 @@ fi
 
 shift;
 
+# shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then	 # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"			 # extract long option name
@@ -53,6 +54,10 @@ title="$command"
 [ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
+	"util:urlencode")
+		# shellcheck disable=SC2016
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" jq -nr --arg v "${arg_value:-}" '$v|@uri'
+		;;
 	"util:replace_placeholders")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail

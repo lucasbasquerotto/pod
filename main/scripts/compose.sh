@@ -1,8 +1,9 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_full_dir="$POD_FULL_DIR"
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
@@ -28,6 +29,7 @@ shift;
 
 args=("$@")
 
+# shellcheck disable=SC2214
 while getopts ':u:-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name

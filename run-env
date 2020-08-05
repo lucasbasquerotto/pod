@@ -1,5 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC1090
 set -eou pipefail
 
 arg_pod_vars_dir="$1"
@@ -33,6 +32,7 @@ start="$(date '+%F %T')"
 msg="[run-env] [${1:-}] start ($arg_pod_vars_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
+# shellcheck disable=SC1090
 . "${arg_pod_vars_dir}/vars.sh"
 
 if [ -z "${var_main__pod_inner_dir:-}" ]; then

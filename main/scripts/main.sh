@@ -1,11 +1,15 @@
 #!/bin/bash
-# shellcheck disable=SC1090,SC2154,SC1117,SC2153,SC2214
+# shellcheck disable=SC2154
 set -eou pipefail
 
+# shellcheck disable=SC2153
 pod_vars_dir="$POD_VARS_DIR"
+# shellcheck disable=SC2153
 pod_layer_dir="$POD_LAYER_DIR"
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
+# shellcheck disable=SC1090
 . "${pod_vars_dir}/vars.sh"
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
@@ -60,6 +64,7 @@ esac
 
 args=("$@")
 
+# shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then	 # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"			 # extract long option name
@@ -78,13 +83,26 @@ while getopts ':-:' OPT; do
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
-		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
-		db_file_name ) arg_db_file_name="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		bg_file ) arg_bg_file="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
 		action_skip_check ) arg_action_skip_check="${OPTARG:-}";;
 		status ) arg_status="${OPTARG:-}";;
+		db_common_prefix ) arg_db_common_prefix="${OPTARG:-}";;
+		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}";;
+		db_file_name ) arg_db_file_name="${OPTARG:-}";;
+		snapshot_type ) arg_snapshot_type="${OPTARG:-}";;
+		repository_name ) arg_repository_name="${OPTARG:-}";;
+		snapshot_name ) arg_snapshot_name="${OPTARG:-}";;
+		elasticsearch_ignore_index_settings ) arg_elasticsearch_ignore_index_settings="${OPTARG:-}";;
+		elasticsearch_include_aliases ) arg_elasticsearch_include_aliases="${OPTARG:-}";;
+		elasticsearch_include_global_state ) arg_elasticsearch_include_global_state="${OPTARG:-}";;
+		elasticsearch_index_settings ) arg_elasticsearch_index_settings="${OPTARG:-}";;
+		elasticsearch_indices ) arg_elasticsearch_indices="${OPTARG:-}";;
+		elasticsearch_partial ) arg_elasticsearch_partial="${OPTARG:-}";;
+		elasticsearch_rename_pattern ) arg_elasticsearch_rename_pattern="${OPTARG:-}";;
+		elasticsearch_rename_replacement ) arg_elasticsearch_rename_replacement="${OPTARG:-}";;
+		elasticsearch_index_prefix ) arg_elasticsearch_index_prefix="${OPTARG:-}";;
 		??* ) ;; ## ignore
 		\? )  ;; ## ignore
 	esac
@@ -245,17 +263,24 @@ case "$command" in
 		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
 		;;
 	"setup:verify:db")
-		prefix="var_task__${arg_task_name}__setup_verify_"
-
-		task_name="${prefix}_task_name"
-		db_subtask_cmd="${prefix}_db_subtask_cmd"
-
-		opts=()
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-
-		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_verify"
+		;;
+	"setup:local:db")
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_local"
+		;;
+	"setup:remote:db")
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_remote"
+		;;
+	"setup:db")
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_db"
 		;;
 	"setup:verify:default")
 		prefix="var_task__${arg_task_name}__setup_verify_"
@@ -299,21 +324,6 @@ case "$command" in
 		opts+=( "--restore_bucket_path_file=${!restore_bucket_path_file:-}" )
 
 		"$pod_script_remote_file" restore "${opts[@]}"
-		;;
-	"setup:local:db")
-		prefix="var_task__${arg_task_name}__setup_local_"
-
-		task_name="${prefix}_task_name"
-		db_subtask_cmd="${prefix}_db_subtask_cmd"
-		db_task_base_dir="${prefix}_db_task_base_dir"
-		db_file_name="${prefix}_db_file_name"
-
-		opts=()
-		opts+=( "--db_task_base_dir=${!db_task_base_dir}" )
-		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-		opts+=( "--db_file_name=${!db_file_name:-}" )
-
-		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
 	"local.backup")
 		"$pod_main_run_file" backup --local="true"
@@ -415,12 +425,39 @@ case "$command" in
 		"$pod_script_remote_file" backup "${opts[@]}"
 		;;
 	"backup:local:db")
-		prefix="var_task__${arg_task_name}__backup_local_"
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_local"
+		;;
+	"backup:remote:db")
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_remote"
+		;;
+	"backup:db")
+		"$pod_script_env_file" "db:common" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_db"
+		;;
+	"db:common")
+		prefix="var_task__${arg_task_name}__${arg_db_common_prefix}_"
 
 		task_name="${prefix}_task_name"
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
 		db_task_base_dir="${prefix}_db_task_base_dir"
 		db_file_name="${prefix}_db_file_name"
+		snapshot_type="${prefix}_snapshot_type"
+		repository_name="${prefix}_repository_name"
+		snapshot_name="${prefix}_snapshot_name"
+		elasticsearch_ignore_index_settings="${prefix}_elasticsearch_ignore_index_settings"
+		elasticsearch_include_aliases="${prefix}_elasticsearch_include_aliases"
+		elasticsearch_include_global_state="${prefix}_elasticsearch_include_global_state"
+		elasticsearch_index_settings="${prefix}_elasticsearch_index_settings"
+		elasticsearch_indices="${prefix}_elasticsearch_indices"
+		elasticsearch_partial="${prefix}_elasticsearch_partial"
+		elasticsearch_rename_pattern="${prefix}_elasticsearch_rename_pattern"
+		elasticsearch_rename_replacement="${prefix}_elasticsearch_rename_replacement"
+		elasticsearch_index_prefix="${prefix}_elasticsearch_index_prefix"
 
 		opts=()
 
@@ -428,8 +465,20 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd}" )
-		opts+=( "--db_task_base_dir=${!db_task_base_dir}" )
+		opts+=( "--db_task_base_dir=${!db_task_base_dir:-}" )
 		opts+=( "--db_file_name=${!db_file_name:-}" )
+		opts+=( "--snapshot_type=${!snapshot_type:-}" )
+		opts+=( "--repository_name=${!repository_name:-}" )
+		opts+=( "--snapshot_name=${!snapshot_name:-}" )
+		opts+=( "--elasticsearch_ignore_index_settings=${!elasticsearch_ignore_index_settings:-}" )
+		opts+=( "--elasticsearch_include_aliases=${!elasticsearch_include_aliases:-}" )
+		opts+=( "--elasticsearch_include_global_state=${!elasticsearch_include_global_state:-}" )
+		opts+=( "--elasticsearch_index_settings=${!elasticsearch_index_settings:-}" )
+		opts+=( "--elasticsearch_indices=${!elasticsearch_indices:-}" )
+		opts+=( "--elasticsearch_partial=${!elasticsearch_partial:-}" )
+		opts+=( "--elasticsearch_rename_pattern=${!elasticsearch_rename_pattern:-}" )
+		opts+=( "--elasticsearch_rename_replacement=${!elasticsearch_rename_replacement:-}" )
+		opts+=( "--elasticsearch_index_prefix=${!elasticsearch_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
@@ -438,7 +487,20 @@ case "$command" in
 		prefix="var_task__${task_name}__db_task_"
 
 		db_subtask_cmd="${prefix}_db_subtask_cmd"
+		db_task_base_dir="${prefix}_db_task_base_dir"
 		db_file_name="${prefix}_db_file_name"
+		snapshot_type="${prefix}_snapshot_type"
+		repository_name="${prefix}_repository_name"
+		snapshot_name="${prefix}_snapshot_name"
+		elasticsearch_ignore_index_settings="${prefix}_elasticsearch_ignore_index_settings"
+		elasticsearch_include_aliases="${prefix}_elasticsearch_include_aliases"
+		elasticsearch_include_global_state="${prefix}_elasticsearch_include_global_state"
+		elasticsearch_index_settings="${prefix}_elasticsearch_index_settings"
+		elasticsearch_indices="${prefix}_elasticsearch_indices"
+		elasticsearch_partial="${prefix}_elasticsearch_partial"
+		elasticsearch_rename_pattern="${prefix}_elasticsearch_rename_pattern"
+		elasticsearch_rename_replacement="${prefix}_elasticsearch_rename_replacement"
+		elasticsearch_index_prefix="${prefix}_elasticsearch_index_prefix"
 
 		opts=()
 
@@ -446,8 +508,20 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--db_subtask_cmd=${!db_subtask_cmd:-}" )
-		opts+=( "--db_file_name=${!db_file_name:-}" )
 		opts+=( "--db_task_base_dir=${!db_task_base_dir:-}" )
+		opts+=( "--db_file_name=${!db_file_name:-}" )
+		opts+=( "--snapshot_type=${!snapshot_type:-}" )
+		opts+=( "--repository_name=${!repository_name:-}" )
+		opts+=( "--snapshot_name=${!snapshot_name:-}" )
+		opts+=( "--elasticsearch_ignore_index_settings=${!elasticsearch_ignore_index_settings:-}" )
+		opts+=( "--elasticsearch_include_aliases=${!elasticsearch_include_aliases:-}" )
+		opts+=( "--elasticsearch_include_global_state=${!elasticsearch_include_global_state:-}" )
+		opts+=( "--elasticsearch_index_settings=${!elasticsearch_index_settings:-}" )
+		opts+=( "--elasticsearch_indices=${!elasticsearch_indices:-}" )
+		opts+=( "--elasticsearch_partial=${!elasticsearch_partial:-}" )
+		opts+=( "--elasticsearch_rename_pattern=${!elasticsearch_rename_pattern:-}" )
+		opts+=( "--elasticsearch_rename_replacement=${!elasticsearch_rename_replacement:-}" )
+		opts+=( "--elasticsearch_index_prefix=${!elasticsearch_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
@@ -460,14 +534,27 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--db_subtask_cmd=${arg_db_subtask_cmd:-}" )
-		opts+=( "--db_file_name=${arg_db_file_name:-}" )
 		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
+		opts+=( "--db_file_name=${arg_db_file_name:-}" )
+		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
+		opts+=( "--repository_name=${arg_repository_name:-}" )
+		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
+		opts+=( "--elasticsearch_ignore_index_settings=${arg_elasticsearch_ignore_index_settings:-}" )
+		opts+=( "--elasticsearch_include_aliases=${arg_elasticsearch_include_aliases:-}" )
+		opts+=( "--elasticsearch_include_global_state=${arg_elasticsearch_include_global_state:-}" )
+		opts+=( "--elasticsearch_index_settings=${arg_elasticsearch_index_settings:-}" )
+		opts+=( "--elasticsearch_indices=${arg_elasticsearch_indices:-}" )
+		opts+=( "--elasticsearch_partial=${arg_elasticsearch_partial:-}" )
+		opts+=( "--elasticsearch_rename_pattern=${arg_elasticsearch_rename_pattern:-}" )
+		opts+=( "--elasticsearch_rename_replacement=${arg_elasticsearch_rename_replacement:-}" )
+		opts+=( "--elasticsearch_index_prefix=${arg_elasticsearch_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
 	"db:subtask")
 		prefix="var_task__${arg_task_name}__db_subtask_"
 
+		toolbox_service="${prefix}_toolbox_service"
 		db_service="${prefix}_db_service"
 		db_cmd="${prefix}_db_cmd"
 		db_name="${prefix}_db_name"
@@ -486,7 +573,20 @@ case "$command" in
 
 		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
 		opts+=( "--db_file_name=${arg_db_file_name:-}" )
+		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
+		opts+=( "--repository_name=${arg_repository_name:-}" )
+		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
+		opts+=( "--elasticsearch_ignore_index_settings=${arg_elasticsearch_ignore_index_settings:-}" )
+		opts+=( "--elasticsearch_include_aliases=${arg_elasticsearch_include_aliases:-}" )
+		opts+=( "--elasticsearch_include_global_state=${arg_elasticsearch_include_global_state:-}" )
+		opts+=( "--elasticsearch_index_settings=${arg_elasticsearch_index_settings:-}" )
+		opts+=( "--elasticsearch_indices=${arg_elasticsearch_indices:-}" )
+		opts+=( "--elasticsearch_partial=${arg_elasticsearch_partial:-}" )
+		opts+=( "--elasticsearch_rename_pattern=${arg_elasticsearch_rename_pattern:-}" )
+		opts+=( "--elasticsearch_rename_replacement=${arg_elasticsearch_rename_replacement:-}" )
+		opts+=( "--elasticsearch_index_prefix=${arg_elasticsearch_index_prefix:-}" )
 
+		opts+=( "--toolbox_service=${!toolbox_service:-$var_run__general__toolbox_service}" )
 		opts+=( "--db_service=${!db_service:-}" )
 		opts+=( "--db_cmd=${!db_cmd:-}" )
 		opts+=( "--db_name=${!db_name:-}" )
@@ -918,12 +1018,17 @@ case "$command" in
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
-	"compress:"*|"uncompress:"*)
-		"$pod_script_compress_file" "$command" ${args[@]+"${args[@]}"}
-		;;
 	"run:util:"*)
 		run_cmd="${command#run:}"
-		"$pod_script_util_file" "$run_cmd" ${args[@]+"${args[@]}"}
+		"$pod_script_util_file" "$run_cmd" \
+			--toolbox_service="$var_run__general__toolbox_service" \
+			${args[@]+"${args[@]}"}
+		;;
+	"run:compress:"*|"run:uncompress:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_compress_file" "$run_cmd" \
+			--toolbox_service="$var_run__general__toolbox_service" \
+			${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$command: invalid command"

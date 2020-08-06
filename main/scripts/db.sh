@@ -384,8 +384,11 @@ case "$command" in
 	"db:backup:elasticsearch")
 		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
 
+		snapshot_name_path="$("$pod_script_env_file" "run:util:urlencode" \
+			--value="$arg_snapshot_name")"
+
 		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
-		url_path="$url_base/$arg_repository_name/$arg_snapshot_name"
+		url_path="$url_base/$arg_repository_name/$snapshot_name_path"
 		url="$url_path?wait_for_completion=true&pretty"
 
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
@@ -397,7 +400,7 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
 		url_base="http://$arg_db_host:$arg_db_port/_cat/indices"
-		url="$url_base/${arg_db_index_prefix}qwerty*?s=index&pretty"
+		url="$url_base/${arg_db_index_prefix}*?s=index&pretty"
 
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
 		info "$title: $arg_db_service - $msg"
@@ -431,7 +434,6 @@ case "$command" in
 					sleep "${arg_connection_sleep:-5}"
 				else
 					lines="\$(echo "\$output" | wc -l)"
-					>&2 echo "lines=\$lines - \$output"
 
 					if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
 						echo "true"
@@ -466,7 +468,6 @@ case "$command" in
 				--header='Content-Type:application/json' \
 				--post-data="$db_args" \
 				"$url"
-		SHELL
 		;;
 	*)
 		error "$title: Invalid command"

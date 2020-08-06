@@ -204,6 +204,7 @@ case "$command" in
 		task_name="${command#setup:task:}"
 		prefix="var_task__${task_name}__setup_task_"
 
+		verify_file_to_skip="${prefix}_verify_file_to_skip"
 		subtask_cmd_verify="${prefix}_subtask_cmd_verify"
 		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		subtask_cmd_local="${prefix}_subtask_cmd_local"
@@ -232,6 +233,7 @@ case "$command" in
 		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
+		opts+=( "--verify_file_to_skip=${!verify_file_to_skip:-}" )
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )
@@ -335,6 +337,7 @@ case "$command" in
 		task_name="${command#backup:task:}"
 		prefix="var_task__${task_name}__backup_task_"
 
+		verify_file_to_skip="${prefix}_verify_file_to_skip"
 		subtask_cmd_verify="${prefix}_subtask_cmd_verify"
 		subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		subtask_cmd_local="${prefix}_subtask_cmd_local"
@@ -365,6 +368,7 @@ case "$command" in
 		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
+		opts+=( "--verify_file_to_skip=${!verify_file_to_skip:-}" )
 		opts+=( "--subtask_cmd_verify=${!subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_remote=${!subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!subtask_cmd_local:-}" )

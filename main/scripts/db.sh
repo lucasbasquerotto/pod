@@ -56,15 +56,8 @@ while getopts ':-:' OPT; do
 		snapshot_type ) arg_snapshot_type="${OPTARG:-}" ;;
 		repository_name ) arg_repository_name="${OPTARG:-}" ;;
 		snapshot_name ) arg_snapshot_name="${OPTARG:-}" ;;
-		elasticsearch_ignore_index_settings ) arg_elasticsearch_ignore_index_settings="${OPTARG:-}" ;;
-		elasticsearch_include_aliases ) arg_elasticsearch_include_aliases="${OPTARG:-}" ;;
-		elasticsearch_include_global_state ) arg_elasticsearch_include_global_state="${OPTARG:-}" ;;
-		elasticsearch_index_settings ) arg_elasticsearch_index_settings="${OPTARG:-}" ;;
-		elasticsearch_indices ) arg_elasticsearch_indices="${OPTARG:-}" ;;
-		elasticsearch_partial ) arg_elasticsearch_partial="${OPTARG:-}" ;;
-		elasticsearch_rename_pattern ) arg_elasticsearch_rename_pattern="${OPTARG:-}" ;;
-		elasticsearch_rename_replacement ) arg_elasticsearch_rename_replacement="${OPTARG:-}" ;;
-		elasticsearch_index_prefix ) arg_elasticsearch_index_prefix="${OPTARG:-}" ;;
+		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}" ;;
+		db_args ) arg_db_args="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac
@@ -361,34 +354,52 @@ case "$command" in
 			error "can't connect to database (dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port, username=$arg_db_user)"
 		SHELL
 		;;
-	"db:backup:elasticsearch")
+	"db:repository:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
 		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		url="$url_base/$arg_repository_name?pretty"
+
+		if [ -z "${arg_snapshot_type:-}" ]; then
+			error "$title: snapshot_type parameter not defined (repository_name=$arg_repository_name)"
+		fi
+
+		data='
+			{
+				"type": "'"$arg_snapshot_type"'",
+				"settings": {
+					"location": "'"$arg_db_task_base_dir"'"
+				}
+			}
+			'
+
+		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
+		info "$title: $arg_db_service - $msg"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			wget --content-on-error -qO- \
+				--header='Content-Type:application/json' \
+				--post-data="$data" \
+				"$url"
+		;;
+	"db:backup:elasticsearch")
+		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
+
+		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		url_path="$url_base/$arg_repository_name/$arg_snapshot_name"
+		url="$url_path?wait_for_completion=true&pretty"
 
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
 		info "$title: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-			set -eou pipefail
-
-			curl -X PUT "$url_base/$arg_repository_name?pretty" -H 'Content-Type: application/json' -d'
-				{
-					"type": '"$arg_snapshot_type"',
-					"settings": {
-						"location": "'"$arg_db_task_base_dir"'"
-					}
-				}
-				'
-
-			curl -X PUT "$url_base/$arg_repository_name/$arg_snapshot_name?wait_for_completion=true&pretty"
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			wget --content-on-error -qO- --method=PUT "$url"
 		;;
 	"db:restore:verify:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
 		url_base="http://$arg_db_host:$arg_db_port/_cat/indices"
+		url="$url_base/${arg_db_index_prefix}qwerty*?s=index&pretty"
 
-		msg="verify if the database has indexes with prefix ($arg_elasticsearch_index_prefix)"
+		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
 			set -eou pipefail
@@ -412,13 +423,15 @@ case "$command" in
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
 				info "$title - wait for the remote database (at $arg_db_host) to be ready (\$msg)"
-				output="\$(curl -X GET "$url_base/${arg_elasticsearch_index_prefix}qwerty*?s=index&pretty" \
-					-H 'Content-Type: application/json')" || echo "continue"
+				output="\$(wget --method=GET --content-on-error -qO- \
+					--header='Content-Type:application/json' \
+					"$url" 2>&1 || echo "continue")"
 
 				if [ "\$output" = "continue" ]; then
 					sleep "${arg_connection_sleep:-5}"
 				else
 					lines="\$(echo "\$output" | wc -l)"
+					>&2 echo "lines=\$lines - \$output"
 
 					if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
 						echo "true"
@@ -434,27 +447,25 @@ case "$command" in
 		SHELL
 		;;
 	"db:restore:elasticsearch")
-		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
+		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
 
 		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		url_path="$url_base/$arg_repository_name/$arg_snapshot_name/_restore"
+		url="$url_path?wait_for_completion=true&pretty"
+
+		db_args="${arg_db_args:-}"
+
+		if [ -z "${arg_db_args:-}" ]; then
+			db_args='{}'
+		fi
 
 		msg="restore a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
 		info "$title: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-			set -eou pipefail
-
-			curl -X POST "$url_base/$arg_repository_name/$arg_snapshot_name/_restore?wait_for_completion=true&pretty" -H 'Content-Type: application/json' -d'
-				{
-					"ignore_index_settings": "'"${arg_elasticsearch_ignore_index_settings:-}"'",
-					"include_aliases": '"${arg_elasticsearch_include_aliases:-true}"',
-					"include_global_state": '"${arg_elasticsearch_include_global_state:-false}"',
-					"index_settings": "'"${arg_elasticsearch_index_settings:-}"'",
-					"indices": "'"${arg_elasticsearch_indices:-}"'",
-					"partial": '"${arg_elasticsearch_partial:-false}"',
-					"rename_pattern": "'"${arg_elasticsearch_rename_pattern:-}"'",
-					"rename_replacement": "'"${arg_elasticsearch_rename_replacement:-}"'"
-				}
-				'
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			wget --content-on-error -qO- \
+				--header='Content-Type:application/json' \
+				--post-data="$db_args" \
+				"$url"
 		SHELL
 		;;
 	*)

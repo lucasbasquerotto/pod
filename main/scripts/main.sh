@@ -94,15 +94,8 @@ while getopts ':-:' OPT; do
 		snapshot_type ) arg_snapshot_type="${OPTARG:-}";;
 		repository_name ) arg_repository_name="${OPTARG:-}";;
 		snapshot_name ) arg_snapshot_name="${OPTARG:-}";;
-		elasticsearch_ignore_index_settings ) arg_elasticsearch_ignore_index_settings="${OPTARG:-}";;
-		elasticsearch_include_aliases ) arg_elasticsearch_include_aliases="${OPTARG:-}";;
-		elasticsearch_include_global_state ) arg_elasticsearch_include_global_state="${OPTARG:-}";;
-		elasticsearch_index_settings ) arg_elasticsearch_index_settings="${OPTARG:-}";;
-		elasticsearch_indices ) arg_elasticsearch_indices="${OPTARG:-}";;
-		elasticsearch_partial ) arg_elasticsearch_partial="${OPTARG:-}";;
-		elasticsearch_rename_pattern ) arg_elasticsearch_rename_pattern="${OPTARG:-}";;
-		elasticsearch_rename_replacement ) arg_elasticsearch_rename_replacement="${OPTARG:-}";;
-		elasticsearch_index_prefix ) arg_elasticsearch_index_prefix="${OPTARG:-}";;
+		db_args ) arg_db_args="${OPTARG:-}";;
+		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}";;
 		??* ) ;; ## ignore
 		\? )  ;; ## ignore
 	esac
@@ -449,15 +442,7 @@ case "$command" in
 		snapshot_type="${prefix}_snapshot_type"
 		repository_name="${prefix}_repository_name"
 		snapshot_name="${prefix}_snapshot_name"
-		elasticsearch_ignore_index_settings="${prefix}_elasticsearch_ignore_index_settings"
-		elasticsearch_include_aliases="${prefix}_elasticsearch_include_aliases"
-		elasticsearch_include_global_state="${prefix}_elasticsearch_include_global_state"
-		elasticsearch_index_settings="${prefix}_elasticsearch_index_settings"
-		elasticsearch_indices="${prefix}_elasticsearch_indices"
-		elasticsearch_partial="${prefix}_elasticsearch_partial"
-		elasticsearch_rename_pattern="${prefix}_elasticsearch_rename_pattern"
-		elasticsearch_rename_replacement="${prefix}_elasticsearch_rename_replacement"
-		elasticsearch_index_prefix="${prefix}_elasticsearch_index_prefix"
+		db_index_prefix="${prefix}_db_index_prefix"
 
 		opts=()
 
@@ -470,15 +455,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${!snapshot_type:-}" )
 		opts+=( "--repository_name=${!repository_name:-}" )
 		opts+=( "--snapshot_name=${!snapshot_name:-}" )
-		opts+=( "--elasticsearch_ignore_index_settings=${!elasticsearch_ignore_index_settings:-}" )
-		opts+=( "--elasticsearch_include_aliases=${!elasticsearch_include_aliases:-}" )
-		opts+=( "--elasticsearch_include_global_state=${!elasticsearch_include_global_state:-}" )
-		opts+=( "--elasticsearch_index_settings=${!elasticsearch_index_settings:-}" )
-		opts+=( "--elasticsearch_indices=${!elasticsearch_indices:-}" )
-		opts+=( "--elasticsearch_partial=${!elasticsearch_partial:-}" )
-		opts+=( "--elasticsearch_rename_pattern=${!elasticsearch_rename_pattern:-}" )
-		opts+=( "--elasticsearch_rename_replacement=${!elasticsearch_rename_replacement:-}" )
-		opts+=( "--elasticsearch_index_prefix=${!elasticsearch_index_prefix:-}" )
+		opts+=( "--db_args=${!db_args:-}" )
+		opts+=( "--db_index_prefix=${!db_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask:${!task_name:-$arg_task_name}" "${opts[@]}"
 		;;
@@ -492,15 +470,8 @@ case "$command" in
 		snapshot_type="${prefix}_snapshot_type"
 		repository_name="${prefix}_repository_name"
 		snapshot_name="${prefix}_snapshot_name"
-		elasticsearch_ignore_index_settings="${prefix}_elasticsearch_ignore_index_settings"
-		elasticsearch_include_aliases="${prefix}_elasticsearch_include_aliases"
-		elasticsearch_include_global_state="${prefix}_elasticsearch_include_global_state"
-		elasticsearch_index_settings="${prefix}_elasticsearch_index_settings"
-		elasticsearch_indices="${prefix}_elasticsearch_indices"
-		elasticsearch_partial="${prefix}_elasticsearch_partial"
-		elasticsearch_rename_pattern="${prefix}_elasticsearch_rename_pattern"
-		elasticsearch_rename_replacement="${prefix}_elasticsearch_rename_replacement"
-		elasticsearch_index_prefix="${prefix}_elasticsearch_index_prefix"
+		db_args="${prefix}_db_args"
+		db_index_prefix="${prefix}_db_index_prefix"
 
 		opts=()
 
@@ -513,15 +484,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${!snapshot_type:-}" )
 		opts+=( "--repository_name=${!repository_name:-}" )
 		opts+=( "--snapshot_name=${!snapshot_name:-}" )
-		opts+=( "--elasticsearch_ignore_index_settings=${!elasticsearch_ignore_index_settings:-}" )
-		opts+=( "--elasticsearch_include_aliases=${!elasticsearch_include_aliases:-}" )
-		opts+=( "--elasticsearch_include_global_state=${!elasticsearch_include_global_state:-}" )
-		opts+=( "--elasticsearch_index_settings=${!elasticsearch_index_settings:-}" )
-		opts+=( "--elasticsearch_indices=${!elasticsearch_indices:-}" )
-		opts+=( "--elasticsearch_partial=${!elasticsearch_partial:-}" )
-		opts+=( "--elasticsearch_rename_pattern=${!elasticsearch_rename_pattern:-}" )
-		opts+=( "--elasticsearch_rename_replacement=${!elasticsearch_rename_replacement:-}" )
-		opts+=( "--elasticsearch_index_prefix=${!elasticsearch_index_prefix:-}" )
+		opts+=( "--db_args=${!db_args:-}" )
+		opts+=( "--db_index_prefix=${!db_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
@@ -539,15 +503,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
 		opts+=( "--repository_name=${arg_repository_name:-}" )
 		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
-		opts+=( "--elasticsearch_ignore_index_settings=${arg_elasticsearch_ignore_index_settings:-}" )
-		opts+=( "--elasticsearch_include_aliases=${arg_elasticsearch_include_aliases:-}" )
-		opts+=( "--elasticsearch_include_global_state=${arg_elasticsearch_include_global_state:-}" )
-		opts+=( "--elasticsearch_index_settings=${arg_elasticsearch_index_settings:-}" )
-		opts+=( "--elasticsearch_indices=${arg_elasticsearch_indices:-}" )
-		opts+=( "--elasticsearch_partial=${arg_elasticsearch_partial:-}" )
-		opts+=( "--elasticsearch_rename_pattern=${arg_elasticsearch_rename_pattern:-}" )
-		opts+=( "--elasticsearch_rename_replacement=${arg_elasticsearch_rename_replacement:-}" )
-		opts+=( "--elasticsearch_index_prefix=${arg_elasticsearch_index_prefix:-}" )
+		opts+=( "--db_args=${arg_db_args:-}" )
+		opts+=( "--db_index_prefix=${arg_db_index_prefix:-}" )
 
 		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
@@ -576,15 +533,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
 		opts+=( "--repository_name=${arg_repository_name:-}" )
 		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
-		opts+=( "--elasticsearch_ignore_index_settings=${arg_elasticsearch_ignore_index_settings:-}" )
-		opts+=( "--elasticsearch_include_aliases=${arg_elasticsearch_include_aliases:-}" )
-		opts+=( "--elasticsearch_include_global_state=${arg_elasticsearch_include_global_state:-}" )
-		opts+=( "--elasticsearch_index_settings=${arg_elasticsearch_index_settings:-}" )
-		opts+=( "--elasticsearch_indices=${arg_elasticsearch_indices:-}" )
-		opts+=( "--elasticsearch_partial=${arg_elasticsearch_partial:-}" )
-		opts+=( "--elasticsearch_rename_pattern=${arg_elasticsearch_rename_pattern:-}" )
-		opts+=( "--elasticsearch_rename_replacement=${arg_elasticsearch_rename_replacement:-}" )
-		opts+=( "--elasticsearch_index_prefix=${arg_elasticsearch_index_prefix:-}" )
+		opts+=( "--db_args=${arg_db_args:-}" )
+		opts+=( "--db_index_prefix=${arg_db_index_prefix:-}" )
 
 		opts+=( "--toolbox_service=${!toolbox_service:-$var_run__general__toolbox_service}" )
 		opts+=( "--db_service=${!db_service:-}" )
@@ -600,7 +550,7 @@ case "$command" in
 
 		"$pod_script_db_file" "$arg_db_subtask_cmd" "${opts[@]}"
 		;;
-	"run:db:main:"*)
+	"run:db:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_db_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;

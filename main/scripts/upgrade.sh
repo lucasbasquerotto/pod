@@ -158,6 +158,7 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
 			fi
 
+			info "$title: define mode to files and directories at ${arg_recursive_dir:-}"
 			chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
 		fi
 
@@ -166,7 +167,8 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
 			fi
 
-			find "$arg_recursive_dir" -type d -print0 | xargs -0 chmod "$arg_recursive_mode_dir"
+			info "$title: define mode to directories at ${arg_recursive_dir:-}"
+			find "$arg_recursive_dir" -type d -print0 | xargs -r0 chmod "$arg_recursive_mode_dir"
 		fi
 
 		if [ -n "${arg_recursive_mode_file:-}" ]; then
@@ -174,7 +176,8 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
 			fi
 
-			find "$arg_recursive_dir" -type f -print0 | xargs -0 chmod "$arg_recursive_mode_file"
+			info "$title: define mode to files at ${arg_recursive_dir:-}"
+			find "$arg_recursive_dir" -type f -print0 | xargs -r0 chmod "$arg_recursive_mode_file"
 		fi
 	SHELL
 }

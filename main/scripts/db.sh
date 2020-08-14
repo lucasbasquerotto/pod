@@ -304,7 +304,7 @@ case "$command" in
 				--out="$arg_db_task_base_dir"
 		SHELL
 		;;
-	"db:restore:mongo")
+	"db:restore:mongo:dir")
 		"$pod_script_env_file" up "$arg_db_service"
 
 		info "$title: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"

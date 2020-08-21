@@ -4,19 +4,18 @@ set -eou pipefail
 # shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-GRAY="\033[0;90m"
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+GRAY='\033[0;90m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function info {
-	msg="$(date '+%F %T') - ${1:-}"
-	>&2 echo -e "${GRAY}${msg}${NC}"
+	"$pod_script_env_file" "util:info" --info="${*}"
 }
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-	>&2 echo -e "${RED}${msg}${NC}"
-	exit 2
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
 
 command="${1:-}"
@@ -38,6 +37,11 @@ while getopts ':-:' OPT; do
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
+		error ) arg_error="${OPTARG:-}";;
+		info ) arg_info="${OPTARG:-}";;
+		cmd ) arg_cmd="${OPTARG:-}";;
+		start ) arg_start="${OPTARG:-}";;
+		end ) arg_end="${OPTARG:-}";;
 
 		value ) arg_value="${OPTARG:-}";;
 		date_format ) arg_date_format="${OPTARG:-}";;
@@ -54,12 +58,30 @@ title="$command"
 [ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
+	"util:error")
+		msg="$(date '+%F %T') - ${arg_error:-}"
+		>&2 echo -e "${RED}${msg}${NC}"
+		exit 2
+		;;
+	"util:info")
+		msg="$(date '+%F %T') - ${arg_info:-}"
+		>&2 echo -e "${GRAY}${msg}${NC}"
+		;;
+	"util:info:start")
+		>&2 echo -e "${CYAN}$(date '+%F %T') - ${arg_cmd:-} - start${NC}"
+		;;
+	"util:info:end")
+		>&2 echo -e "${CYAN}$(date '+%F %T') - ${arg_cmd:-} - end${NC}"
+		;;
+	"util:info:summary")
+		>&2 echo -e "${PURPLE}[summary] ${arg_cmd:-}: ${arg_start:-} - ${arg_end:-}${NC}"
+		;;
 	"util:urlencode")
 		# shellcheck disable=SC2016
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" jq -nr --arg v "${arg_value:-}" '$v|@uri'
 		;;
 	"util:replace_placeholders")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
 			inner_srt="${arg_value:-}"

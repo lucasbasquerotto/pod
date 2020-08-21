@@ -4,19 +4,12 @@ set -eou pipefail
 # shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-GRAY="\033[0;90m"
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
 function info {
-	msg="$(date '+%F %T') - ${1:-}"
-	>&2 echo -e "${GRAY}${msg}${NC}"
+	"$pod_script_env_file" "util:info" --info="${*}"
 }
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-	>&2 echo -e "${RED}${msg}${NC}"
-	exit 2
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
 
 command="${1:-}"
@@ -83,17 +76,11 @@ case "$command" in
 			cmd_args=( "run" )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			function info {
-				msg="\$(date '+%F %T') - \${1:-}"
-				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
-			}
-
 			function error {
-				msg="\$(date '+%F %T') \${1:-}"
-				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 
@@ -105,7 +92,7 @@ case "$command" in
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
 				if [ "${arg_db_remote:-}" = "true" ]; then
-					info "$title - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
+					>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
 					sql_output="\$(mysql \
 						--user="$arg_db_user" \
 						--host="$arg_db_host" \
@@ -113,7 +100,7 @@ case "$command" in
 						--password="$arg_db_pass" \
 						-N -e "$sql_tables" 2>&1)" ||:
 				else
-					info "$title - wait for the local database $arg_db_name to be ready (\$msg)"
+					>&2 echo "wait for the local database $arg_db_name to be ready (\$msg)"
 					sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables" 2>&1)" ||:
 				fi
 
@@ -160,12 +147,11 @@ case "$command" in
 
 		"$pod_script_env_file" up "$arg_db_service"
 
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
 			function error {
-				msg="\$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: \${1:-}"
-				>&2 echo -e "${RED}\${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 
@@ -195,7 +181,7 @@ case "$command" in
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
@@ -214,17 +200,11 @@ case "$command" in
 			cmd_args=( "run" )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			function info {
-				msg="\$(date '+%F %T') - \${1:-}"
-				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
-			}
-
 			function error {
-				msg="\$(date '+%F %T') \${1:-}"
-				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 
@@ -236,7 +216,7 @@ case "$command" in
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
 				if [ "${arg_db_remote:-}" = "true" ]; then
-					info "$title - wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
+					>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
 					output="\$(mongo "mongo/$arg_db_name" \
 						--host="$arg_db_host" \
 						--port="$arg_db_port" \
@@ -245,7 +225,7 @@ case "$command" in
 						--authenticationDatabase="$arg_authentication_database" \
 						--eval "db.stats().collections" 2>&1)" ||:
 				else
-					info "$title - wait for the local database $arg_db_name to be ready (\$msg)"
+					>&2 echo "wait for the local database $arg_db_name to be ready (\$msg)"
 					output="\$(mongo "mongo/$arg_db_name" \
 						--username="$arg_db_user" \
 						--password="$arg_db_pass" \
@@ -290,7 +270,7 @@ case "$command" in
 		msg="backup database ($arg_db_name)"
 		msg="$msg to directory $arg_db_task_base_dir/$arg_db_name (inside service)"
 		info "$title: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 			rm -rf "$arg_db_task_base_dir/$arg_db_name"
 			mkdir -p "$arg_db_task_base_dir"
@@ -308,7 +288,7 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_db_service"
 
 		info "$title: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 			mongorestore \
 				--host="$arg_db_host" \
@@ -327,12 +307,11 @@ case "$command" in
 			cmd_args=( "run" )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
 			function error {
-				msg="\$(date '+%F %T') \${1:-}"
-				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 
@@ -404,17 +383,11 @@ case "$command" in
 
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
 		info "$title: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			function info {
-				msg="\$(date '+%F %T') - \${1:-}"
-				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
-			}
-
 			function error {
-				msg="\$(date '+%F %T') \${1:-}"
-				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 
@@ -425,7 +398,7 @@ case "$command" in
 				current=\$((end-SECONDS))
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
-				info "$title - wait for the remote database (at $arg_db_host) to be ready (\$msg)"
+				>&2 echo "wait for the remote database (at $arg_db_host) to be ready (\$msg)"
 				output="\$(wget --method=GET --content-on-error -qO- \
 					--header='Content-Type:application/json' \
 					"$url" 2>&1 || echo "continue")"

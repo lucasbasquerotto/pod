@@ -24,21 +24,16 @@ pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
 pod_script_compress_file="$pod_layer_dir/main/scripts/compress.sh"
 pod_script_util_file="$pod_layer_dir/main/scripts/util.sh"
 
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-GRAY='\033[0;90m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
 function info {
-	msg="$(date '+%F %T') - ${1:-}"
-	>&2 echo -e "${GRAY}${msg}${NC}"
+	"$pod_script_env_file" "util:info" --info="${*}"
 }
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-	>&2 echo -e "${RED}${msg}${NC}"
-	exit 2
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
+}
+
+function info_inner {
+	info "${@}" 2>&1
 }
 
 if [ -z "$pod_layer_dir" ] || [ "$pod_layer_dir" = "/" ]; then
@@ -110,10 +105,11 @@ start="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
+		|"util:error"|"util:info"|"util:info:"*)
 		;;
 	*)
-		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - start${NC}"
+		"$pod_script_env_file" "util:info:start" --cmd="$command"
 		;;
 esac
 
@@ -865,7 +861,7 @@ case "$command" in
 		fi
 		;;
 	"action:verify:"*)
-		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
 			dir="$arg_action_dir"
@@ -898,7 +894,7 @@ case "$command" in
 		SHELL
 		;;
 	"action:remove:"*)
-		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
 			dir="$arg_action_dir"
@@ -972,17 +968,48 @@ case "$command" in
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
-	"run:util:"*)
-		run_cmd="${command#run:}"
-		"$pod_script_util_file" "$run_cmd" \
-			--toolbox_service="$var_run__general__toolbox_service" \
-			${args[@]+"${args[@]}"}
-		;;
 	"run:compress:"*|"run:uncompress:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_compress_file" "$run_cmd" \
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
+		;;
+	"util:"*|"run:util:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_util_file" "$run_cmd" \
+			--toolbox_service="$var_run__general__toolbox_service" \
+			${args[@]+"${args[@]}"}
+		;;
+	"test:log")
+		info "test"
+
+		msg_out="$(info "test4" 2>&1)"
+
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			GRAY='\033[0;90m'
+			RED='\033[0;31m'
+			NC='\033[0m' # No Color
+
+			function info {
+				msg="\$(date '+%F %T') - \${1:-}"
+				>&2 echo -e "\${GRAY}\${msg}\${NC}"
+			}
+
+			function error {
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
+				exit 2
+			}
+
+			info "test2"
+			msg="$(info "test3" 2>&1)"
+			>&2 echo "\$msg"
+
+			>&2 echo "$msg_out"
+
+			# error "test error" "some more error"
+		SHELL
 		;;
 	*)
 		error "$command: invalid command"
@@ -993,10 +1020,11 @@ end="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
+		|"util:error"|"util:info"|"util:info:"*)
 		;;
 	*)
-		>&2 echo -e "${CYAN}$(date '+%F %T') - main - $command - end${NC}"
-		>&2 echo -e "${PURPLE}[summary] main - $command - $start - $end${NC}"
+		"$pod_script_env_file" "util:info:end" --cmd="$command"
+		"$pod_script_env_file" "util:info:summary" --cmd="$command" --start="$start" --end="$end"
 		;;
 esac

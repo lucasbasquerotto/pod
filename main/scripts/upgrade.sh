@@ -4,19 +4,12 @@ set -eou pipefail
 # shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
-GRAY="\033[0;90m"
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
 function info {
-	msg="$(date '+%F %T') - ${1:-}"
-	>&2 echo -e "${GRAY}${msg}${NC}"
+	"$pod_script_env_file" "util:info" --info="${*}"
 }
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-	>&2 echo -e "${RED}${msg}${NC}"
-	exit 2
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
 
 command="${1:-}"
@@ -102,7 +95,7 @@ function verify {
 	fi
 
 	if [ -n "${arg_verify_file_to_skip:-}" ]; then
-		skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+		skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			test -f "$arg_verify_file_to_skip" && echo "true" || echo "false"
 		SHELL
 		)"
@@ -131,16 +124,11 @@ function verify {
 function general_actions {
 	move_dest="$1"
 
-	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 		set -eou pipefail
 
-		function info {
-			msg="\$(date '+%F %T') - \${1:-}"
-			>&2 echo -e "${GRAY}\${msg}${NC}"
-		}
-
 		if [ -n "${arg_move_src:-}" ]; then
-			info "$title: move from ${arg_move_src:-} to ${move_dest:-}"
+			>&2 echo "move from ${arg_move_src:-} to ${move_dest:-}"
 
 			if [ -z "${move_dest:-}" ]; then
 				error "$title: move_dest parameter not specified (move_src=$arg_move_src)"
@@ -158,7 +146,7 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
 			fi
 
-			info "$title: define mode to files and directories at ${arg_recursive_dir:-}"
+			>&2 echo "define mode to files and directories at ${arg_recursive_dir:-}"
 			chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
 		fi
 
@@ -167,7 +155,7 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
 			fi
 
-			info "$title: define mode to directories at ${arg_recursive_dir:-}"
+			>&2 echo "define mode to directories at ${arg_recursive_dir:-}"
 			find "$arg_recursive_dir" -type d -print0 | xargs -r0 chmod "$arg_recursive_mode_dir"
 		fi
 
@@ -176,14 +164,14 @@ function general_actions {
 				error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
 			fi
 
-			info "$title: define mode to files at ${arg_recursive_dir:-}"
+			>&2 echo "define mode to files at ${arg_recursive_dir:-}"
 			find "$arg_recursive_dir" -type f -print0 | xargs -r0 chmod "$arg_recursive_mode_file"
 		fi
 	SHELL
 }
 
 function final_actions {
-	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 		set -eou pipefail
 
 		if [ -n "${arg_file_to_clear:-}" ]; then
@@ -278,17 +266,11 @@ case "$command" in
 		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
 		info "$title - $msg"
 
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			function info {
-				msg="\$(date '+%F %T') - \${1:-}"
-				>&2 echo -e "${GRAY}$command: \${msg}${NC}"
-			}
-
 			function error {
-				msg="\$(date '+%F %T') \${1:-}"
-				>&2 echo -e "${RED}$command: \${msg}${NC}"
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
 				exit 2
 			}
 

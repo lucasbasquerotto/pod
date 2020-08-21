@@ -7,13 +7,8 @@ pod_tmp_dir="$POD_TMP_DIR"
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
-	>&2 echo -e "${RED}${msg}${NC}"
-	exit 2
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
-
-RED='\033[0;31m'
-NC='\033[0m' # No Color
 
 command="${1:-}"
 

@@ -28,6 +28,10 @@ function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
 }
 
+function warn {
+	"$pod_script_env_file" "util:warn" --warn="${*}"
+}
+
 function error {
 	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
@@ -106,7 +110,7 @@ start="$(date '+%F %T')"
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
-		|"util:error"|"util:info"|"util:info:"*)
+		|"util:error"|"util:warn"|"util:info"|"util:info:"*)
 		;;
 	*)
 		"$pod_script_env_file" "util:info:start" --cmd="$command"
@@ -974,42 +978,31 @@ case "$command" in
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
 		;;
+	"util:info"|"util:info:"*|"run:util:info:"*| \
+	"util:warn"|"util:error")
+		run_cmd="${command#run:}"
+		"$pod_script_util_file" "$run_cmd" \
+			--no_info="${var_run__meta__no_info:-}" \
+			--no_warn="${var_run__meta__no_warn:-}" \
+			--no_error="${var_run__meta__no_error:-}" \
+			--no_info_wrap="${var_run__meta__no_info_wrap:-}" \
+			--no_summary="${var_run__meta__no_summary:-}" \
+			--no_colors="${var_run__meta__no_colors:-}" \
+			${args[@]+"${args[@]}"}
+		;;
 	"util:"*|"run:util:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_util_file" "$run_cmd" \
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
 		;;
-	"test:log")
-		info "test"
-
-		msg_out="$(info "test4" 2>&1)"
-
-		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			GRAY='\033[0;90m'
-			RED='\033[0;31m'
-			NC='\033[0m' # No Color
-
-			function info {
-				msg="\$(date '+%F %T') - \${1:-}"
-				>&2 echo -e "\${GRAY}\${msg}\${NC}"
-			}
-
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
-
-			info "test2"
-			msg="$(info "test3" 2>&1)"
-			>&2 echo "\$msg"
-
-			>&2 echo "$msg_out"
-
-			# error "test error" "some more error"
-		SHELL
+	"demo:log")
+		info "test info" "some more info\nnew info line"
+		warn "test warn" "some more warn\nnew warn line"
+		error "test error" "some more error\nnew error line"
+		;;
+	"demo:log:success")
+		"$pod_script_env_file" "demo:log" || warn "$command: error"
 		;;
 	*)
 		error "$command: invalid command"
@@ -1021,7 +1014,7 @@ end="$(date '+%F %T')"
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
-		|"util:error"|"util:info"|"util:info:"*)
+		|"util:error"|"util:warn"|"util:info"|"util:info:"*)
 		;;
 	*)
 		"$pod_script_env_file" "util:info:end" --cmd="$command"

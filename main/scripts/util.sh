@@ -7,6 +7,7 @@ pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 GRAY='\033[0;90m'
+YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -37,11 +38,20 @@ while getopts ':-:' OPT; do
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
+
 		error ) arg_error="${OPTARG:-}";;
+		warn ) arg_warn="${OPTARG:-}";;
 		info ) arg_info="${OPTARG:-}";;
 		cmd ) arg_cmd="${OPTARG:-}";;
 		start ) arg_start="${OPTARG:-}";;
 		end ) arg_end="${OPTARG:-}";;
+
+		no_info ) arg_no_info="${OPTARG:-}";;
+		no_warn ) arg_no_warn="${OPTARG:-}";;
+		no_error ) arg_no_error="${OPTARG:-}";;
+		no_info_wrap ) arg_no_info_wrap="${OPTARG:-}";;
+		no_summary ) arg_no_summary="${OPTARG:-}";;
+		no_colors ) arg_no_colors="${OPTARG:-}";;
 
 		value ) arg_value="${OPTARG:-}";;
 		date_format ) arg_date_format="${OPTARG:-}";;
@@ -59,22 +69,47 @@ title="$command"
 
 case "$command" in
 	"util:error")
-		msg="$(date '+%F %T') - ${arg_error:-}"
-		>&2 echo -e "${RED}${msg}${NC}"
+		if [ "${arg_no_error:-}" != "true" ]; then
+			msg="$(date '+%F %T') - ${arg_error:-}"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${RED}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
 		exit 2
 		;;
+	"util:warn")
+		if [ "${arg_no_warn:-}" != "true" ]; then
+			msg="$(date '+%F %T') - ${arg_warn:-}"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${YELLOW}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
+		;;
 	"util:info")
-		msg="$(date '+%F %T') - ${arg_info:-}"
-		>&2 echo -e "${GRAY}${msg}${NC}"
+		if [ "${arg_no_info:-}" != "true" ]; then
+			msg="$(date '+%F %T') - ${arg_info:-}"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${GRAY}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
 		;;
 	"util:info:start")
-		>&2 echo -e "${CYAN}$(date '+%F %T') - ${arg_cmd:-} - start${NC}"
+		if [ "${arg_no_info_wrap:-}" != "true" ]; then
+			msg="$(date '+%F %T') - ${arg_cmd:-} - start"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
 		;;
 	"util:info:end")
-		>&2 echo -e "${CYAN}$(date '+%F %T') - ${arg_cmd:-} - end${NC}"
+		if [ "${arg_no_info_wrap:-}" != "true" ]; then
+			msg="$(date '+%F %T') - ${arg_cmd:-} - end"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
 		;;
 	"util:info:summary")
-		>&2 echo -e "${PURPLE}[summary] ${arg_cmd:-}: ${arg_start:-} - ${arg_end:-}${NC}"
+		if [ "${arg_no_summary:-}" != "true" ]; then
+			msg="[summary] ${arg_cmd:-}: ${arg_start:-} - ${arg_end:-}"
+			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${PURPLE}${msg}${NC}"
+			>&2 echo -e "$msg"
+		fi
 		;;
 	"util:urlencode")
 		# shellcheck disable=SC2016

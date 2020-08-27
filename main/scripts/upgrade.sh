@@ -226,7 +226,9 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		elif [ "${arg_setup_run_new_task:-}" = "true" ]; then
-			"$pod_script_env_file" "${arg_subtask_cmd_new}"
+			"$pod_script_env_file" "${arg_subtask_cmd_new}" \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$arg_subtask_cmd"
 		else
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				if [ "${arg_local:-}" = "true" ]; then

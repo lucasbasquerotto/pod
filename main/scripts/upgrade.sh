@@ -2,7 +2,11 @@
 set -eou pipefail
 
 # shellcheck disable=SC2153
+pod_layer_dir="$POD_LAYER_DIR"
+# shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+
+pod_script_same_file="$pod_layer_dir/main/scripts/upgrade.sh"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -67,6 +71,8 @@ while getopts ':-:' OPT; do
 		move_dest ) arg_move_dest="${OPTARG:-}";;
 		file_to_clear ) arg_file_to_clear="${OPTARG:-}";;
 		dir_to_clear ) arg_dir_to_clear="${OPTARG:-}";;
+
+		inner_move_dest ) arg_inner_move_dest="${OPTARG:-}";;
 		??* ) ;;	# bad long option
 		\? )	exit 2 ;;	# bad short option (error reported via getopts)
 	esac
@@ -76,118 +82,6 @@ shift $((OPTIND-1))
 title="$command"
 [ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
 [ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
-
-function verify {
-	skip=''
-	skip_file=''
-
-	if [ -n "${arg_subtask_cmd_verify:-}" ]; then
-		info "$title - verify if the task should be done"
-		skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
-			--task_name="$arg_task_name" \
-			--subtask_cmd="$arg_subtask_cmd" \
-			--local="${arg_local:-}")"
-
-		if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
-			msg="the value of the verification should be true or false"
-			error "$title: $msg - result: $skip"
-		fi
-	fi
-
-	if [ -n "${arg_verify_file_to_skip:-}" ]; then
-		skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			test -f "$arg_verify_file_to_skip" && echo "true" || echo "false"
-		SHELL
-		)"
-	fi
-
-	if [ -n "$skip" ] && [ -n "$skip_file" ]; then
-		if [ "$skip" != "$skip_file" ]; then
-			msg="the value of the verification command and the file verification should be the same"
-
-			if [ "$skip_file" = "false" ]; then
-				msg="$msg (you can create the file ${arg_verify_file_to_skip:-} inside the toolbox service to skip the task)"
-			elif [ "$skip_file" = "true" ]; then
-				msg="$msg (you can remove the file ${arg_verify_file_to_skip:-} inside the toolbox service to not skip the task)"
-			fi
-
-			error "$title: $msg - skip: $skip, skip_file: $skip_file"
-		fi
-	fi
-
-	skip="${skip:-$skip_file}"
-	skip="${skip:-false}"
-
-	echo "$skip"
-}
-
-function general_actions {
-	move_dest="$1"
-
-	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-		set -eou pipefail
-
-		if [ -n "${arg_move_src:-}" ]; then
-			>&2 echo "move from ${arg_move_src:-} to ${move_dest:-}"
-
-			if [ -z "${move_dest:-}" ]; then
-				error "$title: move_dest parameter not specified (move_src=$arg_move_src)"
-			fi
-
-			if [ -d "$arg_move_src" ]; then
-				(shopt -s dotglob; mv -v "$arg_move_src"/* "$move_dest")
-			else
-				mv -v "$arg_move_src" "$move_dest"
-			fi
-		fi
-
-		if [ -n "${arg_recursive_mode:-}" ]; then
-			if [ -z "${arg_recursive_dir:-}" ]; then
-				error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
-			fi
-
-			>&2 echo "define mode to files and directories at ${arg_recursive_dir:-}"
-			chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
-		fi
-
-		if [ -n "${arg_recursive_mode_dir:-}" ]; then
-			if [ -z "${arg_recursive_dir:-}" ]; then
-				error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
-			fi
-
-			>&2 echo "define mode to directories at ${arg_recursive_dir:-}"
-			find "$arg_recursive_dir" -type d -print0 | xargs -r0 chmod "$arg_recursive_mode_dir"
-		fi
-
-		if [ -n "${arg_recursive_mode_file:-}" ]; then
-			if [ -z "${arg_recursive_dir:-}" ]; then
-				error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
-			fi
-
-			>&2 echo "define mode to files at ${arg_recursive_dir:-}"
-			find "$arg_recursive_dir" -type f -print0 | xargs -r0 chmod "$arg_recursive_mode_file"
-		fi
-	SHELL
-}
-
-function final_actions {
-	"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-		set -eou pipefail
-
-		if [ -n "${arg_file_to_clear:-}" ]; then
-			rm -f "$arg_file_to_clear"
-		fi
-
-		if [ -n "${arg_dir_to_clear:-}" ]; then
-			rm -rf "$arg_dir_to_clear"
-		fi
-
-		if [ -n "${arg_verify_file_to_skip:-}" ]; then
-			mkdir -p "\$(dirname $arg_verify_file_to_skip)"
-			touch "${arg_verify_file_to_skip:-}"
-		fi
-	SHELL
-}
 
 case "$command" in
 	"upgrade")
@@ -221,10 +115,7 @@ case "$command" in
 		info "$title - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
-		>&2 echo "1"
-		skip="$(verify)"
-		error "after"
-		>&2 echo "2 - $? - $skip"
+		skip="$("$pod_script_same_file" "inner:verify" "${args[@]}")"
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
@@ -256,7 +147,8 @@ case "$command" in
 						--compress_pass="${arg_compress_pass:-}"
 				fi
 
-				general_actions "${arg_move_dest:-}";
+				"$pod_script_same_file" "inner:general_actions" \
+					--inner_move_dest="${arg_move_dest:-}" "${args[@]}"
 
 				if [ -n "${arg_subtask_cmd_local:-}" ]; then
 					info "$title - restore - local"
@@ -266,7 +158,7 @@ case "$command" in
 				fi
 			fi
 
-			final_actions;
+			"$pod_script_same_file" "inner:final_actions" "${args[@]}"
 		fi
 		;;
 	"setup:verify")
@@ -326,7 +218,7 @@ case "$command" in
 	"backup:default")
 		info "$title - started"
 
-		skip="$(verify)"
+		skip="$("$pod_script_same_file" "inner:verify" "${args[@]}")"
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
@@ -391,7 +283,8 @@ case "$command" in
 					|| error "$command: replace_placeholders (move_dest)"
 			fi
 
-			general_actions "$move_dest";
+			"$pod_script_same_file" "inner:general_actions" \
+				--inner_move_dest="$move_dest" "${args[@]}"
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				if [ "${arg_local:-}" = "true" ]; then
@@ -404,8 +297,115 @@ case "$command" in
 				fi
 			fi
 
-			final_actions;
+			"$pod_script_same_file" "inner:final_actions" "${args[@]}"
 		fi
+		;;
+	"inner:verify")
+		skip=''
+		skip_file=''
+
+		if [ -n "${arg_subtask_cmd_verify:-}" ]; then
+			info "$title - verify if the task should be done"
+			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$arg_subtask_cmd" \
+				--local="${arg_local:-}")"
+
+			if [ "$skip" != "true" ] && [ "$skip" != "false" ]; then
+				msg="the value of the verification should be true or false"
+				error "$title: $msg - result: $skip"
+			fi
+		fi
+
+		if [ -n "${arg_verify_file_to_skip:-}" ]; then
+			skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+				test -f "$arg_verify_file_to_skip" && echo "true" || echo "false"
+			SHELL
+			)"
+		fi
+
+		if [ -n "$skip" ] && [ -n "$skip_file" ]; then
+			if [ "$skip" != "$skip_file" ]; then
+				msg="the value of the verification command and the file verification should be the same"
+
+				if [ "$skip_file" = "false" ]; then
+					msg="$msg (you can create the file ${arg_verify_file_to_skip:-} inside the toolbox service to skip the task)"
+				elif [ "$skip_file" = "true" ]; then
+					msg="$msg (you can remove the file ${arg_verify_file_to_skip:-} inside the toolbox service to not skip the task)"
+				fi
+
+				error "$title: $msg - skip: $skip, skip_file: $skip_file"
+			fi
+		fi
+
+		skip="${skip:-$skip_file}"
+		skip="${skip:-false}"
+
+		echo "$skip"
+		;;
+	"inner:general_actions")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			if [ -n "${arg_move_src:-}" ]; then
+				>&2 echo "move from ${arg_move_src:-} to ${arg_inner_move_dest:-}"
+
+				if [ -z "${arg_inner_move_dest:-}" ]; then
+					error "$title: inner_move_dest parameter not specified (move_src=$arg_move_src)"
+				fi
+
+				if [ -d "$arg_move_src" ]; then
+					(shopt -s dotglob; mv -v "$arg_move_src"/* "$arg_inner_move_dest")
+				else
+					mv -v "$arg_move_src" "$arg_inner_move_dest"
+				fi
+			fi
+
+			if [ -n "${arg_recursive_mode:-}" ]; then
+				if [ -z "${arg_recursive_dir:-}" ]; then
+					error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
+				fi
+
+				>&2 echo "define mode to files and directories at ${arg_recursive_dir:-}"
+				chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
+			fi
+
+			if [ -n "${arg_recursive_mode_dir:-}" ]; then
+				if [ -z "${arg_recursive_dir:-}" ]; then
+					error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
+				fi
+
+				>&2 echo "define mode to directories at ${arg_recursive_dir:-}"
+				find "$arg_recursive_dir" -type d -print0 | xargs -r0 chmod "$arg_recursive_mode_dir"
+			fi
+
+			if [ -n "${arg_recursive_mode_file:-}" ]; then
+				if [ -z "${arg_recursive_dir:-}" ]; then
+					error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
+				fi
+
+				>&2 echo "define mode to files at ${arg_recursive_dir:-}"
+				find "$arg_recursive_dir" -type f -print0 | xargs -r0 chmod "$arg_recursive_mode_file"
+			fi
+		SHELL
+		;;
+	"inner:final_actions")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			if [ -n "${arg_file_to_clear:-}" ]; then
+				rm -f "$arg_file_to_clear"
+			fi
+
+			if [ -n "${arg_dir_to_clear:-}" ]; then
+				rm -rf "$arg_dir_to_clear"
+			fi
+
+			if [ -n "${arg_verify_file_to_skip:-}" ]; then
+				mkdir -p "\$(dirname $arg_verify_file_to_skip)"
+				touch "${arg_verify_file_to_skip:-}"
+			fi
+		SHELL
 		;;
 	*)
 		error "$command: invalid command"

@@ -221,44 +221,49 @@ case "$command" in
 		info "$title - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
+		>&2 echo "1"
 		skip="$(verify)"
+		error "after"
+		>&2 echo "2 - $? - $skip"
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
-		elif [ "${arg_setup_run_new_task:-}" = "true" ]; then
-			"$pod_script_env_file" "${arg_subtask_cmd_new}" \
-				--task_name="$arg_task_name" \
-				--subtask_cmd="$arg_subtask_cmd"
 		else
-			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
-				if [ "${arg_local:-}" = "true" ]; then
-					error "$title - restore - remote cmd with local flag"
-				else
-					info "$title - restore - remote"
-					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+			if [ "${arg_setup_run_new_task:-}" = "true" ]; then
+				"$pod_script_env_file" "${arg_subtask_cmd_new}" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$arg_subtask_cmd"
+			else
+				if [ -n "${arg_subtask_cmd_remote:-}" ]; then
+					if [ "${arg_local:-}" = "true" ]; then
+						error "$title - restore - remote cmd with local flag"
+					else
+						info "$title - restore - remote"
+						"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+							--task_name="$arg_task_name" \
+							--subtask_cmd="$arg_subtask_cmd"
+					fi
+				fi
+
+				if [ "${arg_is_compressed_file:-}" = "true" ]; then
+					info "$title - restore - uncompress"
+					"$pod_script_env_file" "run:uncompress:$arg_compress_type"\
+						--task_name="$arg_task_name" \
+						--subtask_cmd="$command" \
+						--toolbox_service="$arg_toolbox_service" \
+						--src_file="$arg_compress_src_file" \
+						--dest_dir="$arg_compress_dest_dir" \
+						--compress_pass="${arg_compress_pass:-}"
+				fi
+
+				general_actions "${arg_move_dest:-}";
+
+				if [ -n "${arg_subtask_cmd_local:-}" ]; then
+					info "$title - restore - local"
+					"$pod_script_env_file" "${arg_subtask_cmd_local}" \
 						--task_name="$arg_task_name" \
 						--subtask_cmd="$arg_subtask_cmd"
 				fi
-			fi
-
-			if [ "${arg_is_compressed_file:-}" = "true" ]; then
-				info "$title - restore - uncompress"
-				"$pod_script_env_file" "run:uncompress:$arg_compress_type"\
-					--task_name="$arg_task_name" \
-					--subtask_cmd="$command" \
-					--toolbox_service="$arg_toolbox_service" \
-					--src_file="$arg_compress_src_file" \
-					--dest_dir="$arg_compress_dest_dir" \
-					--compress_pass="${arg_compress_pass:-}"
-			fi
-
-			general_actions "${arg_move_dest:-}";
-
-			if [ -n "${arg_subtask_cmd_local:-}" ]; then
-				info "$title - restore - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" \
-					--task_name="$arg_task_name" \
-					--subtask_cmd="$arg_subtask_cmd"
 			fi
 
 			final_actions;
@@ -277,6 +282,8 @@ case "$command" in
 			}
 
 			dir_ls=""
+
+			unknown_code error
 
 			if [ -d "$arg_setup_dest_dir_to_verify" ]; then
 				dir_ls="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \

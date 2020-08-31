@@ -442,6 +442,14 @@ case "$command" in
 				--post-data="$db_args" \
 				"$url"
 		;;
+	"db:backup:prometheus")
+		url="http://$arg_db_host:$arg_db_port/api/v1/admin/tsdb/snapshot"
+
+		msg="create a snapshot of the prometheus data"
+		info "$title: $arg_db_service - $msg"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			wget --content-on-error -qO- --method=POST "$url"
+		;;
 	*)
 		error "$title: Invalid command"
 		;;

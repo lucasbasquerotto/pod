@@ -82,7 +82,7 @@ case "$command" in
 
 		if [ "$empty_bucket" = "true" ]; then
 			info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
-			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create-bucket \
+			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$arg_subtask_cmd"
 		fi

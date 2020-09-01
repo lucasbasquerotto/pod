@@ -73,13 +73,18 @@ while getopts ':-:' OPT; do
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
+		s3_alias ) arg_s3_alias="${OPTARG:-}";;
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
+		s3_src_alias ) arg_s3_src_alias="${OPTARG:-}";;
 		s3_src ) arg_s3_src="${OPTARG:-}";;
 		s3_src_rel ) arg_s3_src_rel="${OPTARG:-}";;
 		s3_remote_src ) arg_s3_remote_src="${OPTARG:-}";;
+		s3_dest_alias ) arg_s3_dest_alias="${OPTARG:-}";;
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
 		s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
+		s3_bucket_path ) arg_s3_bucket_path="${OPTARG:-}";;
+		s3_older_than_days ) arg_s3_older_than_days="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
@@ -562,21 +567,37 @@ case "$command" in
 		task_name="${command#s3:task:}"
 		prefix="var_task__${task_name}__s3_task_"
 
-		db_subtask_cmd="${prefix}_db_subtask_cmd"
-		db_file_name="${prefix}_db_file_name"
+		s3_alias="${prefix}_s3_alias"
+		s3_cmd="${prefix}_s3_cmd"
+		s3_src_alias="${prefix}_s3_src_alias"
+		s3_src="${prefix}_s3_src"
+		s3_remote_src="${prefix}_s3_remote_src"
+		s3_src_rel="${prefix}_s3_src_rel"
+		s3_dest_alias="${prefix}_s3_dest_alias"
+		s3_dest="${prefix}_s3_dest"
+		s3_remote_dest="${prefix}_s3_remote_dest"
+		s3_dest_rel="${prefix}_s3_dest_rel"
+		s3_bucket_path="${prefix}_s3_bucket_path"
+		s3_older_than_days="${prefix}_s3_older_than_days"
+		s3_file="${prefix}_s3_file"
 
 		opts=()
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
+		opts+=( "--s3_alias=${!s3_alias:-}" )
 		opts+=( "--s3_cmd=${!s3_cmd:-}" )
+		opts+=( "--s3_src_alias=${!s3_src_alias:-}" )
 		opts+=( "--s3_src=${!s3_src:-}" )
 		opts+=( "--s3_remote_src=${!s3_remote_src:-}" )
 		opts+=( "--s3_src_rel=${!s3_src_rel:-}" )
+		opts+=( "--s3_dest_alias=${!s3_dest_alias:-}" )
 		opts+=( "--s3_dest=${!s3_dest:-}" )
 		opts+=( "--s3_remote_dest=${!s3_remote_dest:-}" )
 		opts+=( "--s3_dest_rel=${!s3_dest_rel:-}" )
+		opts+=( "--s3_bucket_path=${!s3_bucket_path:-}" )
+		opts+=( "--s3_older_than_days=${!s3_older_than_days:-}" )
 		opts+=( "--s3_file=${!s3_file:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
@@ -589,13 +610,18 @@ case "$command" in
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
+		opts+=( "--s3_alias=${arg_s3_alias:-}" )
 		opts+=( "--s3_cmd=${arg_s3_cmd:-}" )
+		opts+=( "--s3_src_alias=${arg_s3_src_alias:-}" )
 		opts+=( "--s3_src=${arg_s3_src:-}" )
 		opts+=( "--s3_remote_src=${arg_s3_remote_src:-}" )
 		opts+=( "--s3_src_rel=${arg_s3_src_rel:-}" )
+		opts+=( "--s3_dest_alias=${arg_s3_dest_alias:-}" )
 		opts+=( "--s3_dest=${arg_s3_dest:-}" )
 		opts+=( "--s3_remote_dest=${arg_s3_remote_dest:-}" )
 		opts+=( "--s3_dest_rel=${arg_s3_dest_rel:-}" )
+		opts+=( "--s3_bucket_path=${arg_s3_bucket_path:-}" )
+		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
 		opts+=( "--s3_file=${arg_s3_file:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
@@ -606,6 +632,8 @@ case "$command" in
 		cli="${prefix}_cli"
 		cli_cmd="${prefix}_cli_cmd"
 		service="${prefix}_service"
+		tmp_dir="${prefix}_tmp_dir"
+		alias="${prefix}_alias"
 		endpoint="${prefix}_endpoint"
 		bucket_name="${prefix}_bucket_name"
 		bucket_path="${prefix}_bucket_path"
@@ -616,6 +644,10 @@ case "$command" in
 
 		bucket_src_name_value="${!bucket_name:-}"
 		bucket_src_path_value="${!bucket_path:-}"
+
+		if [ -z "${!alias:-}" ]; then
+			alias="${arg_s3_alias:-}"
+		fi
 
 		if [ -n "${!bucket_src_name:-}" ]; then
 			bucket_src_name_value="${!bucket_src_name:-}"
@@ -638,7 +670,12 @@ case "$command" in
 			fi
 
 			s3_src=$(echo "$s3_src" | tr -s /)
-			s3_src="s3://$s3_src"
+
+			if [ -n "${arg_s3_src_alias:-}" ]; then
+				s3_src="$arg_s3_src_alias/$s3_src"
+			else
+				s3_src="s3://$s3_src"
+			fi
 		fi
 
 		bucket_dest_name_value="${!bucket_name:-}"
@@ -665,7 +702,24 @@ case "$command" in
 			fi
 
 			s3_dest=$(echo "$s3_dest" | tr -s /)
-			s3_dest="s3://$s3_dest"
+
+			if [ -n "${arg_s3_dest_alias:-}" ]; then
+				s3_dest="$arg_s3_dest_alias/$s3_dest"
+			else
+				s3_dest="s3://$s3_dest"
+			fi
+		fi
+
+		bucket_base_prefix="s3://$bucket_name"
+
+		if [ -n "${s3_alias:-}" ]; then
+			bucket_base_prefix="${s3_alias:-}/$bucket_name"
+		fi
+
+		s3_path="$bucket_base_prefix"
+
+		if [ -n "${arg_s3_bucket_path:-}" ]; then
+			s3_path="$bucket_base_prefix/$arg_s3_bucket_path"
 		fi
 
 		s3_opts=()
@@ -680,11 +734,15 @@ case "$command" in
 		opts+=( "--subtask_cmd=$command" )
 
 		opts+=( "--s3_service=${!service:-}" )
+		opts+=( "--s3_tmp_dir=${!tmp_dir:-}" )
+		opts+=( "--s3_alias=${!alias:-}" )
 		opts+=( "--s3_endpoint=${!endpoint:-}" )
 		opts+=( "--s3_bucket_name=${!bucket_name:-}" )
 
 		opts+=( "--s3_src=${s3_src:-}" )
 		opts+=( "--s3_dest=${s3_dest:-}" )
+		opts+=( "--s3_path=${s3_path:-}" )
+		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
 		opts+=( "--s3_opts" )
 		opts+=( ${s3_opts[@]+"${s3_opts[@]}"} )
 
@@ -977,6 +1035,10 @@ case "$command" in
 		"$pod_script_compress_file" "$run_cmd" \
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
+		;;
+	"run:s3:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_s3_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"util:info"|"util:info:"*|"run:util:info:"*| \
 	"util:warn"|"util:error")

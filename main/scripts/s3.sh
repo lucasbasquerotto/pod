@@ -116,6 +116,40 @@ function s3cmd_run {
 }
 
 case "$command" in
+	"s3:rclone:exec:"*)
+		cmd="${command#s3:rclone:exec:}"
+		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
+		;;
+	"s3:rclone:run:"*)
+		cmd="${command#s3:rclone:run:}"
+		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
+		;;
+	"s3:main:rclone:create_bucket")
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone mkdir "$arg_s3_alias:$arg_s3_bucket_name"
+		;;
+	"s3:main:rclone:rb")
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone purge "$arg_s3_alias:$arg_s3_bucket_name"
+		;;
+	"s3:main:rclone:delete_old")
+		if [ -z "${arg_s3_older_than_days:-}" ]; then
+			error "$command: parameter s3_older_than_days undefined"
+		fi
+
+		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
+			rclone delete --min-age "${arg_s3_older_than_days:-}d" --force "$arg_s3_path"
+		;;
+	"s3:main:rclone:cp")
+		"$pod_script_env_file" "s3:main:rclone:copy" ${args[@]+"${args[@]}"}
+		;;
+	"s3:main:rclone:copy"|"s3:main:rclone:sync")
+		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
+		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
+
+		cmd="${command#s3:main:rclone:}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone \
+			copy --verbose "$s3_src" "$s3_dest" \
+			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		;;
 	"s3:mc:exec:"*)
 		cmd="${command#s3:mc:exec:}"
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
@@ -125,7 +159,7 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:create_bucket")
-		"$pod_script_env_file" "s3:main:mc:mb" ${args[@]+"${args[@]}"}
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" mc mb --ignore-existing "$arg_s3_bucket_name"
 		;;
 	"s3:main:mc:is_empty_bucket")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/bash <<-SHELL
@@ -162,7 +196,7 @@ case "$command" in
 			error "$command: parameter s3_older_than_days undefined"
 		fi
 
-		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
 			mc rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path"
 		;;
 	"s3:main:mc:sync")
@@ -173,8 +207,8 @@ case "$command" in
 		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias/$arg_s3_dest" || s3_dest="$arg_s3_dest"
 
 		cmd="${command#s3:main:mc:}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3 \
-			"$cmd" "$s3_src" "$s3_dest" \
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
+			mc "$cmd" "$s3_src" "$s3_dest" \
 			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
 	"s3:awscli:exec:"*)
@@ -185,17 +219,27 @@ case "$command" in
 		cmd="${command#s3:awscli:run:}"
 		"$pod_script_env_file" "run:s3:main:awscli:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
+	"s3:main:awscli:create_bucket")
+		empty_bucket="$("$pod_script_env_file" "s3:main:awscli:is_empty_bucket" ${args[@]+"${args[@]}"})"
+
+		if [ "$empty_bucket" = "true" ]; then
+			echo "$title - create bucket"
+			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3api create_bucket \
+				--endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" \
+				${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		fi
+		;;
 	"s3:main:awscli:is_empty_bucket")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/bash <<-SHELL
 			set -eou pipefail
 
-			mkdir -p "$arg_s3_tmp_dir"
+			mkdir -p "$arg_s3_tmp_dir" >&2
 
-			error_filename="error.\$(date '+%s').\$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
-			error_log_file="$arg_s3_tmp_dir/\$error_filename"
+			error_filename="error.\$(date '+%s').\$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log" >&2
+			error_log_file="$arg_s3_tmp_dir/\$error_filename" >&2
 
 			if ! aws s3 --endpoint="$arg_s3_endpoint" ls "s3://$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
-				if grep -q 'NoSuchBucket' "\$error_log_file"; then
+				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
 					echo "true"
 					exit 0
 				fi
@@ -203,10 +247,6 @@ case "$command" in
 
 			echo "false"
 		SHELL
-		;;
-	"s3:main:awscli:create_bucket")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3api create_bucket \
-			--endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
 	"s3:main:awscli:rb")
 		empty_bucket="$("$pod_script_env_file" "run:s3:main:awscli:is_empty_bucket" ${args[@]+"${args[@]}"})"

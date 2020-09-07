@@ -1,9 +1,0 @@
-[mysqld]
-bind_address                    = {{ params.bind_address                  }}
-default_authentication_plugin   = {{ params.default_authentication_plugin }}
-collation_server                = {{ params.collation_server              }}
-character_set_server            = {{ params.character_set_server          }}
-slow_query_log                  = {{ params.slow_query_log                }}
-slow_query_log_file             = {{ params.slow_query_log_file           }}
-long_query_time                 = {{ params.long_query_time               }}
-log_error                       = {{ params.log_error                     }}

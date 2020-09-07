@@ -29,7 +29,7 @@ if [ ! -f "$arg_pod_vars_dir/vars.sh" ]; then
 fi
 
 start="$(date '+%F %T')"
-msg="[run-env] [${1:-}] start ($arg_pod_vars_dir)"
+msg="[base-run] [${1:-}] start ($arg_pod_vars_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
 # shellcheck disable=SC1090
@@ -102,7 +102,7 @@ if [ -n "${data_dir:-}" ]; then
 
 	{
 		echo "#######################################################################"
-		echo "$(date '+%F %T') [run-env] [${1:-}] [log] start ($arg_pod_vars_dir)"
+		echo "$(date '+%F %T') [base-run] [${1:-}] [log] start ($arg_pod_vars_dir)"
 
 		"${pod_script_env_file}" "${@}" && status=$? || status=$?
 
@@ -110,7 +110,7 @@ if [ -n "${data_dir:-}" ]; then
 			error "${1:-} - exited with status $status"
 		fi
 
-		echo "$(date '+%F %T') [run-env] [${1:-}] [log] end ($arg_pod_vars_dir)"
+		echo "$(date '+%F %T') [base-run] [${1:-}] [log] end ($arg_pod_vars_dir)"
 		echo "#######################################################################"
 	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
 
@@ -134,7 +134,7 @@ else
 fi
 
 end="$(date '+%F %T')"
-msg="[run-env] [${1:-}] end ($arg_pod_vars_dir)"
+msg="[base-run] [${1:-}] end ($arg_pod_vars_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
-echo -e "${GREEN}[run-env] [${1:-}] summary - $start to $end ${NC}"
+echo -e "${GREEN}[base-run] [${1:-}] summary - $start to $end ${NC}"

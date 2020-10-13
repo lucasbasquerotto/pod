@@ -17,12 +17,12 @@
 {% set var_run_custom = params.run_custom | default({}) %}
 
 {% set ns_run = namespace(vars={
-  'var_main__env': var_run_custom.var_main__env | default(var_params.env_name),
-  'var_main__ctx': var_run_custom.var_main__ctx | default(var_params.ctx_name),
-  'var_main__pod_name': var_run_custom.var_main__pod_name | default(var_params.pod.name),
-  'var_main__pod_inner_dir': var_run_custom.var_main__pod_inner_dir | default(var_pod_inner_dir),
-  'var_main__pod_env_dir': var_run_custom.var_main__pod_env_dir | default(var_params.pod.env_dir),
-  'var_main__env_path_map': var_run_custom.var_main__env_path_map | default(var_params.pod.env_path_map)
+  'var_main__env': var_run_custom.var_main__env | default(var_params.env_name | default('')),
+  'var_main__ctx': var_run_custom.var_main__ctx | default(var_params.ctx_name | default('')),
+  'var_main__pod_name': var_run_custom.var_main__pod_name | default(var_params.pod.name | default('')),
+  'var_main__pod_inner_dir': var_run_custom.var_main__pod_inner_dir | default(var_pod_inner_dir | default('')),
+  'var_main__pod_env_dir': var_run_custom.var_main__pod_env_dir | default(var_params.pod.env_dir | default('')),
+  'var_main__env_path_map': var_run_custom.var_main__env_path_map | default(var_params.pod.env_path_map | default({}))
 }) %}
 
 {% if (var_run | dict2items | list | length) > 0 %}

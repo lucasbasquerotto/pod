@@ -1,6 +1,6 @@
 {% set var_params = params.env_params | default({}) %}
 {% set var_pod_custom_dir = params.pod_custom_dir | default('') %}
-{% set var_dest_dir_base = var_params.dirs.dest_dir_base %}
+{% set var_dest_dir_base = var_params.pod.base_dir_rel %}
 
 {% set var_pod_inner_dir = ((var_pod_custom_dir | default('')) != '')
   | ternary(var_pod_custom_dir, var_dest_dir_base) %}
@@ -87,12 +87,5 @@ templates:
   dest: "vars.sh"
   mode: '{{ var_local | ternary(0666, 0640) }}'
   params: {{ ns_run.vars | to_json }}
-
-files:
-
-- src: "{{ var_dest_dir_base }}/vars.sh"
-  root: true
-  dest: "vars.sh"
-  mode: '{{ var_local | ternary(0666, 0640) }}'
 
 {% endif %}

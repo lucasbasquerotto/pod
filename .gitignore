@@ -3,6 +3,7 @@
 /env-*/
 /custom/
 /custom-*/
+/custom-*
 /repo/
 /repo-*/
 /docker-compose.yml

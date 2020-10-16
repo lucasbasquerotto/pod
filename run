@@ -3,4 +3,138 @@ set -eou pipefail
 
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-"${pod_layer_dir}/base-run" "$pod_layer_dir" "${@}"
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+function error {
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	>&2 echo -e "${RED}${msg}${NC}"
+	exit 2
+}
+
+if [ -z "$pod_layer_dir" ]; then
+	msg="[error] enter the vars directory parameter"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
+	exit 1
+fi
+
+shift;
+
+if [ ! -f "$pod_layer_dir/vars.sh" ]; then
+	msg="[error] there is no such file $pod_layer_dir/vars.sh"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
+	exit 1
+fi
+
+start="$(date '+%F %T')"
+msg="[base-run] [${1:-}] start ($pod_layer_dir)"
+echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
+
+# shellcheck disable=SC1090
+. "${pod_layer_dir}/vars.sh"
+
+if [ -z "${var_main__pod_inner_dir:-}" ]; then
+	msg="[error] var_main__pod_inner_dir not specified in the $pod_layer_dir/vars.sh file"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
+	exit 1
+fi
+
+if [ -z "${var_run__general__script_dir:-}" ]; then
+	msg="[error] var_run__general__script_dir not specified in the $pod_layer_dir/vars.sh file"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
+	exit 1
+fi
+
+if [ -z "${var_run__general__script_env_file:-}" ]; then
+	msg="[error] var_run__general__script_env_file not specified in the $pod_layer_dir/vars.sh file"
+	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
+	exit 1
+fi
+
+pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
+pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pod_full_dir="$pod_layer_dir/$var_main__pod_inner_dir"
+pod_tmp_dir="$pod_layer_dir/tmp/$var_main__pod_inner_dir"
+pod_script_env_file="$pod_layer_dir/$var_run__general__script_dir/$var_run__general__script_env_file"
+
+if [ ! -d "$pod_full_dir" ]; then
+	mkdir -p "$pod_full_dir"
+fi
+
+if [ ! -d "$pod_tmp_dir" ]; then
+	mkdir -p "$pod_tmp_dir"
+fi
+
+data_dir="${var_data_dir:-}"
+
+if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
+	data_dir="$pod_layer_dir/$var_data_dir_rel"
+fi
+
+export "POD_VARS_DIR=$pod_vars_full_dir"
+export "POD_LAYER_DIR=$pod_layer_dir"
+export "POD_FULL_DIR=$pod_full_dir"
+export "POD_TMP_DIR=$pod_tmp_dir"
+export "POD_DATA_DIR=$data_dir"
+export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
+
+if [ -n "${data_dir:-}" ]; then
+	script_log_file_dir="$data_dir/log/main"
+
+	if [ ! -d "$script_log_file_dir" ]; then
+		[ -d "$data_dir" ] && [ "$(stat -c "%U" "$data_dir")" != "$(whoami)" ] \
+			&& mkdircmd=( sudo mkdir ) \
+			|| mkdircmd=( mkdir )
+
+		"${mkdircmd[@]}" -p "${script_log_file_dir}"
+	fi
+
+	[ -d "$script_log_file_dir" ] && [ "$(stat -c "%U" "$script_log_file_dir")" != "$(whoami)" ] \
+		&& cmdprefix=( sudo ) \
+		|| cmdprefix=()
+
+	teecmd=( ${cmdprefix+"${cmdprefix[@]}"} )
+	teecmd+=( tee )
+
+	log_file_tmp="${script_log_file_dir}/tmp.run.$(date '+%Y-%m-%d.%H-%M-%S').$$.log"
+
+	{
+		echo "#######################################################################"
+		echo "$(date '+%F %T') [base-run] [${1:-}] [log] start ($pod_layer_dir)"
+
+		"${pod_script_env_file}" "${@}" && status=$? || status=$?
+
+		if [[ $status -ne 0 ]]; then
+			error "${1:-} - exited with status $status"
+		fi
+
+		echo "$(date '+%F %T') [base-run] [${1:-}] [log] end ($pod_layer_dir)"
+		echo "#######################################################################"
+	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
+
+	log_file="${script_log_file_dir}/run.$(date '+%Y-%m-%d').log"
+
+	catcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
+	catcmd+=( cat )
+
+	"${catcmd[@]}" "$log_file_tmp" | "${teecmd[@]}" --append "$log_file" >/dev/null
+
+	rmcmd=( ${cmdprefix+"${cmdprefix[@]}"} )
+	rmcmd+=( rm )
+
+	"${rmcmd[@]}" -f "$log_file_tmp"
+else
+	"${pod_script_env_file}" "${@}" && status=$? || status=$?
+
+	if [[ $status -ne 0 ]]; then
+		error "${1:-} - exited with status $status"
+	fi
+fi
+
+end="$(date '+%F %T')"
+msg="[base-run] [${1:-}] end ($pod_layer_dir)"
+echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
+
+echo -e "${GREEN}[base-run] [${1:-}] summary - $start to $end ${NC}"

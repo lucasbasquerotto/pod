@@ -20,8 +20,6 @@ if [ -z "$pod_layer_dir" ]; then
 	exit 1
 fi
 
-shift;
-
 if [ ! -f "$pod_layer_dir/vars.sh" ]; then
 	msg="[error] there is no such file $pod_layer_dir/vars.sh"
 	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"

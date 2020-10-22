@@ -79,6 +79,20 @@ case "$command" in
 	"action:exec:rotate")
 		"$pod_script_env_file" run logrotator
 		;;
+	"build")
+		if [ -n "${var_run__general__main_base_dir:-}" ] \
+				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
+				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then
+
+			src_dir="$(readlink -f "$pod_layer_dir/$var_run__general__main_base_dir")"
+			dest_dir="$pod_layer_dir/$var_run__general__main_base_dir_container"
+
+			mkdir -p "$dest_dir"
+			rsync --recursive --delete --exclude "/" "$src_dir/" "$dest_dir/"
+		fi
+
+		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
+		;;
 	"prepare")
 		data_dir="/var/main/data"
 
@@ -210,20 +224,6 @@ case "$command" in
 				fi
 			fi
 		SHELL
-		;;
-	"build")
-		if [ -n "${var_run__general__main_base_dir:-}" ] \
-				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
-				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then
-
-			src_dir="$(readlink -f "$pod_layer_dir/$var_run__general__main_base_dir")"
-			dest_dir="$pod_layer_dir/$var_run__general__main_base_dir_container"
-
-			mkdir -p "$dest_dir"
-			rsync --recursive --delete --exclude "/" "$src_dir/" "$dest_dir/"
-		fi
-
-		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"setup")
 		if [ "${var_custom__local:-}" = "true" ]; then

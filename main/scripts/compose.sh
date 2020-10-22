@@ -2,7 +2,7 @@
 set -eou pipefail
 
 # shellcheck disable=SC2153
-pod_full_dir="$POD_FULL_DIR"
+pod_layer_dir="$POD_LAYER_DIR"
 # shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
@@ -68,11 +68,11 @@ shift $((OPTIND-1))
 
 case "$command" in
 	"up")
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 		sudo docker-compose -f "$main_file" up -d --remove-orphans "${@}"
 		;;
 	"exec"|"exec-nontty")
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 
 		service="${1:-}"
 
@@ -123,11 +123,11 @@ case "$command" in
 			opts+=( "--entrypoint" "${arg_entrypoint:-}" )
 		fi
 
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 		sudo docker-compose -f "${file:-$run_file}" run --rm --name="${service}_run" ${opts[@]+"${opts[@]}"} "$service" "${@}"
 		;;
 	"rm")
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 
 		if [[ "${#args[@]}" -ne 0 ]]; then
 			sudo docker-compose -f "${file:-$main_file}" rm --stop -v --force "${@}"
@@ -140,7 +140,7 @@ case "$command" in
 		fi
 		;;
 	"build"|"stop")
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 
 		if [[ "${#args[@]}" -ne 0 ]]; then
 			sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
@@ -153,7 +153,7 @@ case "$command" in
 		fi
 		;;
 	"restart"|"logs"|"ps")
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 		sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
 		;;
 	"sh"|"ash"|"zsh"|"bash")
@@ -165,7 +165,7 @@ case "$command" in
 
 		shift;
 
-		cd "$pod_full_dir/"
+		cd "$pod_layer_dir/"
 		sudo docker-compose -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
 		;;
 	"system:df")

@@ -1,9 +1,5 @@
 {% set var_params = params.env_params | default({}) %}
-{% set var_pod_custom_dir = params.pod_custom_dir | default('') %}
 {% set var_dest_dir_base = var_params.pod.base_dir_rel %}
-
-{% set var_pod_inner_dir = ((var_pod_custom_dir | default('')) != '')
-  | ternary(var_pod_custom_dir, var_dest_dir_base) %}
 
 {% set var_main_params = var_params.main | default({}) %}
 {% set var_local = var_main_params.local | default(false) | bool %}
@@ -20,8 +16,7 @@
   'var_main__project': var_run_custom.var_main__project | default(var_params.env_project | default('')),
   'var_main__env': var_run_custom.var_main__env | default(var_params.env_name | default('')),
   'var_main__ctx': var_run_custom.var_main__ctx | default(var_params.ctx_name | default('')),
-  'var_main__pod_name': var_run_custom.var_main__pod_name | default(var_params.pod.name | default('')),
-  'var_main__pod_inner_dir': var_run_custom.var_main__pod_inner_dir | default(var_pod_inner_dir | default(''))
+  'var_main__pod_name': var_run_custom.var_main__pod_name | default(var_params.pod.name | default(''))
 }) %}
 
 {% if (var_run | dict2items | list | length) > 0 %}

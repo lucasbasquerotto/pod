@@ -33,12 +33,6 @@ echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 # shellcheck disable=SC1090
 . "${pod_layer_dir}/vars.sh"
 
-if [ -z "${var_main__pod_inner_dir:-}" ]; then
-	msg="[error] var_main__pod_inner_dir not specified in the $pod_layer_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
-	exit 1
-fi
-
 if [ -z "${var_run__general__script_dir:-}" ]; then
 	msg="[error] var_run__general__script_dir not specified in the $pod_layer_dir/vars.sh file"
 	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
@@ -53,13 +47,8 @@ fi
 
 pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-pod_full_dir="$pod_layer_dir/$var_main__pod_inner_dir"
-pod_tmp_dir="$pod_layer_dir/tmp/$var_main__pod_inner_dir"
+pod_tmp_dir="$pod_layer_dir/tmp"
 pod_script_env_file="$pod_layer_dir/$var_run__general__script_dir/$var_run__general__script_env_file"
-
-if [ ! -d "$pod_full_dir" ]; then
-	mkdir -p "$pod_full_dir"
-fi
 
 if [ ! -d "$pod_tmp_dir" ]; then
 	mkdir -p "$pod_tmp_dir"
@@ -73,7 +62,6 @@ fi
 
 export "POD_VARS_DIR=$pod_vars_full_dir"
 export "POD_LAYER_DIR=$pod_layer_dir"
-export "POD_FULL_DIR=$pod_full_dir"
 export "POD_TMP_DIR=$pod_tmp_dir"
 export "POD_DATA_DIR=$data_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"

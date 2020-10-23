@@ -13,7 +13,6 @@
 {% set var_run_custom = params.run_custom | default({}) %}
 
 {% set ns_run = namespace(vars={
-  'var_main__project': var_run_custom.var_main__project | default(var_params.env_project | default('')),
   'var_main__env': var_run_custom.var_main__env | default(var_params.env_name | default('')),
   'var_main__ctx': var_run_custom.var_main__ctx | default(var_params.ctx_name | default('')),
   'var_main__pod_name': var_run_custom.var_main__pod_name | default(var_params.pod.name | default(''))

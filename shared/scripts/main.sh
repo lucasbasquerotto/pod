@@ -49,12 +49,13 @@ done
 shift $((OPTIND-1))
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
-nginx_run_file="$pod_layer_dir/$var_shared__script_dir/services/nginx.sh"
-nextcloud_run_file="$pod_layer_dir/$var_shared__script_dir/services/nextcloud.sh"
-mysql_run_file="$pod_layer_dir/$var_shared__script_dir/services/mysql.sh"
-redis_run_file="$pod_layer_dir/$var_shared__script_dir/services/redis.sh"
-log_run_file="$pod_layer_dir/$var_shared__script_dir/log.sh"
-test_run_file="$pod_layer_dir/$var_shared__script_dir/test.sh"
+nginx_run_file="$pod_layer_dir/shared/scripts/services/nginx.sh"
+nextcloud_run_file="$pod_layer_dir/shared/scripts/services/nextcloud.sh"
+mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
+redis_run_file="$pod_layer_dir/shared/scripts/services/redis.sh"
+log_run_file="$pod_layer_dir/shared/scripts/log.sh"
+test_run_file="$pod_layer_dir/shared/scripts/test.sh"
+ssl_local_run_file="$pod_layer_dir/shared/scripts/lib/ssl.local.sh"
 
 case "$command" in
 	"upgrade")
@@ -63,6 +64,10 @@ case "$command" in
 		fi
 
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
+		;;
+	"local:ssl")
+		host="${1:-}"
+		"$ssl_local_run_file" "$pod_layer_dir/tmp/ssl" "$host"
 		;;
 	"backup"|"local.backup")
 		"$pod_script_env_file" "shared:bg:$command"

@@ -28,7 +28,7 @@ fi
 
 shift;
 
-lib_dir="$pod_layer_dir/$var_shared__script_dir/lib"
+lib_dir="$pod_layer_dir/shared/scripts/lib"
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do

@@ -69,6 +69,27 @@ case "$command" in
 		host="${1:-}"
 		"$ssl_local_run_file" "$pod_layer_dir/tmp/ssl" "$host"
 		;;
+	"local:clear")
+		mapfile -t list < <(sudo docker ps -aq)
+		[[ ${#list[@]} -gt 0 ]] && sudo docker container rm -f "${list[@]}"
+		sudo docker container prune -f
+		sudo docker network prune -f
+		sudo rm -rf "$pod_data_dir"
+		;;
+	"local:clear-all")
+		mapfile -t list < <(sudo docker ps -aq)
+		[[ ${#list[@]} -gt 0 ]] && sudo docker container rm -f "${list[@]}"
+		sudo docker container prune -f
+		sudo docker network prune -f
+		sudo docker volume prune -f
+
+		data_dir_aux="$pod_data_dir/../../../../data"
+
+		if [ -d "$data_dir_aux" ]; then
+			data_dir="$(cd "$data_dir_aux" && pwd)"
+			sudo rm -rf "$data_dir/"*
+		fi
+		;;
 	"backup"|"local.backup")
 		"$pod_script_env_file" "shared:bg:$command"
 		;;

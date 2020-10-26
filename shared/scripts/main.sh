@@ -506,7 +506,15 @@ case "$command" in
 			${args[@]+"${args[@]}"}
 		;;
 	"service:varnish:clear")
-		"$pod_script_env_file" exec-nontty varnish varnishadm ban req.url '~' '.'
+		cmd=( "$pod_script_env_file" exec-nontty varnish varnishadm ban req.url '~' '.' )
+		error="$({ "${cmd[@]}"; } 2>&1)" && status=0 || status=1
+
+		# Sometimes varnish returns an autentication error when the container was just created
+		if [ "$status" = 1 ] && [[ "$error" == *'Authentication required'* ]]; then
+			echo "waiting for the varnish service to be ready..."
+			sleep 30
+			"${cmd[@]}"
+		fi
 		;;
 	"delete:old")
 		info "$command - clear old files"

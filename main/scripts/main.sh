@@ -455,6 +455,7 @@ case "$command" in
 		param_snapshot_type="${prefix}_snapshot_type"
 		param_repository_name="${prefix}_repository_name"
 		param_snapshot_name="${prefix}_snapshot_name"
+		param_db_args="${prefix}_db_args"
 		param_db_index_prefix="${prefix}_db_index_prefix"
 
 		opts=()
@@ -534,7 +535,7 @@ case "$command" in
 		param_db_pass="${prefix}_db_pass"
 		param_authentication_database="${prefix}_authentication_database"
 		param_db_connect_wait_secs="${prefix}_db_connect_wait_secs"
-		param_db_file_name="${prefix}_db_file_name"
+		param_connection_sleep="${prefix}_connection_sleep"
 
 		opts=()
 
@@ -808,6 +809,7 @@ case "$command" in
 		param_rsa_key_size="${prefix}_rsa_key_size"
 		param_email="${prefix}_email"
 		param_dev="${prefix}_dev"
+		param_dev_renew_days="${prefix}_dev_renew_days"
 		param_staging="${prefix}_staging"
 		param_force="${prefix}_force"
 

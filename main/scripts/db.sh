@@ -297,6 +297,8 @@ case "$command" in
 				--password="$arg_db_pass" \
 				--nsInclude="$arg_db_name.*" \
 				--authenticationDatabase="$arg_authentication_database" \
+				--objcheck \
+				--stopOnError \
 				"$arg_db_task_base_dir"
 		SHELL
 		;;

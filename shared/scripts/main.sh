@@ -259,6 +259,19 @@ case "$command" in
 		fi
 		;;
 	"action:exec:setup")
+		if [ "${var_custom__use_theia:-}" = "true" ]; then
+			"$pod_script_env_file" up theia
+		fi
+
+		if [ "${var_custom__use_certbot:-}" = "true" ]; then
+			info "$command - run certbot if needed..."
+			"$pod_script_env_file" "main:task:certbot"
+		fi
+
+		if [ "${var_custom__use_nginx:-}" = "true" ]; then
+			"$pod_script_env_file" up nginx
+		fi
+
 		if [ "${var_custom__use_mongo:-}" = "true" ]; then
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo
@@ -311,11 +324,6 @@ case "$command" in
 
 			info "$command - clear varnish cache..."
 			"$pod_script_env_file" "service:varnish:clear"
-		fi
-
-		if [ "${var_custom__use_certbot:-}" = "true" ]; then
-			info "$command - start certbot if needed..."
-			"$pod_script_env_file" "main:task:certbot"
 		fi
 
 		if [ "${var_custom__use_nextcloud:-}" = "true" ]; then

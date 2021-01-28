@@ -3,6 +3,6 @@ ARG VERSION
 
 FROM $IMAGE:$VERSION
 
-COPY /shared/containers/nginx/include/ /etc/nginx/include/
-COPY /env/nginx/conf/.htpasswd /etc/nginx/conf/
-COPY /env/nginx/nginx.conf /etc/nginx/
+COPY --chown=nginx:nginx /shared/containers/nginx/include/ /etc/nginx/include/
+COPY --chown=nginx:nginx /env/nginx/conf/.htpasswd /etc/nginx/conf/
+COPY --chown=nginx:nginx /env/nginx/nginx.conf /etc/nginx/

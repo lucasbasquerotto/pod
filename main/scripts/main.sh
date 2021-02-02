@@ -659,6 +659,8 @@ case "$command" in
 		param_bucket_dest_name="${prefix}_bucket_dest_name"
 		param_bucket_dest_path="${prefix}_bucket_dest_path"
 
+		alias="${!param_alias:-}"
+
 		if [ -z "${!param_alias:-}" ]; then
 			alias="${arg_s3_alias:-}"
 		fi
@@ -725,16 +727,16 @@ case "$command" in
 			s3_dest=$(echo "$s3_dest" | tr -s /)
 		fi
 
-		bucket_base_prefix="s3://$bucket_name"
+		bucket_base_prefix="s3://$param_bucket_name"
 
 		if [ -n "${s3_alias:-}" ]; then
-			bucket_base_prefix="$s3_alias/$bucket_name"
+			bucket_base_prefix="$s3_alias/$param_bucket_name"
 		fi
 
 		s3_path="$bucket_base_prefix"
 
-		if [ -n "${arg_s3_bucket_path:-}" ]; then
-			s3_path="$bucket_base_prefix/$arg_s3_bucket_path"
+		if [ -n "${param_bucket_path:-}" ]; then
+			s3_path="$bucket_base_prefix/$param_bucket_path"
 		fi
 
 		s3_opts=()

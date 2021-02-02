@@ -190,18 +190,18 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:awscli:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:awscli:create_bucket")
-		empty_bucket="$("$pod_script_env_file" "s3:main:awscli:is_empty_bucket" ${args[@]+"${args[@]}"})"
+		empty_bucket="$("$pod_script_env_file" "run:s3:main:awscli:is_empty_bucket" ${args[@]+"${args[@]}"})"
 
 		if [ "$empty_bucket" = "true" ]; then
 			echo "$title - create bucket"
 			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws --profile="$arg_s3_alias" \
-				s3api create_bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" \
+				s3api create-bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" \
 				${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		fi
 		;;
 	"s3:main:awscli:is_empty_bucket")
 		# aws s3api head-bucket --bucket my-bucket
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/bash <<-SHELL
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
 			set -eou pipefail
 
 			mkdir -p "$arg_s3_tmp_dir" >&2
@@ -214,6 +214,9 @@ case "$command" in
 				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
 					echo "true"
 					exit 0
+				else
+					cat "\$error_log_file" >&2
+					exit 2
 				fi
 			fi
 
@@ -227,7 +230,9 @@ case "$command" in
 			>&2 echo "skipping (no_bucket)"
 		elif [ "$empty_bucket" = "false" ]; then
 			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3 rb \
-				--endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" \
+				--profile="$arg_s3_alias" \
+				--endpoint="$arg_s3_endpoint" \
+				--force "s3://$arg_s3_bucket_name" \
 				${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		else
 			error "$title: invalid result (empty_bucket should be true or false): $empty_bucket"

@@ -54,6 +54,7 @@ while getopts ':-:' OPT; do
 		no_colors ) arg_no_colors="${OPTARG:-}";;
 
 		value ) arg_value="${OPTARG:-}";;
+		path ) arg_path="${OPTARG:-}";;
 		date_format ) arg_date_format="${OPTARG:-}";;
 		time_format ) arg_time_format="${OPTARG:-}";;
 		datetime_format ) arg_datetime_format="${OPTARG:-}";;
@@ -114,6 +115,20 @@ case "$command" in
 	"util:urlencode")
 		# shellcheck disable=SC2016
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" jq -nr --arg v "${arg_value:-}" '$v|@uri'
+		;;
+	"util:file:type")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			if [ -f "${arg_path:-}" ]; then
+				echo "file"
+			elif [ -d "${arg_path:-}" ]; then
+				echo "dir"
+			else
+				echo "path (${arg_path:-}) not found" >&2
+				exit 2
+			fi
+		SHELL
 		;;
 	"util:replace_placeholders")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"

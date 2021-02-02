@@ -75,30 +75,18 @@ case "$command" in
 			error "$title: backup_src_dir and backup_src_file parameters are both specified"
 		fi
 
-		empty_bucket="$("$pod_script_env_file" "$arg_subtask_cmd_s3" \
+		backup_src="${arg_backup_src_file:-$arg_backup_src_dir}"
+
+		src_type="$("$pod_script_env_file" "run:util:file:type" \
 			--task_name="$arg_task_name" \
-			--subtask_cmd="$arg_subtask_cmd" \
-			--s3_cmd=is_empty_bucket)"
+			--subtask_cmd="$command" \
+			--toolbox_service="$arg_toolbox_service" \
+			--path="$backup_src" \
+			|| error "$title: file:type (dest_file)"
+		)"
 
-		if [ "$empty_bucket" = "true" ]; then
-			info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
-			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket \
-				--task_name="$arg_task_name" \
-				--subtask_cmd="$arg_subtask_cmd"
-		fi
-
-		if [ -n "${arg_backup_src_file:-}" ]; then
-			backup_src_dir="$(dirname "$arg_backup_src_file")"
-			backup_bucket_file="$(basename "$arg_backup_src_file")"
-
-			msg="sync local backup file with bucket"
-			bucket_path="${arg_backup_bucket_sync_dir:-}/${backup_bucket_file}"
-			info "$title - $msg - $arg_backup_src_file to $bucket_path (s3)"
-		else
-			backup_src_dir="$arg_backup_src_dir"
-			backup_bucket_file=""
-			msg="sync local backup directory with bucket"
-			info "$title - $msg - $arg_backup_src_dir to /${arg_backup_bucket_sync_dir:-} (s3)"
+		if [ -z "$src_type" ]; then
+			error "$title: backup source ($backup_src) not found"
 		fi
 
 		backup_bucket_sync_dir="${arg_backup_bucket_sync_dir:-}"
@@ -113,6 +101,42 @@ case "$command" in
 				--time_format="${arg_backup_time_format:-}" \
 				--datetime_format="${arg_backup_datetime_format:-}")" \
 				|| error "$command: replace_placeholders (backup_bucket_sync_dir)"
+		fi
+
+		if [ -n "${arg_backup_src_file:-}" ]; then
+			if [ "$src_type" != 'file' ]; then
+				msg="backup source (${arg_backup_src_file:-}) is not a file"
+				error "$title: $msg"
+			fi
+
+			backup_src_dir="$(dirname "$arg_backup_src_file")"
+			backup_bucket_file="$(basename "$arg_backup_src_file")"
+
+			msg="sync local backup file with bucket"
+			bucket_path="${backup_bucket_sync_dir:-}/${backup_bucket_file}"
+			info "$title - $msg - $arg_backup_src_file to $bucket_path (s3)"
+		else
+			if [ "$arg_backup_src_dir" != 'dir' ]; then
+				msg="backup source (${arg_backup_src_file:-}) is not a directory"
+				error "$title: $msg"
+			fi
+
+			backup_src_dir="$arg_backup_src_dir"
+			backup_bucket_file=""
+			msg="sync local backup directory with bucket"
+			info "$title - $msg - $arg_backup_src_dir to /${backup_bucket_sync_dir:-} (s3)"
+		fi
+
+		empty_bucket="$("$pod_script_env_file" "$arg_subtask_cmd_s3" \
+			--task_name="$arg_task_name" \
+			--subtask_cmd="$arg_subtask_cmd" \
+			--s3_cmd=is_empty_bucket)"
+
+		if [ "$empty_bucket" = "true" ]; then
+			info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
+			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$arg_subtask_cmd"
 		fi
 
 		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \

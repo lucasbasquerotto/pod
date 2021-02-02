@@ -73,6 +73,8 @@ while getopts ':-:' OPT; do
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
+		src_dir ) arg_src_dir="${OPTARG:-}";;
+		src_file ) arg_src_file="${OPTARG:-}";;
 		s3_alias ) arg_s3_alias="${OPTARG:-}";;
 		s3_cmd ) arg_s3_cmd="${OPTARG:-}";;
 		s3_src_alias ) arg_s3_src_alias="${OPTARG:-}";;
@@ -351,13 +353,12 @@ case "$command" in
 		param_subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		param_subtask_cmd_local="${prefix}_subtask_cmd_local"
 		param_subtask_cmd_new="${prefix}_subtask_cmd_new"
+		param_backup_src="${prefix}_backup_src"
 		param_backup_date_format="${prefix}_backup_date_format"
 		param_backup_time_format="${prefix}_backup_time_format"
 		param_backup_datetime_format="${prefix}_backup_datetime_format"
 		param_is_compressed_file="${prefix}_is_compressed_file"
 		param_compress_type="${prefix}_compress_type"
-		param_compress_src_file="${prefix}_compress_src_file"
-		param_compress_src_dir="${prefix}_compress_src_dir"
 		param_compress_dest_file="${prefix}_compress_dest_file"
 		param_compress_dest_dir="${prefix}_compress_dest_dir"
 		param_compress_pass="${prefix}_compress_pass"
@@ -382,13 +383,12 @@ case "$command" in
 		opts+=( "--subtask_cmd_remote=${!param_subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!param_subtask_cmd_local:-}" )
 		opts+=( "--subtask_cmd_new=${!param_subtask_cmd_new:-}" )
+		opts+=( "--backup_src=${!param_backup_src:-}" )
 		opts+=( "--backup_date_format=${!param_backup_date_format:-}" )
 		opts+=( "--backup_time_format=${!param_backup_time_format:-}" )
 		opts+=( "--backup_datetime_format=${!param_backup_datetime_format:-}" )
 		opts+=( "--is_compressed_file=${!param_is_compressed_file:-}" )
 		opts+=( "--compress_type=${!param_compress_type:-}" )
-		opts+=( "--compress_src_file=${!param_compress_src_file:-}" )
-		opts+=( "--compress_src_dir=${!param_compress_src_dir:-}" )
 		opts+=( "--compress_dest_file=${!param_compress_dest_file:-}" )
 		opts+=( "--compress_dest_dir=${!param_compress_dest_dir:-}" )
 		opts+=( "--compress_pass=${!param_compress_pass:-}" )
@@ -414,6 +414,12 @@ case "$command" in
 		param_backup_time_format="${prefix}_backup_time_format"
 		param_backup_datetime_format="${prefix}_backup_datetime_format"
 
+		backup_src_dir="${!param_backup_src_dir:-}"
+		backup_src_file="${!param_backup_src_file:-}"
+
+		backup_src_dir="${arg_src_dir:-$backup_src_dir}"
+		backup_src_file="${arg_src_file:-$backup_src_file}"
+
 		opts=()
 
 		opts+=( "--task_name=$arg_task_name" )
@@ -421,8 +427,8 @@ case "$command" in
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 
 		opts+=( "--subtask_cmd_s3=${!param_subtask_cmd_s3:-}" )
-		opts+=( "--backup_src_dir=${!param_backup_src_dir:-}" )
-		opts+=( "--backup_src_file=${!param_backup_src_file:-}" )
+		opts+=( "--backup_src_dir=$backup_src_dir" )
+		opts+=( "--backup_src_file=$backup_src_file" )
 		opts+=( "--backup_bucket_sync_dir=${!param_backup_bucket_sync_dir:-}" )
 		opts+=( "--backup_date_format=${!param_backup_date_format:-}" )
 		opts+=( "--backup_time_format=${!param_backup_time_format:-}" )

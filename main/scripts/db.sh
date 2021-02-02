@@ -181,11 +181,13 @@ case "$command" in
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
 			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
 		SHELL
+
+		echo "$backup_file"
 		;;
 	"db:main:connect:mongo")
 		"$pod_script_env_file" "run:db:main:collections:count:mongo" ${args[@]+"${args[@]}"} > /dev/null
@@ -283,6 +285,8 @@ case "$command" in
 				--authenticationDatabase="$arg_authentication_database" \
 				--out="$arg_db_task_base_dir"
 		SHELL
+
+		echo ""
 		;;
 	"db:restore:mongo:dir")
 		"$pod_script_env_file" up "$arg_db_service"
@@ -376,6 +380,8 @@ case "$command" in
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget --content-on-error -qO- --method=PUT "$url"
+
+		echo "$arg_db_task_base_dir/$arg_db_name"
 		;;
 	"db:restore:verify:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
@@ -451,6 +457,8 @@ case "$command" in
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget --content-on-error -qO- --method=POST "$url"
+
+		echo ""
 		;;
 	*)
 		error "$title: Invalid command"

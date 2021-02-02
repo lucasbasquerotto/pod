@@ -49,6 +49,7 @@ while getopts ':-:' OPT; do
 		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
 
 		backup_task_name ) arg_backup_task_name="${OPTARG:-}";;
+		backup_src ) arg_backup_src="${OPTARG:-}";;
 		backup_is_delete_old ) arg_backup_is_delete_old="${OPTARG:-}";;
 		backup_date_format ) arg_backup_date_format="${OPTARG:-}";;
 		backup_time_format ) arg_backup_time_format="${OPTARG:-}";;
@@ -57,7 +58,6 @@ while getopts ':-:' OPT; do
 		is_compressed_file ) arg_is_compressed_file="${OPTARG:-}";;
 		compress_type ) arg_compress_type="${OPTARG:-}";;
 		compress_src_file ) arg_compress_src_file="${OPTARG:-}";;
-		compress_src_dir ) arg_compress_src_dir="${OPTARG:-}";;
 		compress_dest_file ) arg_compress_dest_file="${OPTARG:-}";;
 		compress_dest_dir ) arg_compress_dest_dir="${OPTARG:-}";;
 		compress_flat ) arg_compress_dest_dir="${OPTARG:-}";;
@@ -85,18 +85,18 @@ title="$command"
 
 case "$command" in
 	"upgrade")
-		info "$command - start"
+		info "$title - start"
 
-		info "$command - build..."
+		info "$title - build..."
 		"$pod_script_env_file" build
 
-		info "$command - prepare..."
+		info "$title - prepare..."
 		"$pod_script_env_file" prepare
 
-		info "$command - setup..."
+		info "$title - setup..."
 		"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
 
-		info "$command - ended"
+		info "$title - ended"
 		;;
 	"setup")
 		if [ -n "${arg_setup_task_name:-}" ]; then
@@ -104,10 +104,10 @@ case "$command" in
 		fi
 
 		if [ "$command" = "setup" ]; then
-			info "$command - migrate..."
+			info "$title - migrate..."
 			"$pod_script_env_file" migrate
 
-			info "$command - up..."
+			info "$title - up..."
 			"$pod_script_env_file" up
 		fi
 		;;
@@ -165,7 +165,7 @@ case "$command" in
 		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
 		info "$title - $msg"
 
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			function error {
@@ -201,7 +201,7 @@ case "$command" in
 		status=0
 
 		if [ -z "${arg_backup_task_name:-}" ] ; then
-			info "$command: no backup task defined..."
+			info "$title: no backup task defined..."
 		else
 			"$pod_script_env_file" "main:task:$arg_backup_task_name" \
 				--local="${arg_local:-}" && status=$? || status=$?
@@ -223,29 +223,57 @@ case "$command" in
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		else
-			info "$command - start the needed services"
+			info "$title - start the needed services"
 			"$pod_script_env_file" up "$arg_toolbox_service"
+
+			backup_src="${arg_backup_src:-}"
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - backup - local"
-				"$pod_script_env_file" "${arg_subtask_cmd_local}" \
+				backup_src_local="$("$pod_script_env_file" "${arg_subtask_cmd_local}" \
 					--task_name="$arg_task_name" \
-					--subtask_cmd="$arg_subtask_cmd"
+					--subtask_cmd="$arg_subtask_cmd")"
+
+				if [ -z "${backup_src:-}" ] && [ -z "${backup_src_local:-}" ]; then
+					msg="backup_src (${backup_src:-})"
+					msg="$msg and the result of subtask_cmd_local ($backup_src_local)"
+					msg="$msg are both empty"
+					error "$title: $msg"
+				elif [ -n "${backup_src:-}" ] && [ -n "${backup_src_local:-}" ]; then
+					msg="backup_src (${backup_src:-})"
+					msg="$msg and the result of subtask_cmd_local ($backup_src_local)"
+					msg="$msg are both specified"
+					error "$title: $msg"
+				elif [ -z "${backup_src:-}" ]; then
+					backup_src="${backup_src_local:-}"
+				fi
+			elif [ -z "${backup_src:-}" ]; then
+				msg="backup_src (${backup_src:-})"
+				msg="$msg and subtask_cmd_local ($arg_subtask_cmd_local)"
+				msg="$msg are both empty"
+				error "$title: $msg"
+			fi
+
+			src_type="$("$pod_script_env_file" "run:util:file:type" \
+				--task_name="$arg_task_name" \
+				--subtask_cmd="$command" \
+				--toolbox_service="$arg_toolbox_service" \
+				--path="$backup_src" \
+				|| error "$title: file:type (dest_file)"
+			)"
+
+			next_src_file=''
+			next_src_dir=''
+
+			if [ "${src_type:-}" = 'file' ]; then
+				next_src_file="${backup_src:-}"
+			elif [ "${src_type:-}" = 'dir' ]; then
+				next_src_dir="${backup_src:-}"
+			else
+				error "$title: invalid backup source type (${src_type:-})"
 			fi
 
 			if [ "${arg_is_compressed_file:-}" = "true" ]; then
-				if [ -z "${arg_compress_src_file:-}" ] && [ -z "${arg_compress_src_dir:-}" ]; then
-					error "$title: compress_src_file and compress_src_dir parameters are both empty"
-				elif [ -n "${arg_compress_src_file:-}" ] && [ -n "${arg_compress_src_dir:-}" ]; then
-					error "$title: compress_src_file and compress_src_dir parameters are both specified"
-				fi
-
-				if [ -n "${arg_compress_src_file:-}" ]; then
-					task_kind="file"
-				else
-					task_kind="dir"
-				fi
-
 				dest_file="$("$pod_script_env_file" "run:util:replace_placeholders" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
@@ -254,19 +282,22 @@ case "$command" in
 					--date_format="${arg_backup_date_format:-}" \
 					--time_format="${arg_backup_time_format:-}" \
 					--datetime_format="${arg_backup_datetime_format:-}")" \
-					|| error "$command: replace_placeholders (dest_file)"
+					|| error "$title: replace_placeholders (dest_file)"
 
 				info "$title - backup - compress"
 				"$pod_script_env_file" "run:compress:$arg_compress_type" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
-					--task_kind="$task_kind" \
-					--src_file="${arg_compress_src_file:-}" \
-					--src_dir="${arg_compress_src_dir:-}" \
+					--task_kind="$src_type" \
+					--src_file="${next_src_file:-}" \
+					--src_dir="${next_src_dir:-}" \
 					--dest_file="$dest_file" \
 					--flat="${arg_compress_flat:-}" \
 					--compress_pass="${arg_compress_pass:-}"
+
+				next_src_file="${dest_file:-}"
+				next_src_dir=''
 			fi
 
 			move_dest="${arg_move_dest:-}"
@@ -280,7 +311,7 @@ case "$command" in
 					--date_format="${arg_backup_date_format:-}" \
 					--time_format="${arg_backup_time_format:-}" \
 					--datetime_format="${arg_backup_datetime_format:-}")" \
-					|| error "$command: replace_placeholders (move_dest)"
+					|| error "$title: replace_placeholders (move_dest)"
 			fi
 
 			"$pod_script_same_file" "inner:general_actions" \
@@ -293,7 +324,9 @@ case "$command" in
 					info "$title - backup - remote"
 					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
 						--task_name="$arg_task_name" \
-						--subtask_cmd="$arg_subtask_cmd"
+						--subtask_cmd="$arg_subtask_cmd" \
+						--src_dir="${next_src_dir:-}" \
+						--src_file="${next_src_file:-}"
 				fi
 			fi
 
@@ -318,7 +351,7 @@ case "$command" in
 		fi
 
 		if [ -n "${arg_verify_file_to_skip:-}" ]; then
-			skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 				test -f "$arg_verify_file_to_skip" && echo "true" || echo "false"
 			SHELL
 			)"
@@ -344,7 +377,7 @@ case "$command" in
 		echo "$skip"
 		;;
 	"inner:general_actions")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			if [ -n "${arg_move_src:-}" ]; then
@@ -390,7 +423,7 @@ case "$command" in
 		SHELL
 		;;
 	"inner:final_actions")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			if [ -n "${arg_file_to_clear:-}" ]; then
@@ -408,6 +441,6 @@ case "$command" in
 		SHELL
 		;;
 	*)
-		error "$command: invalid command"
+		error "$title: invalid command"
 		;;
 esac

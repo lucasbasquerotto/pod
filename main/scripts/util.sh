@@ -119,43 +119,43 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			inner_srt="${arg_value:-}"
+			inner_str="${arg_value:-}"
 
 			regex_random="\[\[[ ]*random[ ]*\]\]"
 
-			if [[ "\$inner_srt" =~ \$regex_random ]]; then
+			if [[ "\$inner_str" =~ \$regex_random ]]; then
 				random=\$((RANDOM * RANDOM))
-				shopt -s extglob && inner_srt="\${inner_srt//[[][[]*( )random*( )[]][]]/\$random}"
+				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )random*( )[]][]]/\$random}"
 			fi
 
 			regex_date="\[\[[ ]*date[ ]*\]\]"
 			backup_date_format="${arg_date_format:-}"
 
-			if [[ \$inner_srt =~ \$regex_date ]]; then
+			if [[ \$inner_str =~ \$regex_date ]]; then
 				default_date_format='%Y%m%d'
 				date="\$(date "+\${backup_date_format:-\$default_date_format}")"
-				shopt -s extglob && inner_srt="\${inner_srt//[[][[]*( )date*( )[]][]]/\$date}"
+				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )date*( )[]][]]/\$date}"
 			fi
 
 			regex_time="\[\[[ ]*time[ ]*\]\]"
 			backup_time_format="${arg_time_format:-}"
 
-			if [[ \$inner_srt =~ \$regex_time ]]; then
+			if [[ \$inner_str =~ \$regex_time ]]; then
 				default_time_format='%H%M%S'
 				time="\$(date "+\${backup_time_format:-\$default_time_format}")"
-				shopt -s extglob && inner_srt="\${inner_srt//[[][[]*( )time*( )[]][]]/\$time}"
+				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )time*( )[]][]]/\$time}"
 			fi
 
 			regex_datetime="\[\[[ ]*datetime[ ]*\]\]"
 			backup_datetime_format="${arg_datetime_format:-}"
 
-			if [[ \$inner_srt =~ \$regex_datetime ]]; then
+			if [[ \$inner_str =~ \$regex_datetime ]]; then
 				default_datetime_format='%Y%m%d.%H%M%S'
 				datetime="\$(date "+\${backup_datetime_format:-\$default_datetime_format}")"
-				shopt -s extglob && inner_srt="\${inner_srt//[[][[]*( )datetime*( )[]][]]/\$datetime}"
+				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )datetime*( )[]][]]/\$datetime}"
 			fi
 
-			echo "\$inner_srt"
+			echo "\$inner_str"
 		SHELL
 		;;
 	*)

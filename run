@@ -8,47 +8,49 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+command="${1:-}"
+
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${1:-}"
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${command}: ${*}"
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }
 
 if [ -z "$pod_layer_dir" ]; then
-	msg="[error] enter the vars directory parameter"
-	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
-	exit 1
+	error "[error] enter the vars directory parameter"
 fi
 
 if [ ! -f "$pod_layer_dir/vars.sh" ]; then
-	msg="[error] there is no such file $pod_layer_dir/vars.sh"
-	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
-	exit 1
+	error "[error] there is no such file $pod_layer_dir/vars.sh"
 fi
 
 start="$(date '+%F %T')"
-msg="[base-run] [${1:-}] start ($pod_layer_dir)"
+msg="[base-run] [$command] start ($pod_layer_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
 # shellcheck disable=SC1090
 . "${pod_layer_dir}/vars.sh"
 
+if [ -n "${var_load_script_path:-}" ]; then
+	# shellcheck disable=SC1090
+	. "${pod_layer_dir}/${var_load_script_path}"
+fi
+
 if [ -z "${var_run__general__script_dir:-}" ]; then
-	msg="[error] var_run__general__script_dir not specified in the $pod_layer_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
-	exit 1
+	error "[error] var_run__general__script_dir not specified in the $pod_layer_dir/vars.sh file"
 fi
 
 if [ -z "${var_run__general__script_env_file:-}" ]; then
-	msg="[error] var_run__general__script_env_file not specified in the $pod_layer_dir/vars.sh file"
-	echo -e "${RED}$(date '+%F %T') ${msg}${NC}"
-	exit 1
+	error "[error] var_run__general__script_env_file not specified in the $pod_layer_dir/vars.sh file"
 fi
 
 pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
-pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pod_tmp_dir="$pod_layer_dir/tmp"
-pod_script_env_file="$pod_layer_dir/$var_run__general__script_dir/$var_run__general__script_env_file"
+pod_script_env_file="${pod_layer_dir}/${var_run__general__script_dir}/${var_run__general__script_env_file}"
+
+if [ ! -f "${pod_script_env_file}" ]; then
+	error "[error] file ${pod_script_env_file} not found"
+fi
 
 if [ ! -d "$pod_tmp_dir" ]; then
 	mkdir -p "$pod_tmp_dir"
@@ -66,7 +68,9 @@ export "POD_TMP_DIR=$pod_tmp_dir"
 export "POD_DATA_DIR=$data_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
 
-if [ -n "${data_dir:-}" ]; then
+if [ "$command" = '__skip__' ]; then
+	echo "skipping..."
+elif [ -n "${data_dir:-}" ]; then
 	script_log_file_dir="$data_dir/log/main"
 
 	if [ ! -d "$script_log_file_dir" ]; then
@@ -88,15 +92,15 @@ if [ -n "${data_dir:-}" ]; then
 
 	{
 		echo "#######################################################################"
-		echo "$(date '+%F %T') [base-run] [${1:-}] [log] start ($pod_layer_dir)"
+		echo "$(date '+%F %T') [base-run] [$command] [log] start ($pod_layer_dir)"
 
-		"${pod_script_env_file}" "${@}" && status=$? || status=$?
+		bash "${pod_script_env_file}" "${@}" && status=$? || status=$?
 
 		if [[ $status -ne 0 ]]; then
-			error "${1:-} - exited with status $status"
+			error "$command - exited with status $status"
 		fi
 
-		echo "$(date '+%F %T') [base-run] [${1:-}] [log] end ($pod_layer_dir)"
+		echo "$(date '+%F %T') [base-run] [$command] [log] end ($pod_layer_dir)"
 		echo "#######################################################################"
 	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
 
@@ -112,15 +116,15 @@ if [ -n "${data_dir:-}" ]; then
 
 	"${rmcmd[@]}" -f "$log_file_tmp"
 else
-	"${pod_script_env_file}" "${@}" && status=$? || status=$?
+	bash "${pod_script_env_file}" "${@}" && status=$? || status=$?
 
 	if [[ $status -ne 0 ]]; then
-		error "${1:-} - exited with status $status"
+		error "$command - exited with status $status"
 	fi
 fi
 
 end="$(date '+%F %T')"
-msg="[base-run] [${1:-}] end ($pod_layer_dir)"
+msg="[base-run] [$command] end ($pod_layer_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
-echo -e "${GREEN}[base-run] [${1:-}] summary - $start to $end ${NC}"
+echo -e "${GREEN}[base-run] [$command] summary - $start to $end ${NC}"

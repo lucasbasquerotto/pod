@@ -39,6 +39,18 @@ if [ -z "${var_load_migrate__db_user:-}" ]; then
 	tmp_errors+=("[shared] var_load_migrate__db_user is not defined")
 fi
 
+if [ -n "${var_load_db_service:-}" ]; then
+	tmp_errors+=("[shared] var_load_migrate__db_user is not defined")
+fi
+
+case "${var_load_db_service:-}" in
+	''|'mysql')
+		;;
+	*)
+		tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
+		;;
+esac
+
 tmp_is_web=''
 
 if [ "${var_load_main__pod_type:-}" = 'app' ] || [ "${var_load_main__pod_type:-}" = 'web' ]; then
@@ -68,16 +80,9 @@ fi
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 
-if [ -n "${var_load_db_service:-}" ]; then
-	export var_run__migrate__db_service="$var_load_db_service"
-	export var_run__migrate__db_name="${var_load_migrate__db_name:-}"
-	export var_run__migrate__db_user="${var_load_migrate__db_user:-}"
-	export var_run__migrate__db_pass="${var_load_migrate__db_pass:-}"
-	export var_run__migrate__db_connect_wait_secs="${var_load_migrate__db_connect_wait_secs:-300}"
-fi
-
 export var_custom__pod_type="${var_load_main__pod_type:-}"
 export var_custom__local="${var_load_main__local:-}"
+
 export var_custom__use_main_network="${var_load_use__main_network:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_nginx="${var_load_use__nginx:-}"
@@ -85,8 +90,15 @@ export var_custom__use_mysql="${var_load_use__mysql:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 export var_custom__use_theia="${var_load__use_theia:-}"
 export var_custom__use_varnish="${var_load_use__varnish:-}"
-export var_custom__use_custom_ssl="${var_load_use__custom_ssl:-}"
 export var_custom__use_certbot="${var_load_use__certbot:-}"
+
+if [ -n "${var_load_db_service:-}" ]; then
+	export var_run__migrate__db_service="$var_load_db_service"
+	export var_run__migrate__db_name="${var_load__db_main__db_name:-}"
+	export var_run__migrate__db_user="${var_load__db_main__db_user:-}"
+	export var_run__migrate__db_pass="${var_load__db_main__db_pass:-}"
+	export var_run__migrate__db_connect_wait_secs="${var_load__db_main__db_connect_wait_secs:-300}"
+fi
 
 # Group Tasks
 
@@ -129,6 +141,10 @@ fi
 if [ "$tmp_is_web" = 'true' ]; then
 	if [ "${var_load_enable__uploads_setup:-}" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ]; then
 		tmp_group_setup="$tmp_group_setup,uploads_setup"
+	fi
+
+	if [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
+		tmp_group_setup="$tmp_group_setup,db_setup_new"
 	fi
 fi
 
@@ -288,6 +304,10 @@ fi
 
 if [ "$tmp_is_db" = 'true' ]; then
 	if [ "${var_load_enable__db_setup:-}" = 'true' ]; then
+		if [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
+			tmp_errors+=("[shared] var_load_enable__db_setup and var_load_enable__db_setup_new are both true (choose only one)")
+		fi
+
 		if [ -z "${var_load_db_service:-}" ]; then
 			tmp_errors+=("[shared] var_load_db_service is not defined (db_setup)")
 		fi

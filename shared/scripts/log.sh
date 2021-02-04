@@ -237,7 +237,7 @@ case "$command" in
 		esac
 
 		if [ "${var_custom__use_fluentd:-}" != "true" ]; then
-			error "$command: fluentd must be used"
+			error "$command: fluentd must be used to verify nginx logs"
 		fi
 		;;
 	"shared:log:nginx:hour_path_prefix")

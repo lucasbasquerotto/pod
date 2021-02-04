@@ -315,10 +315,6 @@ if [ "$tmp_is_db" = 'true' ]; then
 			export var_task__db_setup__setup_remote__restore_s3_sync="${var_load__db_setup__restore_s3_sync:-}"
 
 			if [ "${var_load__db_setup__restore_s3_sync:-}" = 'true' ]; then
-				if [ -z "${var_load__db_setup__restore_bucket_path_dir:-}" ]; then
-					errors+=("var_load__db_setup__restore_bucket_path_dir is not defined")
-				fi
-
 				export var_task__db_setup__setup_remote__restore_bucket_path_dir="${var_load__db_setup__restore_bucket_path_dir:-}"
 
 				if [ "${var_task__db_setup__setup_task__is_compressed_file:-}" = 'true' ]; then
@@ -369,10 +365,6 @@ if [ "${var_load__enable_logs_backup:-}" = 'true' ]; then
 fi
 
 if [ "${var_load__enable_logs_setup:-}" = 'true' ]; then
-	if [ -z "${var_load__logs_setup__restore_bucket_path_dir:-}" ]; then
-		errors+=("var_load__logs_setup__restore_bucket_path_dir is not defined")
-	fi
-
     tmp_dest_dir='/var/log/main'
 	tmp_default_file_to_skip='/tmp/main/setup/logs.skip'
 	tmp_file_to_skip="${var_load__logs_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
@@ -457,10 +449,6 @@ if [ "${var_load__enable_sync_backup:-}" = 'true' ]; then
 fi
 
 if [ "${var_load__enable_sync_setup:-}" = 'true' ]; then
-	if [ -z "${var_load__sync_setup__restore_bucket_path_dir:-}" ]; then
-		errors+=("var_load__sync_setup__restore_bucket_path_dir is not defined")
-	fi
-
     tmp_dest_dir='/var/sync/main'
 	tmp_default_file_to_skip='/tmp/main/setup/sync.skip'
 	tmp_file_to_skip="${var_load__sync_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"

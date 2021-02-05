@@ -585,11 +585,6 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ];
 		tmp_uploads_dest_dir_base="/var/main/data/${var_load_name:-}"
 		tmp_uploads_dest_dir="$tmp_uploads_dest_dir_base/$tmp_dest_dirname"
 		tmp_uploads_tmp_base_dir="/tmp/main/tmp/${var_load_name:-}"
-		tmp_intermediate_step='false'
-
-		if [ "${tmp_is_compressed_file:-}" = 'true' ] && [ "${tmp_compressed_inner_dir:-}" != "${tmp_dest_dirname:-}" ]; then
-			tmp_intermediate_step='true'
-		fi
 
 		tmp_default_file_to_skip='/tmp/main/setup/uploads.skip'
 		tmp_file_to_skip="${var_load__uploads_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
@@ -602,28 +597,34 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ];
 		export var_task__uploads_setup__task__type='setup'
 		export var_task__uploads_setup__setup_task__subtask_cmd_remote='setup:remote:default'
 		export var_task__uploads_setup__setup_task__verify_file_to_skip="$tmp_file_to_skip"
+		export var_task__uploads_setup__setup_task__recursive_dir="${tmp_uploads_dest_dir:-}"
 		export var_task__uploads_setup__setup_task__is_compressed_file="${tmp_is_compressed_file:-}"
 
 		if [ "${tmp_is_compressed_file:-}" = 'true' ]; then
+			if [ -z "${tmp_compressed_inner_dir:-}" ]; then
+				tmp_compress_dest_dir="$tmp_uploads_dest_dir"
+			elif [ "${tmp_compressed_inner_dir:-}" = "${tmp_dest_dirname:-}" ]; then
+				tmp_compress_dest_dir="$tmp_uploads_dest_dir_base"
+			else
+				tmp_compress_dest_dir="$tmp_uploads_tmp_base_dir"
+				tmp_uploads_tmp_dir="${tmp_uploads_tmp_base_dir}/${tmp_compressed_inner_dir}"
+
+				export var_task__uploads_setup__setup_task__recursive_dir="${tmp_uploads_tmp_dir:-}"
+				export var_task__uploads_setup__setup_task__move_src="${tmp_uploads_tmp_dir:-}"
+				export var_task__uploads_setup__setup_task__move_dest="${tmp_uploads_dest_dir:-}"
+				export var_task__uploads_setup__setup_task__file_to_clear=""
+				export var_task__uploads_setup__setup_task__dir_to_clear="${tmp_uploads_tmp_dir:-}"
+			fi
+
 			export var_task__uploads_setup__setup_task__compress_type="$tmp_compress_type"
 			export var_task__uploads_setup__setup_task__compress_src_file="$tmp_compressed_file_path"
-			export var_task__uploads_setup__setup_task__compress_dest_dir="$tmp_uploads_tmp_base_dir"
+			export var_task__uploads_setup__setup_task__compress_dest_dir="$tmp_compress_dest_dir"
 			export var_task__uploads_setup__setup_task__compress_pass="${var_load__uploads_setup__compress_pass:-}"
 		fi
 
 		export var_task__uploads_setup__setup_task__recursive_mode="${var_load__uploads_setup__recursive_mode:-}"
 		export var_task__uploads_setup__setup_task__recursive_mode_dir="${var_load__uploads_setup__recursive_mode_dir:-}"
 		export var_task__uploads_setup__setup_task__recursive_mode_file="${var_load__uploads_setup__recursive_mode_file:-}"
-
-		if [ "${tmp_intermediate_step:-}" = 'true' ]; then
-			tmp_uploads_tmp_dir="${tmp_uploads_tmp_base_dir}/${tmp_compressed_inner_dir}"
-
-			export var_task__uploads_setup__setup_task__recursive_dir="${tmp_uploads_tmp_dir:-}"
-			export var_task__uploads_setup__setup_task__move_src="${tmp_uploads_tmp_dir:-}"
-			export var_task__uploads_setup__setup_task__move_dest="${tmp_uploads_dest_dir:-}"
-			export var_task__uploads_setup__setup_task__file_to_clear=""
-			export var_task__uploads_setup__setup_task__dir_to_clear="${tmp_uploads_tmp_dir:-}"
-		fi
 
 		export var_task__uploads_setup__setup_verify__setup_dest_dir_to_verify="$tmp_uploads_dest_dir"
 		export var_task__uploads_setup__setup_remote__restore_use_s3="$tmp_restore_use_s3"

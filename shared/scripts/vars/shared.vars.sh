@@ -86,7 +86,10 @@ export var_custom__use_mongo="${var_load_use__mongo:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 export var_custom__use_theia="${var_load__use_theia:-}"
 export var_custom__use_varnish="${var_load_use__varnish:-}"
-export var_custom__use_certbot="${var_load_use__certbot:-}"
+
+if [ "${var_load_use__ssl:-}" = 'true' ]; then
+	export var_custom__use_certbot="${var_load_use__certbot:-}"
+fi
 
 if [ -n "${var_load_db_service:-}" ]; then
 	export var_run__migrate__db_service="$var_load_db_service"
@@ -236,7 +239,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 			tmp_errors+=("[shared] var_load_db_service is not defined (db_backup)")
 		fi
 
-		tmp_db_src_dir="/tmp/main/tmp/${var_load_db_service:-}/backup"
+		tmp_db_src_base_dir="/tmp/main/tmp/${var_load_db_service:-}/backup"
 		tmp_db_tmp_dir="/tmp/main/tmp/backup/${var_load_db_service:-}"
 
 		export var_task__db_backup__task__type='backup'
@@ -248,12 +251,9 @@ if [ "$tmp_is_db" = 'true' ]; then
 			tmp_default_compressed_file_name="${var_load__db_main__db_name:-}.[[ datetime ]].[[ random ]].zip"
 			tmp_db_compressed_file_name="${var_load__db_backup__db_compressed_file_name:-$tmp_default_compressed_file_name}"
 
-			export var_task__db_backup__backup_task__recursive_dir="$tmp_db_src_dir"
 			export var_task__db_backup__backup_task__compress_type="${var_load__db_backup__db_compress_type:-zip}"
 			export var_task__db_backup__backup_task__compress_dest_file="$tmp_db_tmp_dir/$tmp_db_compressed_file_name"
 			export var_task__db_backup__backup_task__compress_pass="${var_load__db_backup__compress_pass:-}"
-		else
-			export var_task__db_backup__backup_task__recursive_dir="$tmp_db_tmp_dir"
 		fi
 
 		export var_task__db_backup__backup_task__backup_date_format="${var_load__db_backup__backup_date_format:-}"
@@ -267,8 +267,15 @@ if [ "$tmp_is_db" = 'true' ]; then
 
 		export var_task__db_backup__backup_local__task_name="db_main"
 		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:${var_db_backup_type:-}"
-		export var_task__db_backup__backup_local__db_file_name="${var_load__db_main__db_name:-}.sql"
-		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_dir"
+		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_base_dir"
+
+		if [ "${var_load_db_backup_is_file:-}" = 'true' ]; then
+			tmp_default_extension='.sql'
+			tmp_default_extension="${var_load_db_backup_extension:-$tmp_default_extension}"
+			tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
+
+			export var_task__db_backup__backup_local__db_file_name="${tmp_default_file_name:-}"
+		fi
 
 		tmp_default_sync_dir='[[ date ]]'
 
@@ -311,7 +318,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		fi
 
 		tmp_db_dest_dir="/tmp/main/tmp/${var_load_db_service:-}/restore"
-		tmp_db_tmp_dir="/tmp/main/tmp/restore/${var_load_db_service:-}/"
+		tmp_db_tmp_dir="/tmp/main/tmp/restore/${var_load_db_service:-}"
 
 		tmp_default_file_to_skip='/tmp/main/setup/db.skip'
 		tmp_file_to_skip="${var_load__db_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
@@ -320,9 +327,12 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_db_compressed_file_name="${var_load__db_setup__db_compressed_file_name:-$tmp_default_compressed_file_name}"
 		tmp_compressed_file_path="$tmp_db_tmp_dir/$tmp_db_compressed_file_name"
 
-		tmp_default_file_name="${var_load__db_main__db_name:-}.sql"
+		tmp_default_extension='.sql'
+		tmp_default_extension="${var_load_db_backup_extension:-$tmp_default_extension}"
+		tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
 		tmp_db_file_name="${var_load__db_setup__db_file_name:-$tmp_default_file_name}"
 		tmp_file_path="$tmp_db_dest_dir/$tmp_db_file_name"
+		tmp_is_file="${var_load_db_restore_is_file:-$var_load_db_backup_is_file}"
 
 		export var_task__db_setup__task__type='setup'
 		export var_task__db_setup__setup_task__verify_file_to_skip="$tmp_file_to_skip"
@@ -352,7 +362,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 
 		if [ "${var_load__db_setup__restore_use_s3:-}" != 'true' ]; then
 			if [ -z "${var_load__db_setup__restore_remote_file:-}" ]; then
-				tmp_errors+=("[shared] var_load__db_setup__restore_remote_file is not defined")
+				tmp_errors+=("[shared] var_load__db_setup__restore_remote_file is not defined (restore with use_s3=false)")
 			fi
 
 			export var_task__db_setup__setup_remote__restore_remote_file="${var_load__db_setup__restore_remote_file:-}"
@@ -360,6 +370,11 @@ if [ "$tmp_is_db" = 'true' ]; then
 			if [ "${var_task__db_setup__setup_task__is_compressed_file:-}" = 'true' ]; then
 				export var_task__db_setup__setup_remote__restore_dest_file="$tmp_compressed_file_path"
 			else
+				if [ "${tmp_is_file:-}" != 'true' ]; then
+					tmp_msg="restore_is_file not true (or undefined and backup_is_file not true)"
+					tmp_errors+=("[shared] [db_setup] non-s3 and non-compressed file with ")
+				fi
+
 				export var_task__db_setup__setup_remote__restore_dest_file="${tmp_file_path:-}"
 			fi
 		else
@@ -388,6 +403,11 @@ if [ "$tmp_is_db" = 'true' ]; then
 				if [ "${var_task__db_setup__setup_task__is_compressed_file:-}" = 'true' ]; then
 					export var_task__db_setup__setup_remote__restore_dest_file="${tmp_compressed_file_path:-}"
 				else
+					if [ "${tmp_is_file:-}" != 'true' ]; then
+						tmp_msg="restore_is_file not true (or undefined and backup_is_file not true)"
+						tmp_errors+=("[shared] [db_setup] s3 non-sync and non-compressed file with $tmp_msg")
+					fi
+
 					export var_task__db_setup__setup_remote__restore_dest_file="${tmp_file_path:-}"
 				fi
 			fi

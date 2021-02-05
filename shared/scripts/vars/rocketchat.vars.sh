@@ -5,6 +5,7 @@ tmp_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export var_load_name='rocketchat'
 export var_load_db_service='mongo'
+export var_db_restore_type='mongo:dir'
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2

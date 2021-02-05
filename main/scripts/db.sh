@@ -206,7 +206,7 @@ case "$command" in
 			set -eou pipefail
 
 			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
+				>&2 echo -e "\$(date '+%F %T') (inside) - \${*}"
 				exit 2
 			}
 

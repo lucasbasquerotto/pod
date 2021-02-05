@@ -33,7 +33,7 @@ fi
 
 if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
 	case "${var_load_db_service:-}" in
-		''|'mysql')
+		''|'mysql'|'mongo')
 			;;
 		*)
 			tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
@@ -301,6 +301,7 @@ if [ -n "${var_load_db_service:-}" ]; then
 	fi
 
 	export var_task__db_main__db_subtask__db_service="${var_load_db_service:-}"
+	export var_task__db_main__db_subtask__authentication_database="${var_load__db_main__authentication_database:-}"
 	export var_task__db_main__db_subtask__db_name="${var_load__db_main__db_name:-}"
 	export var_task__db_main__db_subtask__db_user="${var_load__db_main__db_user:-}"
 	export var_task__db_main__db_subtask__db_pass="${var_load__db_main__db_pass:-}"
@@ -332,7 +333,8 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
 		tmp_db_file_name="${var_load__db_setup__db_file_name:-$tmp_default_file_name}"
 		tmp_file_path="$tmp_db_dest_dir/$tmp_db_file_name"
-		tmp_is_file="${var_load_db_restore_is_file:-$var_load_db_backup_is_file}"
+		tmp_db_backup_is_file="${var_load_db_backup_is_file:-}"
+		tmp_is_file="${var_load_db_restore_is_file:-$tmp_db_backup_is_file}"
 
 		export var_task__db_setup__task__type='setup'
 		export var_task__db_setup__setup_task__verify_file_to_skip="$tmp_file_to_skip"

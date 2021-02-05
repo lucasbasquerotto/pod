@@ -3,8 +3,9 @@ set -eou pipefail
 
 tmp_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export var_load_name='mediawiki'
-export var_load_db_service='mysql'
+export var_load_name='efk'
+export var_load_db_service='elasticsearch'
+export var_load_allow_custom_db_service='false'
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2

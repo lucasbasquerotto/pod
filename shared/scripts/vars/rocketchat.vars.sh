@@ -3,8 +3,8 @@ set -eou pipefail
 
 tmp_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export var_load_name='mediawiki'
-export var_load_db_service='mysql'
+export var_load_name='rocketchat'
+export var_load_db_service='mongo'
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2
@@ -28,7 +28,7 @@ tmp_error_count_aux="$tmp_error_count"
 tmp_error_count=0
 
 # shellcheck disable=SC1090
-. "$tmp_dir/shared.sh"
+. "$tmp_dir/shared.vars.sh"
 
 tmp_shared_error_count="${tmp_error_count:-0}"
 

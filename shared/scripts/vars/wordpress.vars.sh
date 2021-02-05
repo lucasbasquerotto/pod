@@ -5,7 +5,8 @@ tmp_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export var_load_name='wordpress'
 export var_load_db_service='mysql'
-export var_load_db_setup_name=''
+export var_db_backup_type="file:${var_load_db_service:-}"
+export var_db_restore_type="file:${var_load_db_service:-}"
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2
@@ -49,8 +50,6 @@ fi
 
 if [ "$tmp_is_web" = 'true' ]; then
 	if [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
-		export var_load_db_setup_name='db_setup_new'
-
 		if [ "${var_load_enable__db_setup:-}" = 'true' ]; then
 			tmp_errors+=("var_load_enable__db_setup and var_load_enable__db_setup_new are both true (choose only one)")
 		fi
@@ -91,7 +90,7 @@ tmp_error_count_aux="$tmp_error_count"
 tmp_error_count=0
 
 # shellcheck disable=SC1090
-. "$tmp_dir/shared.sh"
+. "$tmp_dir/shared.vars.sh"
 
 tmp_shared_error_count="${tmp_error_count:-0}"
 

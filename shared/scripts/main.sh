@@ -281,10 +281,10 @@ case "$command" in
 					set -eou pipefail
 
 					for i in \$(seq 1 30); do
-						mongo mongo/"$var_shared__mongo__setup__db_name" \
+						mongo mongo/"$var_run__migrate__db_name" \
 							--authenticationDatabase admin \
-							--username "$var_shared__mongo__setup__user_name" \
-							--password "$var_shared__mongo__setup__user_pass" \
+							--username "$var_run__migrate__db_root_user" \
+							--password "${var_run__migrate__db_root_pass:-}" \
 							--eval "
 								rs.initiate({
 									_id: 'rs0',
@@ -302,8 +302,8 @@ case "$command" in
 					for i in \$(seq 1 30); do
 						mongo mongo/admin \
 							--authenticationDatabase admin \
-							--username "$var_shared__mongo__setup__user_name" \
-							--password "$var_shared__mongo__setup__user_pass" \
+							--username "$var_run__migrate__db_root_user" \
+							--password "${var_run__migrate__db_root_pass:-}" \
 							/tmp/main/init.js && s=\$? && break || s=\$?;
 						echo "Tried \$i times. Waiting 5 secs...";
 						sleep 5;

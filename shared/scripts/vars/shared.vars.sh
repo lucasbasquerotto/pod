@@ -31,13 +31,15 @@ if [ -z "${var_load_main__pod_type:-}" ]; then
 	tmp_errors+=("[shared] var_load_main__pod_type is not defined")
 fi
 
-case "${var_load_db_service:-}" in
-	''|'mysql')
-		;;
-	*)
-		tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
-		;;
-esac
+if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
+	case "${var_load_db_service:-}" in
+		''|'mysql')
+			;;
+		*)
+			tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
+			;;
+	esac
+fi
 
 tmp_is_web=''
 
@@ -49,6 +51,11 @@ tmp_is_db=''
 
 if [ "${var_load_main__pod_type:-}" = 'app' ] || [ "${var_load_main__pod_type:-}" = 'db' ]; then
 	tmp_is_db='true'
+fi
+
+if [ -n "${var_load_db_service:-}" ]; then
+	export var_db_backup_type="${var_db_backup_type:-$var_load_db_service}"
+	export var_db_restore_type="${var_db_restore_type:-$var_load_db_service}"
 fi
 
 export var_run__general__ctx_full_name="${var_load_general__ctx_full_name:-$var_load_name}"
@@ -75,6 +82,7 @@ export var_custom__use_main_network="${var_load_use__main_network:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_nginx="${var_load_use__nginx:-}"
 export var_custom__use_mysql="${var_load_use__mysql:-}"
+export var_custom__use_mongo="${var_load_use__mongo:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 export var_custom__use_theia="${var_load__use_theia:-}"
 export var_custom__use_varnish="${var_load_use__varnish:-}"
@@ -85,6 +93,8 @@ if [ -n "${var_load_db_service:-}" ]; then
 	export var_run__migrate__db_name="${var_load__db_main__db_name:-}"
 	export var_run__migrate__db_user="${var_load__db_main__db_user:-}"
 	export var_run__migrate__db_pass="${var_load__db_main__db_pass:-}"
+	export var_run__migrate__db_root_user="${var_load__db_main__db_root_user:-}"
+	export var_run__migrate__db_root_pass="${var_load__db_main__db_root_pass:-}"
 	export var_run__migrate__db_connect_wait_secs="${var_load__db_main__db_connect_wait_secs:-300}"
 fi
 
@@ -256,7 +266,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_backup__backup_task__dir_to_clear="${var_load__db_backup__dir_to_clear:-}"
 
 		export var_task__db_backup__backup_local__task_name="db_main"
-		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:file:${var_load_db_service:-}"
+		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:${var_db_backup_type:-}"
 		export var_task__db_backup__backup_local__db_file_name="${var_load__db_main__db_name:-}.sql"
 		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_dir"
 
@@ -384,7 +394,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		fi
 
 		export var_task__db_setup__setup_local__task_name='db_main'
-		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:file:${var_load_db_service:-}"
+		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:${var_db_restore_type:-}"
 		export var_task__db_setup__setup_local__db_task_base_dir="$tmp_db_dest_dir"
 		export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
 	fi
@@ -569,14 +579,17 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ];
 		tmp_restore_use_s3="${var_load__uploads_setup__restore_use_s3:-}"
 		tmp_restore_s3_sync="${var_load__uploads_setup__restore_s3_sync:-}"
 		tmp_is_compressed_file="${var_load__uploads_setup__is_compressed_file:-}"
-		tmp_uploads_s3_sync=''
+		tmp_compressed_inner_dir="${var_load__uploads_setup__restore_compressed_inner_dir:-}"
+		tmp_dest_dirname="${var_load__uploads_setup__dest_dirname:-uploads}"
 
-		if [ "$tmp_restore_use_s3" = 'true' ] && [ "$tmp_restore_s3_sync" = 'true' ]; then
-			tmp_uploads_s3_sync='true'
-		fi
-
-		tmp_uploads_dest_dir="/var/main/data/${var_load_name:-}/uploads"
+		tmp_uploads_dest_dir_base="/var/main/data/${var_load_name:-}"
+		tmp_uploads_dest_dir="$tmp_uploads_dest_dir_base/$tmp_dest_dirname"
 		tmp_uploads_tmp_base_dir="/tmp/main/tmp/${var_load_name:-}"
+		tmp_intermediate_step='false'
+
+		if [ "${tmp_is_compressed_file:-}" = 'true' ] && [ "${tmp_compressed_inner_dir:-}" != "${tmp_dest_dirname:-}" ]; then
+			tmp_intermediate_step='true'
+		fi
 
 		tmp_default_file_to_skip='/tmp/main/setup/uploads.skip'
 		tmp_file_to_skip="${var_load__uploads_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
@@ -602,21 +615,14 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ];
 		export var_task__uploads_setup__setup_task__recursive_mode_dir="${var_load__uploads_setup__recursive_mode_dir:-}"
 		export var_task__uploads_setup__setup_task__recursive_mode_file="${var_load__uploads_setup__recursive_mode_file:-}"
 
-		if [ "$tmp_uploads_s3_sync" = 'true' ] || [ "${tmp_is_compressed_file:-}" = 'true' ]; then
-			tmp_compressed_inner_dir="${var_load__uploads_setup__restore_compressed_inner_dir:-}"
-			tmp_uploads_tmp_dir="${tmp_uploads_tmp_base_dir}"
+		if [ "${tmp_intermediate_step:-}" = 'true' ]; then
+			tmp_uploads_tmp_dir="${tmp_uploads_tmp_base_dir}/${tmp_compressed_inner_dir}"
 
-			if [ -n "$tmp_compressed_inner_dir" ]; then
-				tmp_uploads_tmp_dir="${tmp_uploads_tmp_base_dir}/${tmp_compressed_inner_dir}"
-			fi
-
-			export var_task__uploads_setup__setup_task__recursive_dir="${var_load__uploads_setup__recursive_dir:-}"
-			export var_task__uploads_setup__setup_task__move_src="${var_load__uploads_setup__move_src:-}"
-			export var_task__uploads_setup__setup_task__move_dest="${var_load__uploads_setup__move_dest:-}"
-			export var_task__uploads_setup__setup_task__file_to_clear="${var_load__uploads_setup__file_to_clear:-}"
-			export var_task__uploads_setup__setup_task__dir_to_clear="${var_load__uploads_setup__dir_to_clear:-}"
-		else
-			export var_task__uploads_setup__setup_task__recursive_dir="$tmp_uploads_dest_dir"
+			export var_task__uploads_setup__setup_task__recursive_dir="${tmp_uploads_tmp_dir:-}"
+			export var_task__uploads_setup__setup_task__move_src="${tmp_uploads_tmp_dir:-}"
+			export var_task__uploads_setup__setup_task__move_dest="${tmp_uploads_dest_dir:-}"
+			export var_task__uploads_setup__setup_task__file_to_clear=""
+			export var_task__uploads_setup__setup_task__dir_to_clear="${tmp_uploads_tmp_dir:-}"
 		fi
 
 		export var_task__uploads_setup__setup_verify__setup_dest_dir_to_verify="$tmp_uploads_dest_dir"

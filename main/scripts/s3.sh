@@ -4,6 +4,10 @@ set -eou pipefail
 # shellcheck disable=SC2153
 pod_script_env_file="$POD_SCRIPT_ENV_FILE"
 
+function info {
+	"$pod_script_env_file" "util:info" --info="${*}"
+}
+
 function error {
 	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
 }
@@ -193,10 +197,15 @@ case "$command" in
 		empty_bucket="$("$pod_script_env_file" "run:s3:main:awscli:is_empty_bucket" ${args[@]+"${args[@]}"})"
 
 		if [ "$empty_bucket" = "true" ]; then
-			echo "$title - create bucket"
-			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws --profile="$arg_s3_alias" \
-				s3api create-bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" \
-				${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+			info "$title - create bucket"
+			inner_cmd=( aws --profile="$arg_s3_alias" )
+			inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
+			inner_cmd+=( create-bucket --bucket "$arg_s3_bucket_name" )
+			inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+
+			info "s3 command: ${inner_cmd[*]}"
+
+			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		fi
 		;;
 	"s3:main:awscli:is_empty_bucket")
@@ -229,11 +238,14 @@ case "$command" in
 		if [ "$empty_bucket" = "true" ]; then
 			>&2 echo "skipping (no_bucket)"
 		elif [ "$empty_bucket" = "false" ]; then
-			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3 rb \
-				--profile="$arg_s3_alias" \
-				--endpoint="$arg_s3_endpoint" \
-				--force "s3://$arg_s3_bucket_name" \
-				${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+			inner_cmd=( aws --profile="$arg_s3_alias" )
+			inner_cmd+=( s3 --endpoint="$arg_s3_endpoint" )
+			inner_cmd+=( rb --force "s3://$arg_s3_bucket_name" )
+			inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+
+			info "s3 command: ${inner_cmd[*]}"
+
+			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		else
 			error "$title: invalid result (empty_bucket should be true or false): $empty_bucket"
 		fi
@@ -266,9 +278,15 @@ case "$command" in
 		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="s3://$arg_s3_dest" || s3_dest="$arg_s3_dest"
 
 		cmd="${command#s3:main:awscli:}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" aws s3 --profile="$arg_s3_alias" \
-			--endpoint="$arg_s3_endpoint" "$cmd" "$s3_src" "$s3_dest" \
-			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+
+		inner_cmd=( aws --profile="$arg_s3_alias" )
+		inner_cmd+=( s3 --endpoint="$arg_s3_endpoint" )
+		inner_cmd+=( "$cmd" "$s3_src" "$s3_dest" )
+		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	# "s3:awscli:exec:is_empty_bucket")
 	# 	awscli_is_empty_bucket exec-nontty

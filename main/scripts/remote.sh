@@ -36,6 +36,7 @@ while getopts ':-:' OPT; do
 		backup_src_dir ) arg_backup_src_dir="${OPTARG:-}";;
 		backup_src_file ) arg_backup_src_file="${OPTARG:-}";;
 		backup_bucket_sync_dir ) arg_backup_bucket_sync_dir="${OPTARG:-}";;
+		backup_ignore_path ) arg_backup_ignore_path="${OPTARG:-}";;
 		backup_date_format ) arg_backup_date_format="${OPTARG:-}";;
 		backup_time_format ) arg_backup_time_format="${OPTARG:-}";;
 		backup_datetime_format ) arg_backup_datetime_format="${OPTARG:-}";;
@@ -105,7 +106,7 @@ case "$command" in
 
 		if [ -n "${arg_backup_src_file:-}" ]; then
 			if [ "$src_type" != 'file' ]; then
-				msg="backup source (${arg_backup_src_file:-}) is not a file"
+				msg="backup source (${arg_backup_src_file:-}) is not a file ($src_type)"
 				error "$title: $msg"
 			fi
 
@@ -116,8 +117,8 @@ case "$command" in
 			bucket_path="${backup_bucket_sync_dir:-}/${backup_bucket_file}"
 			info "$title - $msg - $arg_backup_src_file to $bucket_path (s3)"
 		else
-			if [ "$arg_backup_src_dir" != 'dir' ]; then
-				msg="backup source (${arg_backup_src_file:-}) is not a directory"
+			if [ "$src_type" != 'dir' ]; then
+				msg="backup source (${arg_backup_src_dir:-}) is not a directory ($src_type)"
 				error "$title: $msg"
 			fi
 
@@ -144,6 +145,7 @@ case "$command" in
 			--s3_dest_rel="$backup_bucket_sync_dir" \
 			--s3_remote_dest="true" \
 			--s3_file="$backup_bucket_file" \
+			--s3_ignore_path="${arg_backup_ignore_path:-}" \
 			--task_name="$arg_task_name" \
 			--subtask_cmd="$arg_subtask_cmd"
 		;;

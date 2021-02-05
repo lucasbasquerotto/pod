@@ -31,18 +31,6 @@ if [ -z "${var_load_main__pod_type:-}" ]; then
 	tmp_errors+=("[shared] var_load_main__pod_type is not defined")
 fi
 
-if [ -z "${var_load_migrate__db_name:-}" ]; then
-	tmp_errors+=("[shared] var_load_migrate__db_name is not defined")
-fi
-
-if [ -z "${var_load_migrate__db_user:-}" ]; then
-	tmp_errors+=("[shared] var_load_migrate__db_user is not defined")
-fi
-
-if [ -n "${var_load_db_service:-}" ]; then
-	tmp_errors+=("[shared] var_load_migrate__db_user is not defined")
-fi
-
 case "${var_load_db_service:-}" in
 	''|'mysql')
 		;;
@@ -247,7 +235,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_backup__backup_task__is_compressed_file="${var_load__db_backup__is_compressed_file:-}"
 
 		if [ "${var_task__db_backup__backup_task__is_compressed_file:-}" = 'true' ]; then
-			tmp_default_compressed_file_name="${var_load_migrate__db_name:-}.[[ datetime ]].[[ random ]].zip"
+			tmp_default_compressed_file_name="${var_load__db_main__db_name:-}.[[ datetime ]].[[ random ]].zip"
 			tmp_db_compressed_file_name="${var_load__db_backup__db_compressed_file_name:-$tmp_default_compressed_file_name}"
 
 			export var_task__db_backup__backup_task__recursive_dir="$tmp_db_src_dir"
@@ -269,7 +257,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 
 		export var_task__db_backup__backup_local__task_name="db_main"
 		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:file:${var_load_db_service:-}"
-		export var_task__db_backup__backup_local__db_file_name="${var_load_migrate__db_name:-}.sql"
+		export var_task__db_backup__backup_local__db_file_name="${var_load__db_main__db_name:-}.sql"
 		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_dir"
 
 		tmp_default_sync_dir='[[ date ]]'
@@ -318,11 +306,11 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_default_file_to_skip='/tmp/main/setup/db.skip'
 		tmp_file_to_skip="${var_load__db_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
 
-		tmp_default_compressed_file_name="${var_load_migrate__db_name:-}.zip"
+		tmp_default_compressed_file_name="${var_load__db_main__db_name:-}.zip"
 		tmp_db_compressed_file_name="${var_load__db_setup__db_compressed_file_name:-$tmp_default_compressed_file_name}"
 		tmp_compressed_file_path="$tmp_db_tmp_dir/$tmp_db_compressed_file_name"
 
-		tmp_default_file_name="${var_load_migrate__db_name:-}.sql"
+		tmp_default_file_name="${var_load__db_main__db_name:-}.sql"
 		tmp_db_file_name="${var_load__db_setup__db_file_name:-$tmp_default_file_name}"
 		tmp_file_path="$tmp_db_dest_dir/$tmp_db_file_name"
 
@@ -416,10 +404,10 @@ if [ "${var_load_enable__logs_backup:-}" = 'true' ]; then
 
     export var_task__logs_backup__task__type='backup'
     export var_task__logs_backup__backup_task__subtask_cmd_remote='backup:remote:default'
-
+    export var_task__logs_backup__backup_task__backup_src='/var/log/main'
     export var_task__logs_backup__backup_remote__subtask_cmd_s3='s3:subtask:s3_backup'
+	export var_task__logs_backup__backup_remote__backup_ignore_path='/var/log/main/fluentd/buffer/*'
     export var_task__logs_backup__backup_remote__backup_bucket_sync_dir="log/${var_load_main__pod_type:-}"
-    export var_task__logs_backup__backup_remote__backup_src_dir='/var/log/main'
 fi
 
 if [ "${var_load_enable__logs_setup:-}" = 'true' ]; then
@@ -501,13 +489,13 @@ fi
 if [ "${var_load_enable__sync_backup:-}" = 'true' ]; then
     export var_task__sync_backup__task__type='backup'
     export var_task__sync_backup__backup_task__subtask_cmd_remote='backup:remote:default'
+    export var_task__sync_backup__backup_task__backup_src='/var/main/data/sync'
     export var_task__sync_backup__backup_remote__backup_bucket_sync_dir='sync'
-    export var_task__sync_backup__backup_remote__backup_src_dir='/var/sync/main'
     export var_task__sync_backup__backup_remote__subtask_cmd_s3='s3:subtask:s3_backup'
 fi
 
 if [ "${var_load_enable__sync_setup:-}" = 'true' ]; then
-    tmp_dest_dir='/var/sync/main'
+    tmp_dest_dir='/var/main/data/sync'
 	tmp_default_file_to_skip='/tmp/main/setup/sync.skip'
 	tmp_file_to_skip="${var_load__sync_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
 

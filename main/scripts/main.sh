@@ -92,6 +92,7 @@ while getopts ':-:' OPT; do
 		s3_bucket_path ) arg_s3_bucket_path="${OPTARG:-}";;
 		s3_older_than_days ) arg_s3_older_than_days="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
+		s3_ignore_path ) arg_s3_ignore_path="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		bg_file ) arg_bg_file="${OPTARG:-}";;
@@ -409,6 +410,7 @@ case "$command" in
 		param_subtask_cmd_s3="${prefix}_subtask_cmd_s3"
 		param_backup_src_dir="${prefix}_backup_src_dir"
 		param_backup_src_file="${prefix}_backup_src_file"
+		param_backup_ignore_path="${prefix}_backup_ignore_path"
 		param_backup_bucket_sync_dir="${prefix}_backup_bucket_sync_dir"
 		param_backup_date_format="${prefix}_backup_date_format"
 		param_backup_time_format="${prefix}_backup_time_format"
@@ -430,6 +432,7 @@ case "$command" in
 		opts+=( "--backup_src_dir=$backup_src_dir" )
 		opts+=( "--backup_src_file=$backup_src_file" )
 		opts+=( "--backup_bucket_sync_dir=${!param_backup_bucket_sync_dir:-}" )
+		opts+=( "--backup_ignore_path=${!param_backup_ignore_path:-}" )
 		opts+=( "--backup_date_format=${!param_backup_date_format:-}" )
 		opts+=( "--backup_time_format=${!param_backup_time_format:-}" )
 		opts+=( "--backup_datetime_format=${!param_backup_datetime_format:-}" )
@@ -646,6 +649,7 @@ case "$command" in
 		opts+=( "--s3_bucket_path=${arg_s3_bucket_path:-}" )
 		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
 		opts+=( "--s3_file=${arg_s3_file:-}" )
+		opts+=( "--s3_ignore_path=${arg_s3_ignore_path:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
@@ -748,7 +752,10 @@ case "$command" in
 		s3_opts=()
 
 		if [ -n "${arg_s3_file:-}" ]; then
-			s3_opts=( --exclude "*" --include "$arg_s3_file" )
+			s3_opts+=( --exclude "*" --include "$arg_s3_file" )
+		fi
+		if [ -n "${arg_s3_ignore_path:-}" ]; then
+			s3_opts+=( --exclude "${arg_s3_ignore_path:-}" )
 		fi
 
 		opts=()

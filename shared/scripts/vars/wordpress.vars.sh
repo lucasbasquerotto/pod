@@ -7,6 +7,7 @@ export var_load_name='wordpress'
 export var_load_db_service='mysql'
 export var_db_backup_type="file:${var_load_db_service:-}"
 export var_db_restore_type="file:${var_load_db_service:-}"
+export var_load_db_backup_is_file='true'
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2

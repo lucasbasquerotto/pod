@@ -7,6 +7,9 @@ export var_load_name='rocketchat'
 export var_load_db_service='mongo'
 export var_db_restore_type='mongo:dir'
 
+tmp_authentication_database="${var_load__db_main__authentication_database:-admin}"
+export var_load__db_main__authentication_database="$tmp_authentication_database"
+
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2
 	exit 2

@@ -32,8 +32,47 @@ if [ -z "${var_load_main__pod_type:-}" ]; then
 fi
 
 if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
+	tmp_info="db: ${var_load_allow_custom_db_service:-}"
+
 	case "${var_load_db_service:-}" in
-		''|'mysql'|'mongo')
+		'mysql')
+			if [ -z "${var_load__db_main__db_name:-}" ]; then
+
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_name is not defined")
+			fi
+
+			if [ -z "${var_load__db_main__db_user:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_user is not defined")
+			fi
+			;;
+		'mongo')
+			if [ -z "${var_load__db_main__db_name:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_name is not defined")
+			fi
+
+			if [ -z "${var_load__db_main__db_user:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_user is not defined")
+			fi
+
+			if [ -z "${var_load__db_main__authentication_database:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__authentication_database is not defined")
+			fi
+			;;
+		'elasticsearch')
+			if [ -z "${var_load__db_main__db_host:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_host is not defined")
+			fi
+
+			if [ -z "${var_load__db_main__db_user:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_user is not defined")
+			fi
+			;;
+		'prometheusx')
+			if [ -z "${var_load__db_main__db_host:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_host is not defined")
+			fi
+			;;
+		'')
 			;;
 		*)
 			tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
@@ -344,14 +383,6 @@ if [ "$tmp_is_db" = 'true' ]; then
 fi
 
 if [ -n "${var_load_db_service:-}" ]; then
-	if [ -z "${var_load__db_main__db_name:-}" ]; then
-		tmp_errors+=("[shared] var_load__db_main__db_name is not defined")
-	fi
-
-	if [ -z "${var_load__db_main__db_user:-}" ]; then
-		tmp_errors+=("[shared] var_load__db_main__db_user is not defined")
-	fi
-
 	export var_task__db_main__db_subtask__db_service="${var_load_db_service:-}"
     export var_task__db_main__db_subtask__db_host="${var_load__db_main__db_host:-}"
     export var_task__db_main__db_subtask__db_port="${var_load__db_main__db_port:-}"

@@ -5,7 +5,6 @@ tmp_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export var_load_name='prometheus'
 export var_load_db_service='prometheus'
-export var_load_allow_custom_db_service='false'
 
 function tmp_error {
 	echo "${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}" >&2

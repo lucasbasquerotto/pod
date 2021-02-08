@@ -98,7 +98,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_db_dir="$tmp_db_base_dir/snapshots"
 		tmp_db_repository_name="${var_load__db_setup__repository_name:-efk_repository}"
 		tmp_db_snapshot_name="${var_load__db_setup__snapshot_name:-}"
-		tmp_default_index_prefix'fluentd-'
+		tmp_default_index_prefix='fluentd-'
 		tmp_db_index_prefix="${var_load__db_setup__index_prefix:-$tmp_default_index_prefix}"
 		tmp_restore_remote_file="${var_load__db_setup__restore_remote_file:-}"
 		export var_task__db_setup__setup_db__db_args="${var_load__db_setup__db_args:-}"
@@ -170,7 +170,7 @@ tmp_error_count_aux="$tmp_error_count"
 tmp_error_count=0
 
 # shellcheck disable=SC1090
-. "$tmp_dir/shared.sh"
+. "$tmp_dir/shared.vars.sh"
 
 tmp_shared_error_count="${tmp_error_count:-0}"
 

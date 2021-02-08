@@ -105,14 +105,38 @@ fi
 
 tmp_group_backup=""
 
+tmp_enable_db_backup="${var_load_enable__db_backup:-}"
+
+if [ "$tmp_enable_db_backup" = 'true' ]; then
+	if [ "${var_load_enable__custom_db_backup:-}" = 'true' ]; then
+		tmp_errors+=("[shared] db_backup and custom_db_backup are both enabled")
+	fi
+else
+	tmp_enable_db_backup="${var_load_enable__custom_db_backup:-}"
+fi
+
+tmp_enable_uploads_backup="${var_load_enable__uploads_backup:-}"
+
+if [ "$tmp_enable_uploads_backup" = 'true' ]; then
+	if [ "${var_load_enable__custom_uploads_backup:-}" = 'true' ]; then
+		tmp_errors+=("[shared] uploads_backup and custom_uploads_backup are both enabled")
+	fi
+else
+	tmp_enable_uploads_backup="${var_load_enable__custom_uploads_backup:-}"
+fi
+
+if [ "$tmp_enable_uploads_backup" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" = 'true' ]; then
+	tmp_errors+=("[shared] uploads_backup is enabled with use_s3_storage=true")
+fi
+
 if [ "$tmp_is_db" = 'true' ]; then
-	if [ "${var_load_enable__db_backup:-}" = 'true' ]; then
+	if [ "$tmp_enable_db_backup" = 'true' ]; then
 		tmp_group_backup="$tmp_group_backup,db_backup"
 	fi
 fi
 
-if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ]; then
-	if [ "${var_load_enable__uploads_backup:-}" = 'true' ]; then
+if [ "$tmp_is_web" = 'true' ]; then
+	if [ "$tmp_enable_uploads_backup" = 'true' ]; then
 		tmp_group_backup="$tmp_group_backup,uploads_backup"
 	fi
 fi
@@ -135,12 +159,40 @@ export var_task__group_backup__group_task__task_names="$tmp_group_backup"
 
 tmp_group_setup=""
 
+tmp_enable_db_setup="${var_load_enable__db_setup:-}"
+
+if [ "$tmp_enable_db_setup" = 'true' ]; then
+	if [ "${var_load_enable__custom_db_setup:-}" = 'true' ]; then
+		tmp_errors+=("[shared] db_setup and custom_db_setup are both enabled")
+	fi
+else
+	tmp_enable_db_setup="${var_load_enable__custom_db_setup:-}"
+fi
+
+if [ "$tmp_enable_db_setup" = 'true' ] &&  [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
+	tmp_errors+=("[shared] db_setup and db_setup_new are both enabled")
+fi
+
+tmp_enable_uploads_setup="${var_load_enable__uploads_setup:-}"
+
+if [ "$tmp_enable_uploads_setup" = 'true' ]; then
+	if [ "${var_load_enable__custom_uploads_setup:-}" = 'true' ]; then
+		tmp_errors+=("[shared] uploads_setup and custom_uploads_setup are both enabled")
+	fi
+else
+	tmp_enable_uploads_setup="${var_load_enable__custom_uploads_setup:-}"
+fi
+
+if [ "$tmp_enable_uploads_setup" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" = 'true' ]; then
+	tmp_errors+=("[shared] uploads_setup is enabled with use_s3_storage=true")
+fi
+
 if [ "${var_load_enable__sync_setup:-}" = 'true' ]; then
 	tmp_group_setup="$tmp_group_setup,sync_setup"
 fi
 
 if [ "$tmp_is_web" = 'true' ]; then
-	if [ "${var_load_enable__uploads_setup:-}" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ]; then
+	if [ "$tmp_enable_uploads_setup" = 'true' ]; then
 		tmp_group_setup="$tmp_group_setup,uploads_setup"
 	fi
 
@@ -150,7 +202,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 fi
 
 if [ "$tmp_is_db" = 'true' ]; then
-	if [ "${var_load_enable__db_setup:-}" = 'true' ]; then
+	if [ "$tmp_enable_db_setup" = 'true' ]; then
 		tmp_group_setup="$tmp_group_setup,db_setup"
 	fi
 fi
@@ -301,6 +353,8 @@ if [ -n "${var_load_db_service:-}" ]; then
 	fi
 
 	export var_task__db_main__db_subtask__db_service="${var_load_db_service:-}"
+    export var_task__db_main__db_subtask__db_host="${var_load__db_main__db_host:-}"
+    export var_task__db_main__db_subtask__db_port="${var_load__db_main__db_port:-}"
 	export var_task__db_main__db_subtask__db_name="${var_load__db_main__db_name:-}"
 	export var_task__db_main__db_subtask__db_user="${var_load__db_main__db_user:-}"
 	export var_task__db_main__db_subtask__db_pass="${var_load__db_main__db_pass:-}"

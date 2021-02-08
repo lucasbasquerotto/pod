@@ -353,7 +353,6 @@ case "$command" in
 		param_subtask_cmd_verify="${prefix}_subtask_cmd_verify"
 		param_subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		param_subtask_cmd_local="${prefix}_subtask_cmd_local"
-		param_subtask_cmd_new="${prefix}_subtask_cmd_new"
 		param_backup_src="${prefix}_backup_src"
 		param_backup_date_format="${prefix}_backup_date_format"
 		param_backup_time_format="${prefix}_backup_time_format"
@@ -383,7 +382,6 @@ case "$command" in
 		opts+=( "--subtask_cmd_verify=${!param_subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_remote=${!param_subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!param_subtask_cmd_local:-}" )
-		opts+=( "--subtask_cmd_new=${!param_subtask_cmd_new:-}" )
 		opts+=( "--backup_src=${!param_backup_src:-}" )
 		opts+=( "--backup_date_format=${!param_backup_date_format:-}" )
 		opts+=( "--backup_time_format=${!param_backup_time_format:-}" )

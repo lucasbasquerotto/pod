@@ -61,10 +61,10 @@ fi
 
 # Database
 
-if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
-	tmp_info="db: ${var_load_allow_custom_db_service:-}"
+if [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then
+	tmp_info="db: ${var_load_main__allow_custom_db_service:-}"
 
-	case "${var_load_db_service:-}" in
+	case "${var_load_main__db_service:-}" in
 		'mysql')
 			if [ -z "${var_load__db_main__db_name:-}" ]; then
 
@@ -105,7 +105,7 @@ if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
 		'')
 			;;
 		*)
-			tmp_errors+=("[shared] var_load_db_service value is unsupported (${var_load_db_service:-})")
+			tmp_errors+=("[shared] var_load_main__db_service value is unsupported (${var_load_main__db_service:-})")
 			;;
 	esac
 fi
@@ -124,9 +124,9 @@ if [ "${var_load_main__pod_type:-}" = 'app' ] || [ "${var_load_main__pod_type:-}
 	tmp_is_db='true'
 fi
 
-if [ -n "${var_load_db_service:-}" ]; then
-	export var_db_backup_type="${var_db_backup_type:-$var_load_db_service}"
-	export var_db_restore_type="${var_db_restore_type:-$var_load_db_service}"
+if [ -n "${var_load_main__db_service:-}" ]; then
+	export var_load_main__db_backup_type="${var_load_main__db_backup_type:-$var_load_main__db_service}"
+	export var_load_main__db_restore_type="${var_load_main__db_restore_type:-$var_load_main__db_service}"
 fi
 
 # General
@@ -158,8 +158,8 @@ if [ "${var_load_use__ssl:-}" = 'true' ]; then
 	export var_custom__use_certbot="${var_load_use__certbot:-}"
 fi
 
-if [ -n "${var_load_db_service:-}" ]; then
-	export var_run__migrate__db_service="$var_load_db_service"
+if [ -n "${var_load_main__db_service:-}" ]; then
+	export var_run__migrate__db_service="$var_load_main__db_service"
 	export var_run__migrate__db_name="${var_load__db_main__db_name:-}"
 	export var_run__migrate__db_user="${var_load__db_main__db_user:-}"
 	export var_run__migrate__db_pass="${var_load__db_main__db_pass:-}"
@@ -354,12 +354,12 @@ fi
 
 if [ "$tmp_is_db" = 'true' ]; then
 	if [ "${var_load_enable__db_backup:-}" = 'true' ]; then
-		if [ -z "${var_load_db_service:-}" ]; then
-			tmp_errors+=("[shared] var_load_db_service is not defined (db_backup)")
+		if [ -z "${var_load_main__db_service:-}" ]; then
+			tmp_errors+=("[shared] var_load_main__db_service is not defined (db_backup)")
 		fi
 
-		tmp_db_src_base_dir="/tmp/main/tmp/${var_load_db_service:-}/backup"
-		tmp_db_tmp_dir="/tmp/main/tmp/backup/${var_load_db_service:-}"
+		tmp_db_src_base_dir="/tmp/main/tmp/${var_load_main__db_service:-}/backup"
+		tmp_db_tmp_dir="/tmp/main/tmp/backup/${var_load_main__db_service:-}"
 
 		export var_task__db_backup__task__type='backup'
 		export var_task__db_backup__backup_task__subtask_cmd_local='backup:local:db'
@@ -385,10 +385,10 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_backup__backup_task__dir_to_clear="${var_load__db_backup__dir_to_clear:-}"
 
 		export var_task__db_backup__backup_local__task_name="db_main"
-		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:${var_db_backup_type:-}"
+		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:${var_load_main__db_backup_type:-}"
 		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_base_dir"
 
-		if [ "${var_load_db_backup_is_file:-}" = 'true' ]; then
+		if [ "${var_load_main__db_backup_is_file:-}" = 'true' ]; then
 			tmp_default_extension='.sql'
 			tmp_default_extension="${var_load_db_backup_extension:-$tmp_default_extension}"
 			tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
@@ -410,8 +410,8 @@ if [ "$tmp_is_db" = 'true' ]; then
 	fi
 fi
 
-if [ -n "${var_load_db_service:-}" ]; then
-	export var_task__db_main__db_subtask__db_service="${var_load_db_service:-}"
+if [ -n "${var_load_main__db_service:-}" ]; then
+	export var_task__db_main__db_subtask__db_service="${var_load_main__db_service:-}"
     export var_task__db_main__db_subtask__db_host="${var_load__db_main__db_host:-}"
     export var_task__db_main__db_subtask__db_port="${var_load__db_main__db_port:-}"
 	export var_task__db_main__db_subtask__db_name="${var_load__db_main__db_name:-}"
@@ -427,12 +427,12 @@ if [ "$tmp_is_db" = 'true' ]; then
 			tmp_errors+=("[shared] var_load_enable__db_setup and var_load_enable__db_setup_new are both true (choose only one)")
 		fi
 
-		if [ -z "${var_load_db_service:-}" ]; then
-			tmp_errors+=("[shared] var_load_db_service is not defined (db_setup)")
+		if [ -z "${var_load_main__db_service:-}" ]; then
+			tmp_errors+=("[shared] var_load_main__db_service is not defined (db_setup)")
 		fi
 
-		tmp_db_dest_dir="/tmp/main/tmp/${var_load_db_service:-}/restore"
-		tmp_db_tmp_dir="/tmp/main/tmp/restore/${var_load_db_service:-}"
+		tmp_db_dest_dir="/tmp/main/tmp/${var_load_main__db_service:-}/restore"
+		tmp_db_tmp_dir="/tmp/main/tmp/restore/${var_load_main__db_service:-}"
 
 		tmp_default_file_to_skip='/tmp/main/setup/db.skip'
 		tmp_file_to_skip="${var_load__db_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
@@ -446,7 +446,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
 		tmp_db_file_name="${var_load__db_setup__db_file_name:-$tmp_default_file_name}"
 		tmp_file_path="$tmp_db_dest_dir/$tmp_db_file_name"
-		tmp_db_backup_is_file="${var_load_db_backup_is_file:-}"
+		tmp_db_backup_is_file="${var_load_main__db_backup_is_file:-}"
 		tmp_is_file="${var_load_db_restore_is_file:-$tmp_db_backup_is_file}"
 
 		export var_task__db_setup__task__type='setup'
@@ -471,7 +471,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_setup__setup_task__dir_to_clear="${var_load__db_setup__dir_to_clear:-}"
 
 		export var_task__db_setup__setup_verify__task_name='db_main'
-		export var_task__db_setup__setup_verify__db_subtask_cmd="db:restore:verify:${var_load_db_service:-}"
+		export var_task__db_setup__setup_verify__db_subtask_cmd="db:restore:verify:${var_load_main__db_service:-}"
 
 		export var_task__db_setup__setup_remote__restore_use_s3="${var_load__db_setup__restore_use_s3:-}"
 
@@ -529,7 +529,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 		fi
 
 		export var_task__db_setup__setup_local__task_name='db_main'
-		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:${var_db_restore_type:-}"
+		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:${var_load_main__db_restore_type:-}"
 		export var_task__db_setup__setup_local__db_task_base_dir="$tmp_db_dest_dir"
 		export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
 	fi

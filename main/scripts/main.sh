@@ -2,15 +2,10 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
-# shellcheck disable=SC2153
-pod_vars_dir="$POD_VARS_DIR"
-# shellcheck disable=SC2153
-pod_layer_dir="$POD_LAYER_DIR"
-# shellcheck disable=SC2153
-pod_script_env_file="$POD_SCRIPT_ENV_FILE"
-
-# shellcheck disable=SC1090
-. "${pod_vars_dir}/vars.sh"
+# shellcheck disable=SC2154
+pod_layer_dir="$var_pod_layer_dir"
+# shellcheck disable=SC2154
+pod_script_env_file="$var_pod_script"
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestration.sh"

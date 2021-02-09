@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eou pipefail
 
-# shellcheck disable=SC2153
-pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+# shellcheck disable=SC2154
+pod_script_env_file="$var_pod_script"
 
 CYAN='\033[0;36m'
 PURPLE='\033[0;35m'

@@ -3,6 +3,12 @@ set -eou pipefail
 
 tmp_errors=()
 
+# Validations
+
+if [ -z "${var_pod_layer_dir:-}" ]; then
+	tmp_errors+=("[shared] var_pod_layer_dir is not defined")
+fi
+
 if [ -z "${var_load_name:-}" ]; then
 	tmp_errors+=("[shared] var_load_name is not defined")
 fi
@@ -26,6 +32,34 @@ fi
 if [ -z "${var_load_main__pod_type:-}" ]; then
 	tmp_errors+=("[shared] var_load_main__pod_type is not defined")
 fi
+
+# Directories
+
+#shellcheck disable=SC2154
+tmp_pod_layer_dir="${var_pod_layer_dir:-}"
+
+tmp_base_dir="$(cd "$(dirname "$tmp_pod_layer_dir")"; pwd -P)"
+tmp_full_dir="$tmp_base_dir/$(basename "$tmp_pod_layer_dir")"
+export var_pod_vars_dir="$tmp_full_dir"
+
+tmp_base_dir="${var_load_general__script_dir:-}"
+tmp_full_dir="$tmp_base_dir/${var_load_general__script_env_file:-}"
+export var_pod_script="$tmp_full_dir"
+
+if [ "${var_load_main__local:-}" = 'true' ]; then
+	export var_data_dir_rel="${var_load_main__data_dir:-}"
+else
+	export var_data_dir="${var_load_main__data_dir:-}"
+fi
+
+export var_pod_tmp_dir="$tmp_pod_layer_dir/${var_tmp_dir:-tmp}"
+export var_pod_data_dir="${var_data_dir:-}"
+
+if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
+	export var_pod_data_dir="$tmp_pod_layer_dir/$var_data_dir_rel"
+fi
+
+# Database
 
 if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
 	tmp_info="db: ${var_load_allow_custom_db_service:-}"
@@ -76,6 +110,8 @@ if [ "${var_load_allow_custom_db_service:-}" != 'true' ]; then
 	esac
 fi
 
+# Pod Type
+
 tmp_is_web=''
 
 if [ "${var_load_main__pod_type:-}" = 'app' ] || [ "${var_load_main__pod_type:-}" = 'web' ]; then
@@ -93,6 +129,8 @@ if [ -n "${var_load_db_service:-}" ]; then
 	export var_db_restore_type="${var_db_restore_type:-$var_load_db_service}"
 fi
 
+# General
+
 export var_run__general__ctx_full_name="${var_load_general__ctx_full_name:-$var_load_name}"
 export var_run__general__script_dir="${var_load_general__script_dir:-}"
 export var_run__general__script_env_file="${var_load_general__script_env_file:-}"
@@ -101,12 +139,6 @@ export var_run__general__orchestration="${var_load_general__orchestration:-compo
 export var_run__general__main_base_dir="${var_load_general__main_base_dir:-}"
 export var_run__general__main_base_dir_container="${var_load_general__main_base_dir_container:-}"
 export var_run__general__backup_is_delete_old="${var_load_general__backup_is_delete_old:-}"
-
-if [ "${var_load_main__local:-}" = 'true' ]; then
-	export var_data_dir_rel="${var_load_main__data_dir:-}"
-else
-	export var_data_dir="${var_load_main__data_dir:-}"
-fi
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 

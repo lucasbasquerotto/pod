@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eou pipefail
 
-# shellcheck disable=SC2153
-pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+# shellcheck disable=SC2154
+pod_script_env_file="$var_pod_script"
 
 function error {
 	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"

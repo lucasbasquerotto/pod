@@ -28,48 +28,42 @@ start="$(date '+%F %T')"
 msg="[base-run] [$command] start ($pod_layer_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
-pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
-
-export "POD_VARS_DIR=$pod_vars_full_dir"
-export "POD_LAYER_DIR=$pod_layer_dir"
+export var_pod_layer_dir="$pod_layer_dir"
 
 # shellcheck disable=SC1090
 . "${pod_layer_dir}/vars.sh"
 
+tmp_load_file="$pod_layer_dir/vars.sh file"
+
 if [ -n "${var_load_script_path:-}" ]; then
 	# shellcheck disable=SC1090
 	. "${pod_layer_dir}/${var_load_script_path}"
+	tmp_load_file="${pod_layer_dir}/${var_load_script_path}"
 fi
 
-if [ -z "${var_run__general__script_dir:-}" ]; then
-	error "[error] var_run__general__script_dir not specified in the $pod_layer_dir/vars.sh file"
+if [ -z "${var_pod_vars_dir:-}" ]; then
+	error "[error] var_pod_vars_dir was not loaded from the file $tmp_load_file"
 fi
 
-if [ -z "${var_run__general__script_env_file:-}" ]; then
-	error "[error] var_run__general__script_env_file not specified in the $pod_layer_dir/vars.sh file"
+if [ -z "${var_pod_script:-}" ]; then
+	error "[error] var_pod_script was not loaded from the file $tmp_load_file"
 fi
 
-pod_script_env_file="${var_run__general__script_dir}/${var_run__general__script_env_file}"
-
-if [ ! -f "${pod_script_env_file}" ]; then
-	error "[error] file ${pod_script_env_file} not found"
+if [ ! -f "$var_pod_script" ]; then
+	error "[error] main script file ($var_pod_script) not found"
 fi
 
-pod_tmp_dir="$pod_layer_dir/${var_tmp_dir:-tmp}"
-
-if [ ! -d "$pod_tmp_dir" ]; then
-	mkdir -p "$pod_tmp_dir"
+if [ -z "${var_pod_tmp_dir:-}" ]; then
+	error "[error] var_pod_tmp_dir was not loaded from the file $tmp_load_file"
 fi
 
-data_dir="${var_data_dir:-}"
-
-if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
-	data_dir="$pod_layer_dir/$var_data_dir_rel"
+if [ ! -d "$var_pod_tmp_dir" ]; then
+	mkdir -p "$var_pod_tmp_dir"
 fi
 
-export "POD_TMP_DIR=$pod_tmp_dir"
-export "POD_DATA_DIR=$data_dir"
-export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"
+if [ -z "${var_pod_data_dir:-}" ]; then
+	error "[error] var_pod_data_dir was not loaded from the file $tmp_load_file"
+fi
 
 if [ "$command" = '__skip__' ]; then
 	echo "skipping..."
@@ -97,7 +91,7 @@ elif [ -n "${data_dir:-}" ]; then
 		echo "#######################################################################"
 		echo "$(date '+%F %T') [base-run] [$command] [log] start ($pod_layer_dir)"
 
-		bash "${pod_script_env_file}" "${@}" && status=$? || status=$?
+		bash "${var_pod_script}" "${@}" && status=$? || status=$?
 
 		if [[ $status -ne 0 ]]; then
 			error "$command - exited with status $status"
@@ -119,7 +113,7 @@ elif [ -n "${data_dir:-}" ]; then
 
 	"${rmcmd[@]}" -f "$log_file_tmp"
 else
-	bash "${pod_script_env_file}" "${@}" && status=$? || status=$?
+	bash "${var_pod_script}" "${@}" && status=$? || status=$?
 
 	if [[ $status -ne 0 ]]; then
 		error "$command - exited with status $status"

@@ -1,10 +1,10 @@
 #!/bin/bash
 set -eou pipefail
 
-# shellcheck disable=SC2153
-pod_layer_dir="$POD_LAYER_DIR"
-# shellcheck disable=SC2153
-pod_script_env_file="$POD_SCRIPT_ENV_FILE"
+# shellcheck disable=SC2154
+pod_layer_dir="$var_pod_layer_dir"
+# shellcheck disable=SC2154
+pod_script_env_file="$var_pod_script"
 
 main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
 run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"

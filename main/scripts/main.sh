@@ -59,6 +59,10 @@ case "$command" in
 		command="env"
 		inner_cmd="upgrade"
 		;;
+	"f")
+		command="env"
+		inner_cmd="fast-upgrade"
+		;;
 esac
 
 args=("$@")
@@ -133,7 +137,7 @@ case "$command" in
 	"env")
 		"$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
 		;;
-	"upgrade")
+	"upgrade"|"fast-upgrade")
 		"$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"stop-to-upgrade")

@@ -84,11 +84,13 @@ title="$command"
 [ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
 
 case "$command" in
-	"upgrade")
+	"upgrade"|"fast-upgrade")
 		info "$title - start"
 
-		info "$title - build..."
-		"$pod_script_env_file" build
+		if [ "$command" != "fast-upgrade" ]; then
+			info "$title - build..."
+			"$pod_script_env_file" build
+		fi
 
 		info "$title - prepare..."
 		"$pod_script_env_file" prepare

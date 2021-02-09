@@ -11,10 +11,6 @@ if [ -z "${var_load_general__script_dir:-}" ]; then
 	tmp_errors+=("[shared] var_load_general__script_dir is not defined")
 fi
 
-if [ -z "${var_load_general__script_dir:-}" ]; then
-	tmp_errors+=("[shared] var_load_general__script_dir is not defined")
-fi
-
 if [ -z "${var_load_general__script_env_file:-}" ]; then
 	tmp_errors+=("[shared] var_load_general__script_env_file is not defined")
 fi

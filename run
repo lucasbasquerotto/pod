@@ -28,6 +28,11 @@ start="$(date '+%F %T')"
 msg="[base-run] [$command] start ($pod_layer_dir)"
 echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
+pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
+
+export "POD_VARS_DIR=$pod_vars_full_dir"
+export "POD_LAYER_DIR=$pod_layer_dir"
+
 # shellcheck disable=SC1090
 . "${pod_layer_dir}/vars.sh"
 
@@ -44,13 +49,13 @@ if [ -z "${var_run__general__script_env_file:-}" ]; then
 	error "[error] var_run__general__script_env_file not specified in the $pod_layer_dir/vars.sh file"
 fi
 
-pod_vars_full_dir="$(cd "$(dirname "$pod_layer_dir")"; pwd -P)/$(basename "$pod_layer_dir")"
-pod_tmp_dir="$pod_layer_dir/tmp"
-pod_script_env_file="${pod_layer_dir}/${var_run__general__script_dir}/${var_run__general__script_env_file}"
+pod_script_env_file="${var_run__general__script_dir}/${var_run__general__script_env_file}"
 
 if [ ! -f "${pod_script_env_file}" ]; then
 	error "[error] file ${pod_script_env_file} not found"
 fi
+
+pod_tmp_dir="$pod_layer_dir/${var_tmp_dir:-tmp}"
 
 if [ ! -d "$pod_tmp_dir" ]; then
 	mkdir -p "$pod_tmp_dir"
@@ -62,8 +67,6 @@ if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
 	data_dir="$pod_layer_dir/$var_data_dir_rel"
 fi
 
-export "POD_VARS_DIR=$pod_vars_full_dir"
-export "POD_LAYER_DIR=$pod_layer_dir"
 export "POD_TMP_DIR=$pod_tmp_dir"
 export "POD_DATA_DIR=$data_dir"
 export "POD_SCRIPT_ENV_FILE=$pod_script_env_file"

@@ -367,7 +367,7 @@ case "$command" in
 				"$url"
 		;;
 	"db:backup:elasticsearch")
-		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
+		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"} >&2
 
 		snapshot_name_path="$("$pod_script_env_file" "run:util:urlencode" \
 			--value="$arg_snapshot_name")"
@@ -379,9 +379,10 @@ case "$command" in
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			wget --content-on-error -qO- --method=PUT "$url"
+			wget --content-on-error -qO- --method=PUT "$url" \
+			>&2
 
-		echo "$arg_db_task_base_dir/$arg_db_name"
+		echo "$arg_db_task_base_dir"
 		;;
 	"db:restore:verify:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"

@@ -366,12 +366,21 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_backup__backup_task__subtask_cmd_remote='backup:remote:default'
 		export var_task__db_backup__backup_task__is_compressed_file="${var_load__db_backup__is_compressed_file:-}"
 
+		tmp_default_compress_flat=''
+
+		if [ "${var_load_main__db_backup_include_src:-}" = 'true' ]; then
+			tmp_src="${var_load_main__db_backup_src:-$tmp_db_src_base_dir}"
+			tmp_default_compress_flat='true'
+			export var_task__db_backup__backup_task__backup_src="$tmp_src"
+		fi
+
 		if [ "${var_task__db_backup__backup_task__is_compressed_file:-}" = 'true' ]; then
 			tmp_default_compressed_file_name="${var_load__db_main__db_name:-}.[[ datetime ]].[[ random ]].zip"
 			tmp_db_compressed_file_name="${var_load__db_backup__db_compressed_file_name:-$tmp_default_compressed_file_name}"
 
 			export var_task__db_backup__backup_task__compress_type="${var_load__db_backup__db_compress_type:-zip}"
 			export var_task__db_backup__backup_task__compress_dest_file="$tmp_db_tmp_dir/$tmp_db_compressed_file_name"
+			export var_task__db_backup__backup_task__compress_flat="${var_load__db_backup__compress_flat:-$tmp_default_compress_flat}"
 			export var_task__db_backup__backup_task__compress_pass="${var_load__db_backup__compress_pass:-}"
 		fi
 
@@ -686,6 +695,7 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ];
 		if [ "${var_load__uploads_backup__is_compressed_file:-}" = 'true' ]; then
 			export var_task__uploads_backup__backup_task__compress_type="$tmp_compress_type"
 			export var_task__uploads_backup__backup_task__compress_dest_file="$tmp_uploads_compress_dest_file"
+			export var_task__uploads_backup__backup_task__compress_flat="${var_load__uploads_backup__compress_flat:-}"
 			export var_task__uploads_backup__backup_task__compress_pass="${var_load__uploads_backup__compress_pass:-}"
 		fi
 

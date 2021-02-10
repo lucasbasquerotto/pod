@@ -227,6 +227,7 @@ case "$command" in
 		param_compress_src_dir="${prefix}_compress_src_dir"
 		param_compress_dest_file="${prefix}_compress_dest_file"
 		param_compress_dest_dir="${prefix}_compress_dest_dir"
+		param_compress_flat="${prefix}_compress_flat"
 		param_compress_pass="${prefix}_compress_pass"
 		param_recursive_dir="${prefix}_recursive_dir"
 		param_recursive_mode="${prefix}_recursive_mode"
@@ -256,6 +257,7 @@ case "$command" in
 		opts+=( "--compress_src_dir=${!param_compress_src_dir:-}" )
 		opts+=( "--compress_dest_file=${!param_compress_dest_file:-}" )
 		opts+=( "--compress_dest_dir=${!param_compress_dest_dir:-}" )
+		opts+=( "--compress_flat=${!param_compress_flat:-}" )
 		opts+=( "--compress_pass=${!param_compress_pass:-}" )
 		opts+=( "--recursive_dir=${!param_recursive_dir:-}" )
 		opts+=( "--recursive_mode=${!param_recursive_mode:-}" )
@@ -360,6 +362,7 @@ case "$command" in
 		param_compress_type="${prefix}_compress_type"
 		param_compress_dest_file="${prefix}_compress_dest_file"
 		param_compress_dest_dir="${prefix}_compress_dest_dir"
+		param_compress_flat="${prefix}_compress_flat"
 		param_compress_pass="${prefix}_compress_pass"
 		param_recursive_dir="${prefix}_recursive_dir"
 		param_recursive_mode="${prefix}_recursive_mode"
@@ -389,6 +392,7 @@ case "$command" in
 		opts+=( "--compress_type=${!param_compress_type:-}" )
 		opts+=( "--compress_dest_file=${!param_compress_dest_file:-}" )
 		opts+=( "--compress_dest_dir=${!param_compress_dest_dir:-}" )
+		opts+=( "--compress_flat=${!param_compress_flat:-}" )
 		opts+=( "--compress_pass=${!param_compress_pass:-}" )
 		opts+=( "--recursive_dir=${!param_recursive_dir:-}" )
 		opts+=( "--recursive_mode=${!param_recursive_mode:-}" )

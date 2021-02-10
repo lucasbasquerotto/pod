@@ -60,7 +60,7 @@ while getopts ':-:' OPT; do
 		compress_src_file ) arg_compress_src_file="${OPTARG:-}";;
 		compress_dest_file ) arg_compress_dest_file="${OPTARG:-}";;
 		compress_dest_dir ) arg_compress_dest_dir="${OPTARG:-}";;
-		compress_flat ) arg_compress_dest_dir="${OPTARG:-}";;
+		compress_flat ) arg_compress_flat="${OPTARG:-}";;
 		compress_pass ) arg_compress_pass="${OPTARG:-}";;
 
 		recursive_dir ) arg_recursive_dir="${OPTARG:-}";;

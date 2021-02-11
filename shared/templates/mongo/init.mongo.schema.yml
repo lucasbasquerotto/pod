@@ -1,0 +1,20 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "dict"
+    props:
+      db_name:
+        type: "str"
+        non_empty: true
+      db_user:
+        type: "str"
+        non_empty: true
+      db_password:
+        type: "str"
+        non_empty: true
+      viewer_password:
+        type: "str"
+        non_empty: true
+      oploguser_password:
+        type: "str"
+        non_empty: true

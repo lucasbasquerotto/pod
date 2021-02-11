@@ -1,0 +1,17 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "dict"
+    props:
+      viewer_password:
+        type: "str"
+        non_empty: true
+      db_name:
+        type: "str"
+        non_empty: true
+      db_user:
+        type: "str"
+        non_empty: true
+      db_password:
+        type: "str"
+        non_empty: true

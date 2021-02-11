@@ -1,0 +1,22 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "list"
+    elem_schema: "params_item"
+    elem_non_empty: true
+  params_item:
+    type: "dict"
+    props:
+      alias:
+        type: "str"
+        non_empty: true
+      endpoint:
+        type: "str"
+      region:
+        type: "str"
+      access_key:
+        type: "str"
+      secret_key:
+        type: "str"
+      when:
+        type: "bool"

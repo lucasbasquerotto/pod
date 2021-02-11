@@ -26,7 +26,7 @@ args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':u:-:' OPT; do
-	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+	if [ "$OPT" = "-" ]; then     # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
 		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`

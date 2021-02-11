@@ -29,10 +29,10 @@ shift;
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
-	if [ "$OPT" = "-" ]; then	 # long option: reformulate OPT and OPTARG
-		OPT="${OPTARG%%=*}"			 # extract long option name
-		OPTARG="${OPTARG#$OPT}"	 # extract long option argument (may be empty)
-		OPTARG="${OPTARG#=}"			# if long option argument, remove assigning `=`
+	if [ "$OPT" = "-" ]; then    # long option: reformulate OPT and OPTARG
+		OPT="${OPTARG%%=*}"      # extract long option name
+		OPTARG="${OPTARG#$OPT}"  # extract long option argument (may be empty)
+		OPTARG="${OPTARG#=}"     # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
 		task_name ) arg_task_name="${OPTARG:-}";;

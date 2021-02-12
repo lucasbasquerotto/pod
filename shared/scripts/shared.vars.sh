@@ -166,6 +166,8 @@ fi
 
 if [ -n "${var_load_main__db_service:-}" ]; then
 	export var_run__migrate__db_service="$var_load_main__db_service"
+    export var_run__migrate__db_host="${var_load__db_main__db_host:-}"
+    export var_run__migrate__db_port="${var_load__db_main__db_port:-}"
 	export var_run__migrate__db_name="${var_load__db_main__db_name:-}"
 	export var_run__migrate__db_user="${var_load__db_main__db_user:-}"
 	export var_run__migrate__db_pass="${var_load__db_main__db_pass:-}"

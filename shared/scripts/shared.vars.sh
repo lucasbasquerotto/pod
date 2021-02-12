@@ -147,15 +147,21 @@ export var_custom__local="${var_load_main__local:-}"
 
 export var_custom__use_main_network="${var_load_use__main_network:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
-export var_custom__use_nginx="${var_load_use__nginx:-}"
-export var_custom__use_mysql="${var_load_use__mysql:-}"
-export var_custom__use_mongo="${var_load_use__mongo:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
-export var_custom__use_theia="${var_load__use_theia:-}"
-export var_custom__use_varnish="${var_load_use__varnish:-}"
 
-if [ "${var_load_use__ssl:-}" = 'true' ]; then
-	export var_custom__use_certbot="${var_load_use__certbot:-}"
+if [ "$tmp_is_web" = 'true' ]; then
+	export var_custom__use_nginx="${var_load_use__nginx:-}"
+	export var_custom__use_theia="${var_load__use_theia:-}"
+	export var_custom__use_varnish="${var_load_use__varnish:-}"
+
+	if [ "${var_load_use__ssl:-}" = 'true' ]; then
+		export var_custom__use_certbot="${var_load_use__certbot:-}"
+	fi
+fi
+
+if [ "$tmp_is_db" = 'true' ]; then
+	export var_custom__use_mysql="${var_load_use__mysql:-}"
+	export var_custom__use_mongo="${var_load_use__mongo:-}"
 fi
 
 if [ -n "${var_load_main__db_service:-}" ]; then

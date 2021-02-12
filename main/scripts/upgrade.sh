@@ -380,41 +380,41 @@ case "$command" in
 				>&2 echo "move from ${arg_move_src:-} to ${arg_inner_move_dest:-}"
 
 				if [ -z "${arg_inner_move_dest:-}" ]; then
-					error "$title: inner_move_dest parameter not specified (move_src=$arg_move_src)"
+					error "$title: inner_move_dest parameter not specified (move_src=${arg_move_src:-})"
 				fi
 
-				if [ -d "$arg_move_src" ]; then
-					(shopt -s dotglob; mv -v "$arg_move_src"/* "$arg_inner_move_dest")
+				if [ -d "${arg_move_src:-}" ]; then
+					(shopt -s dotglob; mv -v "${arg_move_src:-}"/* "${arg_inner_move_dest:-}")
 				else
-					mv -v "$arg_move_src" "$arg_inner_move_dest"
+					mv -v "${arg_move_src:-}" "${arg_inner_move_dest:-}"
 				fi
 			fi
 
 			if [ -n "${arg_recursive_mode:-}" ]; then
 				if [ -z "${arg_recursive_dir:-}" ]; then
-					error "$title: recursive_dir parameter not specified (recursive_mode=$arg_recursive_mode)"
+					error "$title: recursive_dir parameter not specified (recursive_mode=${arg_recursive_mode:-})"
 				fi
 
 				>&2 echo "define mode to files and directories at ${arg_recursive_dir:-}"
-				chmod -R "$arg_recursive_mode" "$arg_recursive_dir"
+				chmod -R "${arg_recursive_mode:-}" "${arg_recursive_dir:-}"
 			fi
 
 			if [ -n "${arg_recursive_mode_dir:-}" ]; then
 				if [ -z "${arg_recursive_dir:-}" ]; then
-					error "$title: recursive_dir parameter not specified (recursive_mode_dir=$arg_recursive_mode_dir)"
+					error "$title: recursive_dir parameter not specified (recursive_mode_dir=${arg_recursive_mode_dir:-})"
 				fi
 
 				>&2 echo "define mode to directories at ${arg_recursive_dir:-}"
-				find "$arg_recursive_dir" -type d -print0 | xargs -r0 chmod "$arg_recursive_mode_dir"
+				find "${arg_recursive_dir:-}" -type d -print0 | xargs -r0 chmod "${arg_recursive_mode_dir:-}"
 			fi
 
 			if [ -n "${arg_recursive_mode_file:-}" ]; then
 				if [ -z "${arg_recursive_dir:-}" ]; then
-					error "$title: recursive_dir parameter not specified (recursive_mode_file=$arg_recursive_mode_file)"
+					error "$title: recursive_dir parameter not specified (recursive_mode_file=${arg_recursive_mode_file:-})"
 				fi
 
 				>&2 echo "define mode to files at ${arg_recursive_dir:-}"
-				find "$arg_recursive_dir" -type f -print0 | xargs -r0 chmod "$arg_recursive_mode_file"
+				find "${arg_recursive_dir:-}" -type f -print0 | xargs -r0 chmod "${arg_recursive_mode_file:-}"
 			fi
 		SHELL
 		;;
@@ -423,15 +423,15 @@ case "$command" in
 			set -eou pipefail
 
 			if [ -n "${arg_file_to_clear:-}" ]; then
-				rm -f "$arg_file_to_clear"
+				rm -f "${arg_file_to_clear:-}"
 			fi
 
 			if [ -n "${arg_dir_to_clear:-}" ]; then
-				rm -rf "$arg_dir_to_clear"
+				rm -rf "${arg_dir_to_clear:-}"
 			fi
 
 			if [ -n "${arg_verify_file_to_skip:-}" ]; then
-				mkdir -p "\$(dirname $arg_verify_file_to_skip)"
+				mkdir -p "\$(dirname ${arg_verify_file_to_skip:-})"
 				touch "${arg_verify_file_to_skip:-}"
 			fi
 		SHELL

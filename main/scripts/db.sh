@@ -367,14 +367,11 @@ case "$command" in
 					"settings": {
 						"location": "'"$arg_db_task_base_dir"'",
 						"bucket": "'"$arg_bucket_name"'",
-						"base_path": "'"${arg_bucket_path:-}"'",
+						"base_path": "'"${arg_bucket_path:-}"'"
 					}
 				}
 				'
 		fi
-
-			arg_bucket_name
-arg_bucket_path
 
 		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
 		info "$title: $arg_db_service - $msg"

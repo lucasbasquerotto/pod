@@ -190,6 +190,10 @@ else
 	tmp_enable_db_backup="${var_load_enable__custom_db_backup:-}"
 fi
 
+if [ "${var_load_enable__sync_backup:-}" = 'true' ]; then
+	tmp_group_backup="$tmp_group_backup,sync_backup"
+fi
+
 tmp_enable_uploads_backup="${var_load_enable__uploads_backup:-}"
 
 if [ "$tmp_enable_uploads_backup" = 'true' ]; then
@@ -218,10 +222,6 @@ fi
 
 if [ "${var_load_enable__logs_backup:-}" = 'true' ]; then
 	tmp_group_backup="$tmp_group_backup,logs_backup"
-fi
-
-if [ "${var_load_enable__sync_backup:-}" = 'true' ]; then
-	tmp_group_backup="$tmp_group_backup,sync_backup"
 fi
 
 if [ -n "$tmp_group_backup" ]; then

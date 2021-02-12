@@ -49,6 +49,8 @@ while getopts ':-:' OPT; do
 		snapshot_type ) arg_snapshot_type="${OPTARG:-}" ;;
 		repository_name ) arg_repository_name="${OPTARG:-}" ;;
 		snapshot_name ) arg_snapshot_name="${OPTARG:-}" ;;
+		bucket_name ) arg_bucket_name="${OPTARG:-}" ;;
+		bucket_path ) arg_bucket_path="${OPTARG:-}" ;;
 		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}" ;;
 		db_args ) arg_db_args="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
@@ -358,6 +360,22 @@ case "$command" in
 			}
 			'
 
+		if [ "${arg_snapshot_type:-}" = 's3' ]; then
+			data='
+				{
+					"type": "'"$arg_snapshot_type"'",
+					"settings": {
+						"location": "'"$arg_db_task_base_dir"'",
+						"bucket": "'"$arg_bucket_name"'",
+						"base_path": "'"${arg_bucket_path:-}"'",
+					}
+				}
+				'
+		fi
+
+			arg_bucket_name
+arg_bucket_path
+
 		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
@@ -382,7 +400,9 @@ case "$command" in
 			wget --content-on-error -qO- --method=PUT "$url" \
 			>&2
 
-		echo "$arg_db_task_base_dir"
+		if [ "$arg_snapshot_type" = 'fs' ]; then
+			echo "$arg_db_task_base_dir"
+		fi
 		;;
 	"db:restore:verify:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"

@@ -49,6 +49,7 @@ while getopts ':-:' OPT; do
 		setup_dest_dir_to_verify ) arg_setup_dest_dir_to_verify="${OPTARG:-}";;
 
 		backup_task_name ) arg_backup_task_name="${OPTARG:-}";;
+		backup_no_src_needed ) arg_backup_no_src_needed="${OPTARG:-}";;
 		backup_src ) arg_backup_src="${OPTARG:-}";;
 		backup_is_delete_old ) arg_backup_is_delete_old="${OPTARG:-}";;
 		backup_date_format ) arg_backup_date_format="${OPTARG:-}";;
@@ -237,10 +238,10 @@ case "$command" in
 					--subtask_cmd="$arg_subtask_cmd")"
 
 				if [ -z "${backup_src:-}" ] && [ -z "${backup_src_local:-}" ]; then
-					msg="backup_src (${backup_src:-})"
-					msg="$msg and the result of subtask_cmd_local ($backup_src_local)"
-					msg="$msg are both empty"
-					error "$title: $msg"
+					if [ "${arg_backup_no_src_needed:-}" != 'true' ]; then
+						msg="backup_src and the result of subtask_cmd_local are both empty"
+						error "$title: $msg"
+					fi
 				elif [ -n "${backup_src:-}" ] && [ -n "${backup_src_local:-}" ]; then
 					msg="backup_src (${backup_src:-})"
 					msg="$msg and the result of subtask_cmd_local ($backup_src_local)"
@@ -250,32 +251,40 @@ case "$command" in
 					backup_src="${backup_src_local:-}"
 				fi
 			elif [ -z "${backup_src:-}" ]; then
-				msg="backup_src (${backup_src:-})"
-				msg="$msg and subtask_cmd_local ($arg_subtask_cmd_local)"
-				msg="$msg are both empty"
-				error "$title: $msg"
+				if [ "${arg_backup_no_src_needed:-}" != 'true' ]; then
+					msg="backup_src and subtask_cmd_local are both empty"
+					error "$title: $msg"
+				fi
 			fi
-
-			src_type="$("$pod_script_env_file" "run:util:file:type" \
-				--task_name="$arg_task_name" \
-				--subtask_cmd="$command" \
-				--toolbox_service="$arg_toolbox_service" \
-				--path="$backup_src" \
-				|| error "$title: file:type (dest_file)"
-			)"
 
 			next_src_file=''
 			next_src_dir=''
 
-			if [ "${src_type:-}" = 'file' ]; then
-				next_src_file="${backup_src:-}"
-			elif [ "${src_type:-}" = 'dir' ]; then
-				next_src_dir="${backup_src:-}"
-			else
-				error "$title: invalid backup source type (${src_type:-})"
+			if [ -n "${backup_src:-}" ]; then
+				src_type="$("$pod_script_env_file" "run:util:file:type" \
+					--task_name="$arg_task_name" \
+					--subtask_cmd="$command" \
+					--toolbox_service="$arg_toolbox_service" \
+					--path="$backup_src" \
+					|| error "$title: file:type (dest_file)"
+				)"
+
+				if [ "${src_type:-}" = 'file' ]; then
+					next_src_file="${backup_src:-}"
+				elif [ "${src_type:-}" = 'dir' ]; then
+					next_src_dir="${backup_src:-}"
+				else
+					error "$title: invalid backup source type (${src_type:-})"
+				fi
 			fi
 
 			if [ "${arg_is_compressed_file:-}" = "true" ]; then
+				if [ -z "${backup_src:-}" ]; then
+					msg="backup_src is empty when trying to compress"
+					msg="$msg the file/directory during the backup"
+					error "$title: $msg"
+				fi
+
 				dest_file="$("$pod_script_env_file" "run:util:replace_placeholders" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
@@ -302,22 +311,7 @@ case "$command" in
 				next_src_dir=''
 			fi
 
-			move_dest="${arg_move_dest:-}"
-
-			if [ -n "${move_dest:-}" ]; then
-				move_dest="$("$pod_script_env_file" "run:util:replace_placeholders" \
-					--task_name="$arg_task_name" \
-					--subtask_cmd="$command" \
-					--toolbox_service="$arg_toolbox_service" \
-					--value="$move_dest" \
-					--date_format="${arg_backup_date_format:-}" \
-					--time_format="${arg_backup_time_format:-}" \
-					--datetime_format="${arg_backup_datetime_format:-}")" \
-					|| error "$title: replace_placeholders (move_dest)"
-			fi
-
-			"$pod_script_same_file" "inner:general_actions" \
-				--inner_move_dest="$move_dest" "${args[@]}"
+			"$pod_script_same_file" "inner:general_actions" "${args[@]}"
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
 				if [ "${arg_local:-}" = "true" ]; then

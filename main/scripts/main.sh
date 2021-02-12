@@ -104,6 +104,8 @@ while getopts ':-:' OPT; do
 		snapshot_type ) arg_snapshot_type="${OPTARG:-}";;
 		repository_name ) arg_repository_name="${OPTARG:-}";;
 		snapshot_name ) arg_snapshot_name="${OPTARG:-}";;
+		bucket_name ) arg_bucket_name="${OPTARG:-}" ;;
+		bucket_path ) arg_bucket_path="${OPTARG:-}" ;;
 		db_args ) arg_db_args="${OPTARG:-}";;
 		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}";;
 		??* ) ;; ## ignore
@@ -354,6 +356,7 @@ case "$command" in
 		param_subtask_cmd_verify="${prefix}_subtask_cmd_verify"
 		param_subtask_cmd_remote="${prefix}_subtask_cmd_remote"
 		param_subtask_cmd_local="${prefix}_subtask_cmd_local"
+		param_no_src_needed="${prefix}_no_src_needed"
 		param_backup_src="${prefix}_backup_src"
 		param_backup_date_format="${prefix}_backup_date_format"
 		param_backup_time_format="${prefix}_backup_time_format"
@@ -368,8 +371,6 @@ case "$command" in
 		param_recursive_mode="${prefix}_recursive_mode"
 		param_recursive_mode_dir="${prefix}_recursive_mode_dir"
 		param_recursive_mode_file="${prefix}_recursive_mode_file"
-		param_move_src="${prefix}_move_src"
-		param_move_dest="${prefix}_move_dest"
 		param_file_to_clear="${prefix}_file_to_clear"
 		param_dir_to_clear="${prefix}_dir_to_clear"
 
@@ -384,6 +385,7 @@ case "$command" in
 		opts+=( "--subtask_cmd_verify=${!param_subtask_cmd_verify:-}" )
 		opts+=( "--subtask_cmd_remote=${!param_subtask_cmd_remote:-}" )
 		opts+=( "--subtask_cmd_local=${!param_subtask_cmd_local:-}" )
+		opts+=( "--backup_no_src_needed=${!param_no_src_needed:-}" )
 		opts+=( "--backup_src=${!param_backup_src:-}" )
 		opts+=( "--backup_date_format=${!param_backup_date_format:-}" )
 		opts+=( "--backup_time_format=${!param_backup_time_format:-}" )
@@ -398,8 +400,6 @@ case "$command" in
 		opts+=( "--recursive_mode=${!param_recursive_mode:-}" )
 		opts+=( "--recursive_mode_dir=${!param_recursive_mode_dir:-}" )
 		opts+=( "--recursive_mode_file=${!param_recursive_mode_file:-}" )
-		opts+=( "--move_src=${!param_move_src:-}" )
-		opts+=( "--move_dest=${!param_move_dest:-}" )
 		opts+=( "--file_to_clear=${!param_file_to_clear:-}" )
 		opts+=( "--dir_to_clear=${!param_dir_to_clear:-}" )
 
@@ -465,6 +465,8 @@ case "$command" in
 		param_snapshot_type="${prefix}_snapshot_type"
 		param_repository_name="${prefix}_repository_name"
 		param_snapshot_name="${prefix}_snapshot_name"
+		param_bucket_name="${prefix}_bucket_name"
+		param_bucket_path="${prefix}_bucket_path"
 		param_db_args="${prefix}_db_args"
 		param_db_index_prefix="${prefix}_db_index_prefix"
 
@@ -479,6 +481,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${!param_snapshot_type:-}" )
 		opts+=( "--repository_name=${!param_repository_name:-}" )
 		opts+=( "--snapshot_name=${!param_snapshot_name:-}" )
+		opts+=( "--bucket_name=${!param_bucket_name:-}" )
+		opts+=( "--bucket_path=${!param_bucket_path:-}" )
 		opts+=( "--db_args=${!param_db_args:-}" )
 		opts+=( "--db_index_prefix=${!param_db_index_prefix:-}" )
 
@@ -494,6 +498,8 @@ case "$command" in
 		param_snapshot_type="${prefix}_snapshot_type"
 		param_repository_name="${prefix}_repository_name"
 		param_snapshot_name="${prefix}_snapshot_name"
+		param_bucket_name="${prefix}_bucket_name"
+		param_bucket_path="${prefix}_bucket_path"
 		param_db_args="${prefix}_db_args"
 		param_db_index_prefix="${prefix}_db_index_prefix"
 
@@ -508,6 +514,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${!param_snapshot_type:-}" )
 		opts+=( "--repository_name=${!param_repository_name:-}" )
 		opts+=( "--snapshot_name=${!param_snapshot_name:-}" )
+		opts+=( "--bucket_name=${!param_bucket_name:-}" )
+		opts+=( "--bucket_path=${!param_bucket_path:-}" )
 		opts+=( "--db_args=${!param_db_args:-}" )
 		opts+=( "--db_index_prefix=${!param_db_index_prefix:-}" )
 
@@ -527,6 +535,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
 		opts+=( "--repository_name=${arg_repository_name:-}" )
 		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
+		opts+=( "--bucket_name=${arg_bucket_name:-}" )
+		opts+=( "--bucket_path=${arg_bucket_path:-}" )
 		opts+=( "--db_args=${arg_db_args:-}" )
 		opts+=( "--db_index_prefix=${arg_db_index_prefix:-}" )
 
@@ -557,6 +567,8 @@ case "$command" in
 		opts+=( "--snapshot_type=${arg_snapshot_type:-}" )
 		opts+=( "--repository_name=${arg_repository_name:-}" )
 		opts+=( "--snapshot_name=${arg_snapshot_name:-}" )
+		opts+=( "--bucket_name=${arg_bucket_name:-}" )
+		opts+=( "--bucket_path=${arg_bucket_path:-}" )
 		opts+=( "--db_args=${arg_db_args:-}" )
 		opts+=( "--db_index_prefix=${arg_db_index_prefix:-}" )
 

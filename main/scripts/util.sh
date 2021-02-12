@@ -136,6 +136,13 @@ case "$command" in
 
 			inner_str="${arg_value:-}"
 
+			regex_empty="\[\[[ ]*\]\]"
+
+			if [[ "\$inner_str" =~ \$regex_empty ]]; then
+				empty=''
+				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )[]][]]/\$empty}"
+			fi
+
 			regex_random="\[\[[ ]*random[ ]*\]\]"
 
 			if [[ "\$inner_str" =~ \$regex_random ]]; then
@@ -144,29 +151,29 @@ case "$command" in
 			fi
 
 			regex_date="\[\[[ ]*date[ ]*\]\]"
-			backup_date_format="${arg_date_format:-}"
+			date_format="${arg_date_format:-}"
 
 			if [[ \$inner_str =~ \$regex_date ]]; then
 				default_date_format='%Y%m%d'
-				date="\$(date "+\${backup_date_format:-\$default_date_format}")"
+				date="\$(date "+\${date_format:-\$default_date_format}")"
 				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )date*( )[]][]]/\$date}"
 			fi
 
 			regex_time="\[\[[ ]*time[ ]*\]\]"
-			backup_time_format="${arg_time_format:-}"
+			time_format="${arg_time_format:-}"
 
 			if [[ \$inner_str =~ \$regex_time ]]; then
 				default_time_format='%H%M%S'
-				time="\$(date "+\${backup_time_format:-\$default_time_format}")"
+				time="\$(date "+\${time_format:-\$default_time_format}")"
 				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )time*( )[]][]]/\$time}"
 			fi
 
 			regex_datetime="\[\[[ ]*datetime[ ]*\]\]"
-			backup_datetime_format="${arg_datetime_format:-}"
+			datetime_format="${arg_datetime_format:-}"
 
 			if [[ \$inner_str =~ \$regex_datetime ]]; then
 				default_datetime_format='%Y%m%d.%H%M%S'
-				datetime="\$(date "+\${backup_datetime_format:-\$default_datetime_format}")"
+				datetime="\$(date "+\${datetime_format:-\$default_datetime_format}")"
 				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )datetime*( )[]][]]/\$datetime}"
 			fi
 

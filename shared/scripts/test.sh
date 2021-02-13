@@ -41,24 +41,21 @@ case "$command" in
 		SHELL
 
 		"$pod_script_env_file" "run:compress:zip" \
-			--task_name="test-1.1" \
-			--subtask_cmd="$command" \
+			--task_info="test-1.1 - $command" \
 			--toolbox_service="toolbox" \
 			--task_kind="file" \
 			--src_file="/tmp/main/test/src/file1.txt" \
 			--dest_file="/tmp/main/test/dest/file.zip"
 
 		"$pod_script_env_file" "run:compress:zip" \
-			--task_name="test-1.2" \
-			--subtask_cmd="$command" \
+			--task_info="test-1.2 - $command" \
 			--toolbox_service="toolbox" \
 			--task_kind="dir" \
 			--src_dir="/tmp/main/test/src/dir" \
 			--dest_file="/tmp/main/test/dest/dir.zip"
 
 		"$pod_script_env_file" "run:compress:zip" \
-			--task_name="test-1.3" \
-			--subtask_cmd="$command" \
+			--task_info="test-1.3 - $command" \
 			--toolbox_service="toolbox" \
 			--task_kind="dir" \
 			--src_dir="/tmp/main/test/src/dir" \
@@ -66,8 +63,7 @@ case "$command" in
 			--flat="true"
 
 		"$pod_script_env_file" "run:compress:zip" \
-			--task_name="test-1.4" \
-			--subtask_cmd="$command" \
+			--task_info="test-1.4 - $command" \
 			--toolbox_service="toolbox" \
 			--task_kind="file" \
 			--src_file="/tmp/main/test/src/dir/file2.txt" \
@@ -90,32 +86,28 @@ case "$command" in
 		SHELL
 
 		"$pod_script_env_file" "run:uncompress:zip" \
-			--task_name="test-2.1" \
-			--subtask_cmd="$command" \
+			--task_info="test-2.1 - $command" \
 			--toolbox_service="toolbox" \
 			--src_file="/tmp/main/test/dest/file.zip" \
 			--dest_dir="/tmp/main/test/newdest/file" \
 			--compress_pass=""
 
 		"$pod_script_env_file" "run:uncompress:zip" \
-			--task_name="test-2.2" \
-			--subtask_cmd="$command" \
+			--task_info="test-2.2 - $command" \
 			--toolbox_service="toolbox" \
 			--src_file="/tmp/main/test/dest/dir.zip" \
 			--dest_dir="/tmp/main/test/newdest/dir" \
 			--compress_pass=""
 
 		"$pod_script_env_file" "run:uncompress:zip" \
-			--task_name="test-2.4" \
-			--subtask_cmd="$command" \
+			--task_info="test-2.3 - $command" \
 			--toolbox_service="toolbox" \
 			--src_file="/tmp/main/test/dest/flat.zip" \
 			--dest_dir="/tmp/main/test/newdest/flat" \
 			--compress_pass=""
 
 		"$pod_script_env_file" "run:uncompress:zip" \
-			--task_name="test-2.3" \
-			--subtask_cmd="$command" \
+			--task_info="test-2.4 - $command" \
 			--toolbox_service="toolbox" \
 			--src_file="/tmp/main/test/dest/pass.zip" \
 			--dest_dir="/tmp/main/test/newdest/pass" \

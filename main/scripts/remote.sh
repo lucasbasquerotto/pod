@@ -28,6 +28,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
@@ -55,9 +56,9 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command"
-[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
-[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"backup")
@@ -79,6 +80,7 @@ case "$command" in
 		backup_src="${arg_backup_src_file:-$arg_backup_src_dir}"
 
 		src_type="$("$pod_script_env_file" "run:util:file:type" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--subtask_cmd="$command" \
 			--toolbox_service="$arg_toolbox_service" \
@@ -94,6 +96,7 @@ case "$command" in
 
 		if [ -n "${arg_backup_bucket_sync_dir:-}" ]; then
 			backup_bucket_sync_dir="$("$pod_script_env_file" "run:util:replace_placeholders" \
+				--task_info="$title" \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$command" \
 				--toolbox_service="$arg_toolbox_service" \
@@ -129,6 +132,7 @@ case "$command" in
 		fi
 
 		empty_bucket="$("$pod_script_env_file" "$arg_subtask_cmd_s3" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--subtask_cmd="$arg_subtask_cmd" \
 			--s3_cmd=is_empty_bucket)"
@@ -136,6 +140,7 @@ case "$command" in
 		if [ "$empty_bucket" = "true" ]; then
 			info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
 			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket \
+				--task_info="$title" \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$arg_subtask_cmd"
 		fi
@@ -146,6 +151,7 @@ case "$command" in
 			--s3_remote_dest="true" \
 			--s3_file="$backup_bucket_file" \
 			--s3_ignore_path="${arg_backup_ignore_path:-}" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--subtask_cmd="$arg_subtask_cmd"
 		;;
@@ -189,6 +195,7 @@ case "$command" in
 				--s3_remote_src="true" \
 				--s3_dest="$restore_dest_dir" \
 				--s3_file="$restore_bucket_file" \
+				--task_info="$title" \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$arg_subtask_cmd"
 		else
@@ -218,6 +225,7 @@ case "$command" in
 				>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=cp \
 					--s3_src_rel="$arg_restore_bucket_path_file" \
 					--s3_dest="$arg_restore_dest_file" \
+					--task_info="$title" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$arg_subtask_cmd"
 			else

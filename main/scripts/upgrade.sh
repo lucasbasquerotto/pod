@@ -34,6 +34,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"     # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
@@ -80,9 +81,9 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command"
-[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
-[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"upgrade"|"fast-upgrade")
@@ -125,6 +126,7 @@ case "$command" in
 		else
 			if [ "${arg_setup_run_new_task:-}" = "true" ]; then
 				"$pod_script_env_file" "${arg_subtask_cmd_new}" \
+					--task_info="$title" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$arg_subtask_cmd"
 			else
@@ -134,6 +136,7 @@ case "$command" in
 					else
 						info "$title - restore - remote"
 						"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+							--task_info="$title" \
 							--task_name="$arg_task_name" \
 							--subtask_cmd="$arg_subtask_cmd"
 					fi
@@ -142,8 +145,7 @@ case "$command" in
 				if [ "${arg_is_compressed_file:-}" = "true" ]; then
 					info "$title - restore - uncompress"
 					"$pod_script_env_file" "run:uncompress:$arg_compress_type"\
-						--task_name="$arg_task_name" \
-						--subtask_cmd="$command" \
+						--task_info="$title" \
 						--toolbox_service="$arg_toolbox_service" \
 						--src_file="$arg_compress_src_file" \
 						--dest_dir="$arg_compress_dest_dir" \
@@ -156,6 +158,7 @@ case "$command" in
 				if [ -n "${arg_subtask_cmd_local:-}" ]; then
 					info "$title - restore - local"
 					"$pod_script_env_file" "${arg_subtask_cmd_local}" \
+						--task_info="$title" \
 						--task_name="$arg_task_name" \
 						--subtask_cmd="$arg_subtask_cmd"
 				fi
@@ -234,6 +237,7 @@ case "$command" in
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
 				info "$title - backup - local"
 				backup_src_local="$("$pod_script_env_file" "${arg_subtask_cmd_local}" \
+					--task_info="$title" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$arg_subtask_cmd")"
 
@@ -262,6 +266,7 @@ case "$command" in
 
 			if [ -n "${backup_src:-}" ]; then
 				src_type="$("$pod_script_env_file" "run:util:file:type" \
+					--task_info="$title" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
@@ -286,6 +291,7 @@ case "$command" in
 				fi
 
 				dest_file="$("$pod_script_env_file" "run:util:replace_placeholders" \
+					--task_info="$title" \
 					--task_name="$arg_task_name" \
 					--subtask_cmd="$command" \
 					--toolbox_service="$arg_toolbox_service" \
@@ -297,8 +303,7 @@ case "$command" in
 
 				info "$title - backup - compress"
 				"$pod_script_env_file" "run:compress:$arg_compress_type" \
-					--task_name="$arg_task_name" \
-					--subtask_cmd="$command" \
+					--task_info="$title" \
 					--toolbox_service="$arg_toolbox_service" \
 					--task_kind="$src_type" \
 					--src_file="${next_src_file:-}" \
@@ -319,6 +324,7 @@ case "$command" in
 				else
 					info "$title - backup - remote"
 					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
+						--task_info="$title" \
 						--task_name="$arg_task_name" \
 						--subtask_cmd="$arg_subtask_cmd" \
 						--src_dir="${next_src_dir:-}" \
@@ -336,6 +342,7 @@ case "$command" in
 		if [ -n "${arg_subtask_cmd_verify:-}" ]; then
 			info "$title - verify if the task should be done"
 			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
+				--task_info="$title" \
 				--task_name="$arg_task_name" \
 				--subtask_cmd="$arg_subtask_cmd" \
 				--local="${arg_local:-}")"

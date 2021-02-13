@@ -49,10 +49,17 @@ log_run_file="$pod_layer_dir/shared/scripts/log.sh"
 test_run_file="$pod_layer_dir/shared/scripts/test.sh"
 ssl_local_run_file="$pod_layer_dir/shared/scripts/lib/ssl.local.sh"
 
+title="${arg_task_name:-}"
+[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+[ -n "${title:-}" ] && title="$title - "
+title="${title}${command}"
+
+next_args=( --task_name"${arg_task_name:-}" --subtask_cmd="$command" )
+
 case "$command" in
 	"upgrade")
 		if [ "${var_custom__use_main_network:-}" = "true" ]; then
-			"$pod_main_run_file" "setup:main:network"
+			"$pod_main_run_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
@@ -83,16 +90,16 @@ case "$command" in
 		fi
 		;;
 	"backup"|"local.backup")
-		"$pod_script_env_file" "shared:bg:$command"
+		"$pod_script_env_file" "shared:bg:$command" ${next_args[@]+"${next_args[@]}"}
 		;;
 	"action:exec:backup"|"action:exec:local.backup")
 		task_name="${command#action:exec:}"
 
 		if [ "${var_custom__use_logrotator:-}" = "true" ]; then
-			"$pod_script_env_file" "shared:unique:rotate" ||:
+			"$pod_script_env_file" "shared:unique:rotate" ${next_args[@]+"${next_args[@]}"} ||:
 		fi
 
-		"$pod_main_run_file" "$task_name"
+		"$pod_main_run_file" "$task_name" ${next_args[@]+"${next_args[@]}"}
 		;;
 	"action:exec:rotate")
 		"$pod_script_env_file" run logrotator
@@ -245,9 +252,9 @@ case "$command" in
 		;;
 	"setup")
 		if [ "${var_custom__local:-}" = "true" ]; then
-			"$pod_script_env_file" "action:exec:setup"
+			"$pod_script_env_file" "action:exec:setup" ${next_args[@]+"${next_args[@]}"}
 		else
-			"$pod_script_env_file" "shared:bg:setup"
+			"$pod_script_env_file" "shared:bg:setup" ${next_args[@]+"${next_args[@]}"}
 		fi
 		;;
 	"action:exec:setup")
@@ -257,7 +264,7 @@ case "$command" in
 
 		if [ "${var_custom__use_certbot:-}" = "true" ]; then
 			info "$command - run certbot if needed..."
-			"$pod_script_env_file" "main:task:certbot"
+			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_custom__use_nginx:-}" = "true" ]; then
@@ -308,19 +315,20 @@ case "$command" in
 			fi
 		fi
 
-		"$pod_main_run_file" setup
+		"$pod_main_run_file" setup ${next_args[@]+"${next_args[@]}"}
 		;;
 	"migrate")
 		if [ "${var_custom__use_varnish:-}" = "true" ]; then
 			"$pod_script_env_file" up varnish
 
 			info "$command - clear varnish cache..."
-			"$pod_script_env_file" "service:varnish:clear"
+			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_custom__use_nextcloud:-}" = "true" ]; then
 			info "$command - prepare nextcloud..."
-			"$pod_script_env_file" "shared:service:nextcloud:setup"
+			"$pod_script_env_file" "shared:service:nextcloud:setup" \
+				${next_args[@]+"${next_args[@]}"}
 		fi
 		;;
 	"shared:service:nextcloud:setup")
@@ -463,7 +471,8 @@ case "$command" in
 		;;
 	"action:exec:log_register."*)
 		task_name="${command#action:exec:log_register.}"
-		"$pod_script_env_file" "shared:log:register:$task_name"
+		"$pod_script_env_file" "shared:log:register:$task_name" \
+			${next_args[@]+"${next_args[@]}"}
 		;;
 	"shared:s3:replicate:backup")
 		opts=()

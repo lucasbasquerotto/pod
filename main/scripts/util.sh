@@ -35,14 +35,13 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"     # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		task_name ) arg_task_name="${OPTARG:-}";;
-		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
+		task_info ) arg_task_info="${OPTARG:-}";;
+		title ) arg_title="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 
 		error ) arg_error="${OPTARG:-}";;
 		warn ) arg_warn="${OPTARG:-}";;
 		info ) arg_info="${OPTARG:-}";;
-		cmd ) arg_cmd="${OPTARG:-}";;
 		start ) arg_start="${OPTARG:-}";;
 		end ) arg_end="${OPTARG:-}";;
 
@@ -64,9 +63,9 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command"
-[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
-[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"util:error")
@@ -93,21 +92,21 @@ case "$command" in
 		;;
 	"util:info:start")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
-			msg="$(date '+%F %T') - ${arg_cmd:-} - start"
+			msg="$(date '+%F %T') - ${arg_title:-} - start"
 			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:end")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
-			msg="$(date '+%F %T') - ${arg_cmd:-} - end"
+			msg="$(date '+%F %T') - ${arg_title:-} - end"
 			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:summary")
 		if [ "${arg_no_summary:-}" != "true" ]; then
-			msg="[summary] ${arg_cmd:-}: ${arg_start:-} - ${arg_end:-}"
+			msg="[summary] ${arg_title:-}: ${arg_start:-} - ${arg_end:-}"
 			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${PURPLE}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi

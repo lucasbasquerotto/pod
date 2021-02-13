@@ -28,6 +28,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}" ;;
@@ -47,6 +48,10 @@ while getopts ':-:' OPT; do
 	esac
 done
 shift $((OPTIND-1))
+
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"container:image:tag:exists")
@@ -90,6 +95,7 @@ case "$command" in
 			--userpass="$arg_userpass" \
 			--registry="$registry" \
 			--full_image_name="$full_image_name" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--subtask_cmd="$arg_subtask_cmd" \
 

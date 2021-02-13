@@ -70,6 +70,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"     # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
 		src_dir ) arg_src_dir="${OPTARG:-}";;
@@ -114,19 +115,19 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command"
-[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
-[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 start="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
-		|"util:error"|"util:warn"|"util:info"|"util:info:"*)
+		|"util:"*|"run:util:"*)
 		;;
 	*)
-		"$pod_script_env_file" "util:info:start" --cmd="$command"
+		"$pod_script_env_file" "util:info:start" --title="$title"
 		;;
 esac
 
@@ -161,7 +162,9 @@ case "$command" in
 		;;
 	"local:task:"*)
 		task_name="${command#local:task:}"
-		"$pod_script_env_file" "main:task:$task_name" --local="true"
+		"$pod_script_env_file" "main:task:$task_name" \
+			--task_info="$title" \
+			--local="true"
 		;;
 	"main:task:"*)
 		task_name="${command#main:task:}"
@@ -169,7 +172,9 @@ case "$command" in
 
 		param_type="${prefix}_type"
 
-		"$pod_script_env_file" "${!param_type}:task:$task_name" --local="${arg_local:-}"
+		"$pod_script_env_file" "${!param_type}:task:$task_name" \
+			--task_info="$title" \
+			--local="${arg_local:-}"
 		;;
 	"custom:task:"*)
 		task_name="${command#custom:task:}"
@@ -177,7 +182,9 @@ case "$command" in
 
 		param_task="${prefix}_task"
 
-		"$pod_script_env_file" "${!param_task}" --local="${arg_local:-}"
+		"$pod_script_env_file" "${!param_task}" \
+			--task_info="$title" \
+			--local="${arg_local:-}"
 		;;
 	"group:task:"*)
 		task_name="${command#group:task:}"
@@ -194,12 +201,14 @@ case "$command" in
 			arr=("${tmp[@]}")
 
 			for task_name in "${arr[@]}"; do
-				"$pod_script_env_file" "main:task:$task_name" --local="${arg_local:-}"
+				"$pod_script_env_file" "main:task:$task_name" \
+					--task_info="$title" \
+					--local="${arg_local:-}"
 			done
 		fi
 		;;
 	"setup")
-		opts=()
+		opts=( "--task_info=$title" )
 		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--setup_task_name=${var_run__tasks__setup:-}" )
 		"$pod_script_upgrade_file" "$command" "${opts[@]}"
@@ -240,7 +249,7 @@ case "$command" in
 		param_file_to_clear="${prefix}_file_to_clear"
 		param_dir_to_clear="${prefix}_dir_to_clear"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -274,21 +283,25 @@ case "$command" in
 		;;
 	"setup:verify:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="setup_verify"
 		;;
 	"setup:local:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="setup_local"
 		;;
 	"setup:remote:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="setup_remote"
 		;;
 	"setup:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="setup_db"
 		;;
@@ -297,7 +310,7 @@ case "$command" in
 
 		param_setup_dest_dir_to_verify="${prefix}_setup_dest_dir_to_verify"
 
-		opts=()
+		opts=( "--task_info=$title" )
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
@@ -318,7 +331,7 @@ case "$command" in
 		param_restore_bucket_path_dir="${prefix}_restore_bucket_path_dir"
 		param_restore_bucket_path_file="${prefix}_restore_bucket_path_file"
 
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -336,10 +349,10 @@ case "$command" in
 		"$pod_script_remote_file" restore "${opts[@]}"
 		;;
 	"local.backup")
-		"$pod_main_run_file" backup --local="true"
+		"$pod_main_run_file" backup --task_info="$title" --local="true"
 		;;
 	"backup")
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--local=${arg_local:-}" )
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
@@ -374,7 +387,7 @@ case "$command" in
 		param_file_to_clear="${prefix}_file_to_clear"
 		param_dir_to_clear="${prefix}_dir_to_clear"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -423,7 +436,7 @@ case "$command" in
 		backup_src_dir="${arg_src_dir:-$backup_src_dir}"
 		backup_src_file="${arg_src_file:-$backup_src_file}"
 
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -442,16 +455,19 @@ case "$command" in
 		;;
 	"backup:local:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="backup_local"
 		;;
 	"backup:remote:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="backup_remote"
 		;;
 	"backup:db")
 		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
 			--task_name="$arg_task_name" \
 			--db_common_prefix="backup_db"
 		;;
@@ -470,7 +486,7 @@ case "$command" in
 		param_db_args="${prefix}_db_args"
 		param_db_index_prefix="${prefix}_db_index_prefix"
 
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -503,7 +519,7 @@ case "$command" in
 		param_db_args="${prefix}_db_args"
 		param_db_index_prefix="${prefix}_db_index_prefix"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -524,7 +540,7 @@ case "$command" in
 	"db:subtask:"*)
 		task_name="${command#db:subtask:}"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -557,10 +573,7 @@ case "$command" in
 		param_db_connect_wait_secs="${prefix}_db_connect_wait_secs"
 		param_connection_sleep="${prefix}_connection_sleep"
 
-		opts=()
-
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
+		opts=( "--task_info=$title" )
 
 		opts+=( "--db_task_base_dir=${arg_db_task_base_dir:-}" )
 		opts+=( "--db_file_name=${arg_db_file_name:-}" )
@@ -612,7 +625,7 @@ case "$command" in
 		param_s3_older_than_days="${prefix}_s3_older_than_days"
 		param_s3_file="${prefix}_s3_file"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -640,7 +653,7 @@ case "$command" in
 	"s3:subtask:"*)
 		task_name="${command#s3:subtask:}"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -771,7 +784,7 @@ case "$command" in
 			s3_opts+=( --exclude "${arg_s3_ignore_path:-}" )
 		fi
 
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -803,7 +816,7 @@ case "$command" in
 
 		param_certbot_cmd="${prefix}_certbot_cmd"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -815,7 +828,7 @@ case "$command" in
 	"certbot:subtask:"*)
 		task_name="${command#certbot:subtask:}"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -843,7 +856,7 @@ case "$command" in
 
 		webservice_type_value="${!param_webservice_type}"
 
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -870,7 +883,8 @@ case "$command" in
 		"$pod_script_certbot_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"verify")
-		"$pod_script_env_file" "main:task:$var_run__tasks__verify"
+		"$pod_script_env_file" "main:task:$var_run__tasks__verify" \
+			--task_info="$title"
 		;;
 	"verify:db:connection")
 		prefix="var_task__${arg_task_name}__verify_db_connection_"
@@ -878,7 +892,7 @@ case "$command" in
 		param_task_name="${prefix}_task_name"
 		param_db_subtask_cmd="${prefix}_db_subtask_cmd"
 
-		opts=()
+		opts=( "--task_info=$title" )
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
@@ -893,7 +907,7 @@ case "$command" in
 		param_bg_file="${prefix}_bg_file"
 		param_action_dir="${prefix}_action_dir"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -907,6 +921,7 @@ case "$command" in
 		touch "$arg_bg_file"
 
 		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
+			--task_info="$title" \
 			--action_dir="$arg_action_dir" \
 			>> "$arg_bg_file" 2>&1 &
 
@@ -925,7 +940,7 @@ case "$command" in
 		param_toolbox_service="${prefix}_toolbox_service"
 		param_action_dir="${prefix}_action_dir"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -937,7 +952,7 @@ case "$command" in
 	"action:subtask:"*)
 		task_name="${command#action:subtask:}"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -947,7 +962,7 @@ case "$command" in
 		"$pod_script_env_file" "action:subtask" "${opts[@]}"
 		;;
 	"action:subtask")
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -1031,7 +1046,7 @@ case "$command" in
 		param_toolbox_service="${prefix}_toolbox_service"
 		param_action_dir="${prefix}_action_dir"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -1044,7 +1059,7 @@ case "$command" in
 	"unique:subtask:"*)
 		task_name="${command#unique:subtask:}"
 
-		opts=()
+		opts=( "--task_info=$title >> $task_name" )
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -1054,7 +1069,7 @@ case "$command" in
 		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
 		;;
 	"unique:subtask")
-		opts=()
+		opts=( "--task_info=$title" )
 
 		opts+=( "--task_name=$arg_task_name" )
 		opts+=( "--subtask_cmd=$command" )
@@ -1106,14 +1121,6 @@ case "$command" in
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
 		;;
-	"demo:log")
-		info "test info" "some more info\nnew info line"
-		warn "test warn" "some more warn\nnew warn line"
-		error "test error" "some more error\nnew error line"
-		;;
-	"demo:log:success")
-		"$pod_script_env_file" "demo:log" || warn "$command: error"
-		;;
 	*)
 		error "$command: invalid command"
 		;;
@@ -1124,10 +1131,10 @@ end="$(date '+%F %T')"
 case "$command" in
 	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
-		|"util:error"|"util:warn"|"util:info"|"util:info:"*)
+		|"util:"*|"run:util:"*)
 		;;
 	*)
-		"$pod_script_env_file" "util:info:end" --cmd="$command"
-		"$pod_script_env_file" "util:info:summary" --cmd="$command" --start="$start" --end="$end"
+		"$pod_script_env_file" "util:info:end" --title="$title"
+		"$pod_script_env_file" "util:info:summary" --title="$title" --start="$start" --end="$end"
 		;;
 esac

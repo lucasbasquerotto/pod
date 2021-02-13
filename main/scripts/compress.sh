@@ -28,8 +28,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		task_name ) arg_task_name="${OPTARG:-}";;
-		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
+		task_info ) arg_task_info="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		task_kind ) arg_task_kind="${OPTARG:-}";;
 		src_file ) arg_src_file="${OPTARG:-}";;
@@ -44,9 +43,9 @@ while getopts ':-:' OPT; do
 done
 shift $((OPTIND-1))
 
-title="$command"
-[ -n "${arg_task_name:-}" ] && title="$title - $arg_task_name"
-[ -n "${arg_subtask_cmd:-}" ] && title="$title ($arg_subtask_cmd)"
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"compress:zip")

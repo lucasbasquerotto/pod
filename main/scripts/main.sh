@@ -786,9 +786,6 @@ case "$command" in
 
 		opts=( "--task_info=$title" )
 
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
 		opts+=( "--s3_service=${!param_service:-}" )
 		opts+=( "--s3_tmp_dir=${!param_tmp_dir:-}" )
 		opts+=( "--s3_alias=$alias" )

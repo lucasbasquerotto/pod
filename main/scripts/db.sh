@@ -95,9 +95,9 @@ case "$command" in
 				if [ "${arg_db_remote:-}" = "true" ]; then
 					>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
 					sql_output="\$(mysql \
-						--user="$arg_db_user" \
 						--host="$arg_db_host" \
 						--port="$arg_db_port" \
+						--user="$arg_db_user" \
 						--password="$arg_db_pass" \
 						-N -e "$sql_tables" 2>&1)" ||:
 				else

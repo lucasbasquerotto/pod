@@ -1,12 +1,12 @@
 /.env
 
-/env/
-/env-*/
-/env-*
-
 /custom/
 /custom-*/
 /custom-*
+
+/env/
+/env-*/
+/env-*
 
 /ext/
 /ext-*/

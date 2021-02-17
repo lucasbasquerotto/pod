@@ -67,14 +67,16 @@ case "$command" in
 		"$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
 		;;
 	"db:main:tables:count:mysql")
-		"$pod_script_env_file" up "$arg_db_service"
+		if [ "${arg_db_cmd:-}" != "run" ]; then
+			"$pod_script_env_file" up "$arg_db_service"
+		fi
 
 		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
 		re_number='^[0-9]+$'
-		cmd_args=( "exec-nontty" )
+		cmd_args=( 'exec-nontty' )
 
 		if [ "${arg_db_cmd:-}" = "run" ]; then
-			cmd_args=( "run" )
+			cmd_args=( 'run' )
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"

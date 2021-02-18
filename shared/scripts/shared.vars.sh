@@ -151,7 +151,7 @@ export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
 	export var_custom__use_nginx="${var_load_use__nginx:-}"
-	export var_custom__use_theia="${var_load__use_theia:-}"
+	export var_custom__use_theia="${var_load_use__theia:-}"
 	export var_custom__use_varnish="${var_load_use__varnish:-}"
 
 	if [ "${var_load_use__ssl:-}" = 'true' ]; then
@@ -204,7 +204,7 @@ else
 	tmp_enable_uploads_backup="${var_load_enable__custom_uploads_backup:-}"
 fi
 
-if [ "$tmp_enable_uploads_backup" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" = 'true' ]; then
+if [ "$tmp_enable_uploads_backup" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" = 'true' ]; then
 	tmp_errors+=("[shared] uploads_backup is enabled with use_s3_storage=true")
 fi
 
@@ -258,7 +258,7 @@ else
 	tmp_enable_uploads_setup="${var_load_enable__custom_uploads_setup:-}"
 fi
 
-if [ "$tmp_enable_uploads_setup" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" = 'true' ]; then
+if [ "$tmp_enable_uploads_setup" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" = 'true' ]; then
 	tmp_errors+=("[shared] uploads_setup is enabled with use_s3_storage=true")
 fi
 
@@ -682,7 +682,7 @@ if [ "${var_load_enable__sync_setup:-}" = 'true' ]; then
     export var_task__sync_setup__setup_remote__restore_bucket_path_dir="${var_load__sync_setup__restore_bucket_path_dir:-}"
 fi
 
-if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load__use_s3_storage:-}" != 'true' ]; then
+if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" != 'true' ]; then
 	if [ "${var_load_enable__uploads_backup:-}" = 'true' ]; then
 		tmp_uploads_src_dir="/var/main/data/${var_load_name:-}/uploads"
 		tmp_uploads_tmp_dir='/tmp/main/tmp/backup/uploads'

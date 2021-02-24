@@ -119,7 +119,6 @@ schemas:
         description: "service name (has only a labeling function)"
       domain:
         type: "str"
-        non_empty: true
         description: "domain in which the requests are received"
       service:
         type: "str"

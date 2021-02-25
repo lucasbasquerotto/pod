@@ -855,9 +855,6 @@ case "$command" in
 
 		opts=( "--task_info=$title" )
 
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
 		opts+=( "--toolbox_service=${!param_toolbox_service}" )
 		opts+=( "--certbot_service=${!param_certbot_service}" )
 		opts+=( "--webservice_type=${!param_webservice_type}" )

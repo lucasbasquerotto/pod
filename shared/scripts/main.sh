@@ -105,6 +105,24 @@ case "$command" in
 		"$pod_script_env_file" run logrotator
 		;;
 	"build")
+		if [ "${var_custom__use_nginx:-}" = "true" ]; then
+			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+				env_dir_nginx="$pod_layer_dir/env/nginx"
+
+				dir="${env_dir_nginx}/auth"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+				fi
+
+				dir="${env_dir_nginx}/www"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+				fi
+			fi
+		fi
+
 		if [ -n "${var_run__general__main_base_dir:-}" ] \
 				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
 				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then
@@ -120,18 +138,6 @@ case "$command" in
 		;;
 	"prepare")
 		data_dir="/var/main/data"
-
-		if [ "${var_custom__use_nginx:-}" = "true" ]; then
-			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
-				env_dir_nginx="$pod_layer_dir/env/nginx"
-
-				dir="${env_dir_nginx}/auth"
-
-				if [ ! -d "$dir" ]; then
-					mkdir -p "$dir"
-				fi
-			fi
-		fi
 
 		"$pod_script_env_file" up "toolbox"
 

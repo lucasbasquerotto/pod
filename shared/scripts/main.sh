@@ -121,6 +121,18 @@ case "$command" in
 	"prepare")
 		data_dir="/var/main/data"
 
+		if [ "${var_custom__use_nginx:-}" = "true" ]; then
+			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+				env_dir_nginx="$pod_layer_dir/env/nginx"
+
+				dir="${env_dir_nginx}/auth"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+				fi
+			fi
+		fi
+
 		"$pod_script_env_file" up "toolbox"
 
 		"$pod_script_env_file" exec-nontty "toolbox" /bin/bash <<-SHELL || error "$command"

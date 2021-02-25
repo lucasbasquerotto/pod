@@ -167,7 +167,7 @@ schemas:
         description: >-
           location (relative to the nginx folder) of the file to the the basic authentication
           for the service (required when basic authentication is enabled for the service);
-          defaults to conf/.htpasswd
+          defaults to auth/.htpasswd
       validate_origin:
         type: "bool"
         description: >-

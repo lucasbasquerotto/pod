@@ -9,6 +9,10 @@ schemas:
         description: >-
           the main domain for the webservice; used when defining the path to ssl files,
           as well as for redirecting from www.main-domain to main-domain
+      ports:
+        schema: "ports"
+        non_empty: true
+        description: "nginx public and private, secure and non-secure, external ports"
       conf:
         schema: "conf"
         description: "general nginx configuration and values to replace defaults in the template"
@@ -17,6 +21,25 @@ schemas:
         elem_schema: "service"
         required: true
         description: "list with services that will translate in server sections in the file"
+  ports:
+    type: "dict"
+    props:
+      public_http_port:
+        type: "str"
+        non_empty: true
+        description: "public non-secure port"
+      public_https_port:
+        type: "str"
+        non_empty: true
+        description: "public secure port"
+      private_http_port:
+        type: "str"
+        non_empty: true
+        description: "private non-secure port"
+      private_https_port:
+        type: "str"
+        non_empty: true
+        description: "private secure port"
   conf:
     type: "dict"
     props:
@@ -174,7 +197,7 @@ schemas:
     props:
       location:
         type: "simple_list"
-        alternative_type: "str"
+        elem_type: "str"
       include_cache:
         type: "bool"
         description: "caches the responses for the location"

@@ -214,7 +214,8 @@ case "$command" in
 		"$pod_script_upgrade_file" "$command" "${opts[@]}"
 		;;
 	"setup:main:network")
-		network_name="${var_run__general__ctx_full_name}-network"
+		default_name="${var_run__general__ctx_full_name}-network"
+		network_name="${var_run__general__shared_network:-$default_name}"
 		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
 
 		if [ -z "$network_result" ]; then

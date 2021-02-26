@@ -132,6 +132,7 @@ fi
 # General
 
 export var_run__general__ctx_full_name="${var_load_general__ctx_full_name:-$var_load_name}"
+export var_run__general__shared_network="${var_load_general__shared_network:-}"
 export var_run__general__script_dir="${var_load_general__script_dir:-}"
 export var_run__general__script_env_file="${var_load_general__script_env_file:-}"
 export var_run__general__toolbox_service="${var_load_general__toolbox_service:-toolbox}"

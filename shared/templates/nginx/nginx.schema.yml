@@ -16,6 +16,10 @@ schemas:
       conf:
         schema: "conf"
         description: "general nginx configuration and values to replace defaults in the template"
+      domains:
+        type: "map"
+        elem_type: "str"
+        description: "dictionary with service names mapped to domains"
       services:
         type: "list"
         elem_schema: "service"
@@ -139,10 +143,13 @@ schemas:
       name:
         type: "str"
         non_empty: true
-        description: "service name (has only a labeling function)"
+        description: "service name (has only a labeling function when the domain is defined)"
       domain:
         type: "str"
-        description: "domain in which the requests are received"
+        description: >-
+          domain in which the requests are received;
+          when not defined or empty, retrieves from the domains dictionary
+          (using the service name)
       service:
         type: "str"
         description: >-

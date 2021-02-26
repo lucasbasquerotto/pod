@@ -149,12 +149,29 @@ schemas:
         description: >-
           domain in which the requests are received;
           when not defined or empty, retrieves from the domains dictionary
-          (using the service name)
-      service:
+          (using the service 'domain_name' or 'name')
+      domain_name:
+        type: "str"
+        description: >-
+          when the domain property is undefined or empty, this property (or the 'name'property, if this
+          property is not defined) is used to retrieve the domain from the domains dictionary; if
+          no domain is present with the given name, an error is thrown
+      endpoint:
         type: "str"
         description: >-
           the service endpoint (used when the data field in the locations is empty),
           proxying requests to the specified endpoint
+      dependency_name:
+        type: "str"
+        description: >-
+          when defining the service endpoint to proxy requests, the 'endpoint' property is used
+          to define the endpoint; when the 'endpoint' property is not defined, this 'dependency_name'
+          property (or the 'name'property, if this property is not defined) is used to retrieve the
+          endpoint from the node dependency with the same name; if both properties are not defined
+          (or empty), requests are not proxied (if proxy is true, an error is thrown)
+      proxy:
+        type: "bool"
+        description: "when true, throws an error if the service endpoint isn't (or can't be) defined"
       ssl:
         type: "bool"
         description: "when true, expects a secure connection (https); defaults to conf.ssl"

@@ -20,6 +20,10 @@ schemas:
         type: "map"
         elem_type: "str"
         description: "dictionary with service names mapped to domains"
+      node_dependencies:
+        type: "map"
+        elem_schema: "node_dependency"
+        description: "dictionary with service names mapped to domains"
       services:
         type: "list"
         elem_schema: "service"
@@ -134,6 +138,15 @@ schemas:
       map_hash_bucket_size:
         type: "str"
         description: "defaults to 128"
+  node_dependency:
+    type: "dict"
+    lax: true
+    props:
+      host:
+        type: "str"
+      host_list:
+        type: "list"
+        elem_type: "str"
   service:
     type: "dict"
     props:

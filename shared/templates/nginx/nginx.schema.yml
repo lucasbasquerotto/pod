@@ -20,7 +20,7 @@ schemas:
         type: "map"
         elem_type: "str"
         description: "dictionary with service names mapped to domains"
-      node_dependencies:
+      dependencies:
         type: "map"
         elem_schema: "node_dependency"
         description: "dictionary with service names mapped to domains"

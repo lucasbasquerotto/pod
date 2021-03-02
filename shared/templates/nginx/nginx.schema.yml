@@ -187,6 +187,12 @@ schemas:
       proxy:
         type: "bool"
         description: "when true, throws an error if the service endpoint isn't (or can't be) defined"
+      upstream_data:
+        type: "str"
+        description: >-
+          includes the data defined in this property in the upstream section (in the cases where the
+          request is proxied when there is more than 1 endpoint); some examples of that that could be
+          defined are zone and load-balancing method (each directive should end with a semicolon)
       upstream_args:
         type: "str"
         description: "arguments to be used for the upstream servers"

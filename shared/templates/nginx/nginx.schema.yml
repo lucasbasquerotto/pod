@@ -225,7 +225,7 @@ schemas:
           when true, validates the origin of the request, when doing non-GET requests,
           blocking requests from different origins (uses the http origin header);
           defaults to private; it's disabled when conf.disable_origin_validation is true
-      location_info_list:
+      locations:
         type: "simple_list"
         elem_schema: "location_info"
         description: |

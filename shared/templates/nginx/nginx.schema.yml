@@ -245,10 +245,12 @@ schemas:
   location_info:
     type: "simple_dict"
     alternative_type: "str"
+    description: "schema for the data about locations"
     props:
       location:
         type: "simple_list"
         elem_type: "str"
+        description: "string or list of string specifying location(s); expected when ssl=true"
       include_cache:
         type: "bool"
         description: "caches the responses for the location"

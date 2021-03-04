@@ -152,6 +152,7 @@ export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
 	export var_custom__use_nginx="${var_load_use__nginx:-}"
+	export var_custom__use_haproxy="${var_load_use__haproxy:-}"
 	export var_custom__use_theia="${var_load_use__theia:-}"
 	export var_custom__use_varnish="${var_load_use__varnish:-}"
 

@@ -1,6 +1,6 @@
-root: "nginx_schema"
+root: "haproxy_schema"
 schemas:
-  nginx_schema:
+  haproxy_schema:
     type: "dict"
     props:
       main_domain:
@@ -51,6 +51,9 @@ schemas:
   conf:
     type: "dict"
     props:
+      webservice_endpoint:
+        type: "str"
+        description: "endpoint to the service which returns static files"
       ssl:
         type: "bool"
         description: >-
@@ -59,85 +62,18 @@ schemas:
       disable_basic_auth:
         type: "bool"
         description: "disables basic authentication for the services"
-      disable_origin_validation:
-        type: "bool"
-        description: >-
-          disables the origin validation done for the services, when doing non-GET requests,
-          blocking requests from different origins (uses the http origin header)
-      proxy_cache_valid:
-        type: "str"
-        description: "used when the location doesn't specify a value when using cache; defaults to 1h"
-      expires:
-        type: "str"
-        description: "used when the location doesn't specify a value when using cache; defaults to 1h"
       resolver:
         type: "str"
         description: "defaults to 127.0.0.11"
-      resolver_time:
+      global_data:
         type: "str"
-        description: "defaults to 30s"
-      worker_process:
-        type: "int"
-        description: "defaults to 1"
-      worker_connections:
-        type: "int"
-        description: "defaults to 512"
-      log_format:
+        description: "data to include in the global section"
+      defaults_data:
         type: "str"
-        description: >-
-          defaults to (one-line):
-
-          $remote_addr
-          $sent_http_x_user_id
-          $upstream_response_time
-          $status
-          $remote_user
-          [$time_local]
-          "$host"
-          "$request"
-          $body_bytes_sent
-          "$http_referer"
-          "$http_user_agent"
-          $request_time
-      limit_req_zone_rate:
+        description: "data to include in the defaults section"
+      resolver_data:
         type: "str"
-        description: "defaults to 3r/s"
-      bg_limit_req_zone_rate:
-        type: "str"
-        description: "defaults to 3r/s"
-      web_cache_size:
-        type: "str"
-        description: "defaults to 20m"
-      web_cache_max_size:
-        type: "str"
-        description: "defaults to 200m"
-      web_cache_inactive:
-        type: "str"
-        description: "defaults to 30m"
-      proxy_connect_timeout:
-        type: "str"
-        description: "defaults to 30"
-      proxy_send_timeout:
-        type: "str"
-        description: "defaults to 60"
-      proxy_read_timeout:
-        type: "str"
-        description: "defaults to 60"
-      send_timeout:
-        type: "str"
-        description: "defaults to 60"
-      client_body_timeout:
-        type: "str"
-        description: "defaults to 5s"
-      client_header_timeout:
-        type: "str"
-        description: "defaults to 5s"
-      map_hash_max_size:
-        type: "str"
-        description: "defaults to 1024"
-      map_hash_bucket_size:
-        type: "str"
-        description: "defaults to 128"
+        description: "data to include in the resolvers section"
   node_dependency:
     type: "dict"
     lax: true
@@ -210,21 +146,11 @@ schemas:
         description: >-
           when true, requires a basic authentication on requests; defaults to private;
           it's disabled when conf.disable_basic_auth is true
-      remove_auth:
-        type: "bool"
-        description: "when true, sends an empty authorization header"
-      basic_auth_file:
+      basic_auth_data:
         type: "str"
         description: >-
-          location (relative to the nginx folder) of the file to the the basic authentication
-          for the service (required when basic authentication is enabled for the service);
-          defaults to auth/.htpasswd
-      validate_origin:
-        type: "bool"
-        description: >-
-          when true, validates the origin of the request, when doing non-GET requests,
-          blocking requests from different origins (uses the http origin header);
-          defaults to private; it's disabled when conf.disable_origin_validation is true
+          basic authentication data for the service (required when basic authentication
+          is enabled for the service)
       locations:
         type: "simple_list"
         elem_schema: "location_info"
@@ -245,52 +171,15 @@ schemas:
   location_info:
     type: "simple_dict"
     alternative_type: "str"
+    description: "schema for the data about locations"
     props:
       location:
         type: "simple_list"
         elem_type: "str"
-      allow_origin:
-        type: "bool"
-        description: "disable cors for the location"
-      allow_origin_args:
-        type: "dict"
+        description: "path(s) for the backend"
       data:
         type: "str"
-        description: >-
-          data to be included for the location; when not defined (or empty), will
-          proxy the request to the service; when defined, doesn't proxy requests
-          (if the data has no proxy directive), unless proxy is true
-      proxy:
+        description: "data to be included in the location (backend for a the path specified)"
+      no_proxy:
         type: "bool"
         description: "proxies the request, even if data is defined"
-  location_cache_args:
-    type: "dict"
-    props:
-      proxy_cache_valid:
-        type: "str"
-        description: "defaults to conf.proxy_cache_valid"
-      expires:
-        type: "str"
-        description: "defaults to conf.expires"
-  location_allow_origin:
-    type: "dict"
-    props:
-      methods:
-        type: "str"
-        description: >-
-          http allowed methods (access control); defaults to:
-          'GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'
-      custom_headers:
-        type: "str"
-        description: >-
-          http allowed custom headers (access control);
-          the following headers are always allowed:
-
-          'DNT',
-          'X-CustomHeader',
-          'Keep-Alive',
-          'User-Agent',
-          'X-Requested-With',
-          'If-Modified-Since',
-          'Cache-Control',
-          'Content-Type'

@@ -1,0 +1,296 @@
+root: "nginx_schema"
+schemas:
+  nginx_schema:
+    type: "dict"
+    props:
+      main_domain:
+        type: "str"
+        non_empty: true
+        description: >-
+          the main domain for the webservice; used when defining the path to ssl files,
+          as well as for redirecting from www.main-domain to main-domain
+      ports:
+        schema: "ports"
+        non_empty: true
+        description: "nginx public and private, secure and non-secure, external ports"
+      conf:
+        schema: "conf"
+        description: "general nginx configuration and values to replace defaults in the template"
+      domains:
+        type: "map"
+        elem_type: "str"
+        description: "dictionary with service names mapped to domains"
+      dependencies:
+        type: "map"
+        elem_schema: "node_dependency"
+        description: "dictionary with service names mapped to domains"
+      services:
+        type: "list"
+        elem_schema: "service"
+        required: true
+        description: "list with services that will translate in server sections in the file"
+  ports:
+    type: "dict"
+    props:
+      public_http_port:
+        type: "str"
+        non_empty: true
+        description: "public non-secure port"
+      public_https_port:
+        type: "str"
+        non_empty: true
+        description: "public secure port"
+      private_http_port:
+        type: "str"
+        non_empty: true
+        description: "private non-secure port"
+      private_https_port:
+        type: "str"
+        non_empty: true
+        description: "private secure port"
+  conf:
+    type: "dict"
+    props:
+      ssl:
+        type: "bool"
+        description: >-
+          when true, listen on secure ports: 443 (remote) / 8443 (local) and 9443 (private);
+          used as default for the services ssl
+      disable_basic_auth:
+        type: "bool"
+        description: "disables basic authentication for the services"
+      disable_origin_validation:
+        type: "bool"
+        description: >-
+          disables the origin validation done for the services, when doing non-GET requests,
+          blocking requests from different origins (uses the http origin header)
+      proxy_cache_valid:
+        type: "str"
+        description: "used when the location doesn't specify a value when using cache; defaults to 1h"
+      expires:
+        type: "str"
+        description: "used when the location doesn't specify a value when using cache; defaults to 1h"
+      resolver:
+        type: "str"
+        description: "defaults to 127.0.0.11"
+      resolver_time:
+        type: "str"
+        description: "defaults to 30s"
+      worker_process:
+        type: "int"
+        description: "defaults to 1"
+      worker_connections:
+        type: "int"
+        description: "defaults to 512"
+      log_format:
+        type: "str"
+        description: >-
+          defaults to (one-line):
+
+          $remote_addr
+          $sent_http_x_user_id
+          $upstream_response_time
+          $status
+          $remote_user
+          [$time_local]
+          "$host"
+          "$request"
+          $body_bytes_sent
+          "$http_referer"
+          "$http_user_agent"
+          $request_time
+      limit_req_zone_rate:
+        type: "str"
+        description: "defaults to 3r/s"
+      bg_limit_req_zone_rate:
+        type: "str"
+        description: "defaults to 3r/s"
+      web_cache_size:
+        type: "str"
+        description: "defaults to 20m"
+      web_cache_max_size:
+        type: "str"
+        description: "defaults to 200m"
+      web_cache_inactive:
+        type: "str"
+        description: "defaults to 30m"
+      proxy_connect_timeout:
+        type: "str"
+        description: "defaults to 30"
+      proxy_send_timeout:
+        type: "str"
+        description: "defaults to 60"
+      proxy_read_timeout:
+        type: "str"
+        description: "defaults to 60"
+      send_timeout:
+        type: "str"
+        description: "defaults to 60"
+      client_body_timeout:
+        type: "str"
+        description: "defaults to 5s"
+      client_header_timeout:
+        type: "str"
+        description: "defaults to 5s"
+      map_hash_max_size:
+        type: "str"
+        description: "defaults to 1024"
+      map_hash_bucket_size:
+        type: "str"
+        description: "defaults to 128"
+  node_dependency:
+    type: "dict"
+    lax: true
+    props:
+      host:
+        type: "str"
+      host_list:
+        type: "list"
+        elem_type: "str"
+  service:
+    type: "dict"
+    props:
+      when:
+        type: "bool"
+        description: "when false, the service is ignored; defaults to true"
+      name:
+        type: "str"
+        non_empty: true
+        description: "service name (has only a labeling function when the domain is defined)"
+      domain:
+        type: "str"
+        description: >-
+          domain in which the requests are received;
+          when not defined or empty, retrieves from the domains dictionary
+          (using the service 'domain_name' or 'name')
+      domain_name:
+        type: "str"
+        description: >-
+          when the domain property is undefined or empty, this property (or the 'name'property, if this
+          property is not defined) is used to retrieve the domain from the domains dictionary; if
+          no domain is present with the given name, an error is thrown
+      endpoint:
+        type: "simple_list"
+        elem_type: "str"
+        description: >-
+          the service endpoint (or endpoints), used when the request should be proxied to a service in
+          the given endpoint, required when the 'proxy' property is true; included when the 'proxy'
+          property in the location is true, or when the 'data' property is empty
+      dependency_name:
+        type: "str"
+        description: >-
+          when defining the service endpoint to proxy requests, the 'endpoint' property is used
+          to define the endpoint; when the 'endpoint' property is not defined, this 'dependency_name'
+          property (or the 'name'property, if this property is not defined) is used to retrieve the
+          endpoint from the node dependency with the same name; if both properties are not defined
+          (or empty), requests are not proxied (if proxy is true, an error is thrown)
+      proxy:
+        type: "bool"
+        description: "when true, throws an error if the service endpoint isn't (or can't be) defined"
+      upstream_data:
+        type: "str"
+        description: >-
+          includes the data defined in this property in the upstream section (in the cases where the
+          request is proxied when there is more than 1 endpoint); some examples of that that could be
+          defined are zone and load-balancing method (each directive should end with a semicolon)
+      upstream_args:
+        type: "str"
+        description: "arguments to be used for the upstream servers"
+      ssl:
+        type: "bool"
+        description: "when true, expects a secure connection (https); defaults to conf.ssl"
+      upgrade:
+        type: "bool"
+        description: "when true, expects a secure connection (https); defaults to false"
+      private:
+        type: "bool"
+        description: "when true, uses the private ports; defaults to false"
+      use_basic_auth:
+        type: "bool"
+        description: >-
+          when true, requires a basic authentication on requests; defaults to private;
+          it's disabled when conf.disable_basic_auth is true
+      remove_auth:
+        type: "bool"
+        description: "when true, sends an empty authorization header"
+      basic_auth_file:
+        type: "str"
+        description: >-
+          location (relative to the nginx folder) of the file to the the basic authentication
+          for the service (required when basic authentication is enabled for the service);
+          defaults to auth/.htpasswd
+      validate_origin:
+        type: "bool"
+        description: >-
+          when true, validates the origin of the request, when doing non-GET requests,
+          blocking requests from different origins (uses the http origin header);
+          defaults to private; it's disabled when conf.disable_origin_validation is true
+      locations:
+        type: "simple_list"
+        elem_schema: "location_info"
+        description: |
+          locations for the service, can be:
+
+          - a string with the location (equivalent to a list with only this string)
+          - a list of strings (each string is equivalent to a dictionary with 'location' being the list)
+          - a dictionary (equivalent to a list with only this dictionary)
+          - a list of dictionaries (most complete representation, for more complex cases, with several locations and options)
+
+          defaults to '/', which is equivalent to:
+          - ['/']
+          - { 'location': '/' }
+          - { 'location': ['/'] }
+          - [{ 'location': '/' }])
+          - [{ 'location': ['/'] }])
+  location_info:
+    type: "simple_dict"
+    alternative_type: "str"
+    props:
+      location:
+        type: "simple_list"
+        elem_type: "str"
+      allow_origin:
+        type: "bool"
+        description: "disable cors for the location"
+      allow_origin_args:
+        type: "dict"
+      data:
+        type: "str"
+        description: >-
+          data to be included for the location; when not defined (or empty), will
+          proxy the request to the service; when defined, doesn't proxy requests
+          (if the data has no proxy directive), unless proxy is true
+      proxy:
+        type: "bool"
+        description: "proxies the request, even if data is defined"
+  location_cache_args:
+    type: "dict"
+    props:
+      proxy_cache_valid:
+        type: "str"
+        description: "defaults to conf.proxy_cache_valid"
+      expires:
+        type: "str"
+        description: "defaults to conf.expires"
+  location_allow_origin:
+    type: "dict"
+    props:
+      methods:
+        type: "str"
+        description: >-
+          http allowed methods (access control); defaults to:
+          'GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'
+      custom_headers:
+        type: "str"
+        description: >-
+          http allowed custom headers (access control);
+          the following headers are always allowed:
+
+          'DNT',
+          'X-CustomHeader',
+          'Keep-Alive',
+          'User-Agent',
+          'X-Requested-With',
+          'If-Modified-Since',
+          'Cache-Control',
+          'Content-Type'

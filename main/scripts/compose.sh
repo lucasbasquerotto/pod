@@ -25,7 +25,7 @@ shift;
 args=("$@")
 
 # shellcheck disable=SC2214
-while getopts ':u:-:' OPT; do
+while getopts ':s:u:-:' OPT; do
 	if [ "$OPT" = "-" ]; then     # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
 		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
@@ -34,13 +34,22 @@ while getopts ':u:-:' OPT; do
 	case "$OPT" in
 		main ) file="$main_file";;
 		run ) file="$run_file";;
+		s )
+			arg_signal="${2:-}"
+
+			if [ -z "$arg_signal" ]; then
+				error "signal not defined"
+			fi
+
+			shift;
+			;;
 		u|user )
 			arg_user="${OPTARG:-}"
 
 			if [ -z "$arg_user" ]; then
 				arg_user="${2:-}"
 
-				if [ -z "$arg_entrypoint" ]; then
+				if [ -z "$arg_user" ]; then
 					error "user not defined"
 				fi
 
@@ -149,6 +158,19 @@ case "$command" in
 
 			if [ -f "$run_file" ]; then
 				sudo docker-compose -f "$run_file" "$command"
+			fi
+		fi
+		;;
+	"kill")
+		cd "$pod_layer_dir/"
+
+		if [[ "${#args[@]}" -ne 0 ]]; then
+			sudo docker-compose -f "${file:-$main_file}" kill -s "${arg_signal:-}" "${@}"
+		else
+			sudo docker-compose -f "${file:-$main_file}" kill -s "${arg_signal:-}"
+
+			if [ -f "$run_file" ]; then
+				sudo docker-compose -f "$run_file" kill -s "${arg_signal:-}"
 			fi
 		fi
 		;;

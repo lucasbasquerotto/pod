@@ -26,7 +26,7 @@ while getopts ':-:' OPT; do
 	case "$OPT" in
 		task_info ) arg_task_info="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
-		nginx_service ) arg_nginx_service="${OPTARG:-}";;
+		haproxy_service ) arg_haproxy_service="${OPTARG:-}";;
 
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 
@@ -59,13 +59,13 @@ title=''
 title="${title}${command}"
 
 case "$command" in
-	"service:nginx:start")
-		>&2 "$pod_script_env_file" up "$arg_nginx_service"
+	"service:haproxy:start")
+		>&2 "$pod_script_env_file" up "$arg_haproxy_service"
 		;;
-	"service:nginx:reload")
-		>&2 "$pod_script_env_file" exec-nontty "$arg_nginx_service" nginx -s reload
+	"service:haproxy:reload")
+		>&2 "$pod_script_env_file" kill -s HUP "$arg_haproxy_service"
 		;;
-	"service:nginx:block_ips")
+	"service:haproxy:block_ips")
 		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -79,14 +79,14 @@ case "$command" in
 			}
 
 			function ipstoblock {
-				nginx_file_path="\${1:-}"
+				haproxy_file_path="\${1:-}"
 				amount="\${2:-10}"
 				ips_most_requests=''
 
-				if [ -f "\$nginx_file_path" ]; then
+				if [ -f "\$haproxy_file_path" ]; then
 					ips_most_requests=\$( \
 						{ \
-							awk '{print \$1}' "\$nginx_file_path" \
+							awk '{print \$1}' "\$haproxy_file_path" \
 							| sort \
 							| uniq -c \
 							| sort -nr \
@@ -207,10 +207,10 @@ case "$command" in
 		)"
 
 		if [ "$reload" = "true" ]; then
-			>&2 "$pod_script_env_file" "service:nginx:reload" --nginx_service="$arg_nginx_service"
+			>&2 "$pod_script_env_file" "service:haproxy:reload" --haproxy_service="$arg_haproxy_service"
 		fi
 		;;
-	"service:nginx:log:summary:total")
+	"service:haproxy:log:summary:total")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -221,7 +221,7 @@ case "$command" in
 
 			echo -e "##############################################################################################################"
 			echo -e "##############################################################################################################"
-			echo -e "Nginx Logs"
+			echo -e "Haproxy Logs"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 			echo -e "Path: $arg_log_file"
 			echo -e "Limit: $arg_max_amount"
@@ -358,7 +358,7 @@ case "$command" in
 			fi
 		SHELL
 		;;
-	"service:nginx:log:duration")
+	"service:haproxy:log:duration")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -400,7 +400,7 @@ case "$command" in
 			fi
 		SHELL
 		;;
-	"service:nginx:log:connections")
+	"service:haproxy:log:connections")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 

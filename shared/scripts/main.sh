@@ -41,6 +41,7 @@ done
 shift $((OPTIND-1))
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
+haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
 nginx_run_file="$pod_layer_dir/shared/scripts/services/nginx.sh"
 nextcloud_run_file="$pod_layer_dir/shared/scripts/services/nextcloud.sh"
 mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
@@ -446,6 +447,9 @@ case "$command" in
 	"action:exec:nginx_reload")
 		"$pod_script_env_file" "service:nginx:reload" ${args[@]+"${args[@]}"}
 		;;
+	"action:exec:haproxy_reload")
+		"$pod_script_env_file" "service:haproxy:reload" ${args[@]+"${args[@]}"}
+		;;
 	"shared:bg:"*)
 		task_name="${command#shared:bg:}"
 
@@ -534,6 +538,12 @@ case "$command" in
 		"$nginx_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--nginx_service="nginx" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:haproxy:"*)
+		"$haproxy_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			--haproxy_service="haproxy" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:nextcloud:"*)

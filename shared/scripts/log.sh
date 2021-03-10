@@ -33,7 +33,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		subtask_cmd ) arg_subtask_cmd="${OPTARG:-}";;
+		task_info ) arg_task_info="${OPTARG:-}";;
 		summary_name ) arg_summary_name="${OPTARG:-}";;
 		days_ago ) arg_days_ago="${OPTARG:-}";;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
@@ -51,6 +51,10 @@ while getopts ':-:' OPT; do
 	esac
 done
 shift $((OPTIND-1))
+
+title=''
+[ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
+title="${title}${command}"
 
 case "$command" in
 	"shared:log:summary")
@@ -70,8 +74,7 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "$arg_cmd" \
-			--task_name="summary_$arg_summary_name" \
-			--subtask_cmd="$arg_subtask_cmd" \
+			--task_info="$title" \
 			--toolbox_service="toolbox" \
 			--log_file="$log_file" \
 			--max_amount="$max_amount"
@@ -157,36 +160,57 @@ case "$command" in
 	"shared:log:main:entropy")
 		cat /proc/sys/kernel/random/entropy_avail
 		;;
-	"shared:log:nginx:summary")
-		"$pod_script_env_file" "shared:log:nginx:verify"
+	"shared:log:nginx:summary"|"shared:log:haproxy:summary")
+		service="${command#shared:log:}"
+		service="${service%:summary}"
 
-		dest_day_file="$("$pod_script_env_file" "shared:log:nginx:day" \
+		"$pod_script_env_file" "shared:log:$service:verify"
+
+		dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
 			--force="${arg_force:-}" \
 			--days_ago="${arg_days_ago:-}")"
 
-		nginx_sync_base_dir="/var/main/data/sync/nginx"
-        max_amount="${var_shared__log__nginx_summary__max_amount:-}"
+		service_sync_base_dir="/var/main/data/sync/$service"
+        max_amount="${var_shared__log__summary__max_amount:-}"
         max_amount="${arg_max_amount:-$max_amount}"
         max_amount="${max_amount:-100}"
 
-		"$pod_script_env_file" "service:nginx:log:summary:total" \
-			--task_name="nginx_log" \
-			--subtask_cmd="$command" \
+		log_idx_ip="1"
+		log_idx_user="2"
+		log_idx_duration="3"
+		log_idx_status="4"
+		log_idx_http_user="5"
+		log_idx_time="6"
+
+		if [ "$service" = "haproxy" ]; then
+			log_idx_ip="2"
+			log_idx_user="3"
+			log_idx_duration="4"
+			log_idx_status="5"
+			log_idx_http_user="6"
+			log_idx_time="7"
+		fi
+
+		"$pod_script_env_file" "service:$service:log:summary:total" \
+			--task_info="$title" \
 			--log_file="$dest_day_file" \
-            --file_exclude_paths="$nginx_sync_base_dir/manual/log-exclude-paths.conf" \
-			--log_idx_ip="1" \
-			--log_idx_user="2" \
-			--log_idx_duration="3" \
-			--log_idx_status="4" \
-			--log_idx_http_user="5" \
-			--log_idx_time="6" \
+            --file_exclude_paths="$service_sync_base_dir/manual/log-exclude-paths.conf" \
+			--log_idx_ip="$log_idx_ip" \
+			--log_idx_user="$log_idx_user" \
+			--log_idx_duration="$log_idx_duration" \
+			--log_idx_status="$log_idx_status" \
+			--log_idx_http_user="$log_idx_http_user" \
+			--log_idx_time="$log_idx_time" \
 			--max_amount="$max_amount"
 		;;
-	"shared:log:nginx:day")
-		"$pod_script_env_file" "shared:log:nginx:verify"
+	"shared:log:nginx:day"|"shared:log:haproxy:day")
+		service="${command#shared:log:}"
+		service="${service%:day}"
 
-		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:nginx:hour_path_prefix")"
-		dest_base_path="/var/log/main/nginx/main"
+		"$pod_script_env_file" "shared:log:$service:verify"
+
+		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
+		dest_base_path="/var/log/main/$service/main"
 
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
@@ -194,7 +218,7 @@ case "$command" in
 			[ -n "${arg_days_ago:-}" ] && date_arg="${arg_days_ago:-} day ago" || date_arg="today"
 			date="\$(date -u -d "\$date_arg" '+%Y-%m-%d')"
 			log_day_src_path_prefix="$log_hour_path_prefix.\$date"
-			dest_day_file="${dest_base_path}/nginx.\$date.log"
+			dest_day_file="${dest_base_path}/$service.\$date.log"
 
 			>&2 mkdir -p "$dest_base_path"
 
@@ -222,7 +246,10 @@ case "$command" in
 			echo "\$dest_day_file"
 		SHELL
 		;;
-	"shared:log:nginx:verify")
+	"shared:log:nginx:verify"|"shared:log:haproxy:verify")
+		service="${command#shared:log:}"
+		service="${service%:verify}"
+
 		case "$var_custom__pod_type" in
 			"app"|"web")
 				;;
@@ -232,39 +259,47 @@ case "$command" in
 		esac
 
 		if [ "${var_custom__use_fluentd:-}" != "true" ]; then
-			error "$command: fluentd must be used to verify nginx logs"
+			error "$command: fluentd must be used to verify $service logs"
 		fi
 		;;
-	"shared:log:nginx:hour_path_prefix")
-		log_hour_path_prefix="/var/log/main/fluentd/main/docker.nginx/docker.nginx.stdout"
+	"shared:log:nginx:hour_path_prefix"|"shared:log:haproxy:hour_path_prefix")
+		service="${command#shared:log:}"
+		service="${service%:hour_path_prefix}"
+
+		log_hour_path_prefix="/var/log/main/fluentd/main/docker.$service/docker.$service.stdout"
 		echo "$log_hour_path_prefix"
 		;;
-	"shared:log:nginx:duration")
-		"$pod_script_env_file" "shared:log:nginx:verify"
+	"shared:log:nginx:duration"|"shared:log:haproxy:duration")
+		service="${command#shared:log:}"
+		service="${service%:duration}"
 
-		dest_day_file="$("$pod_script_env_file" "shared:log:nginx:day" \
+		"$pod_script_env_file" "shared:log:$service:verify"
+
+		dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
 			--force="${arg_force:-}" \
 			--days_ago="${arg_days_ago:-}")"
 
-		nginx_sync_base_dir="/var/main/data/sync/nginx"
-        max_amount="${var_shared__log__nginx_duration__max_amount:-}"
+		service_sync_base_dir="/var/main/data/sync/$service"
+        max_amount="${var_shared__log__duration__max_amount:-}"
         max_amount="${arg_max_amount:-$max_amount}"
         max_amount="${max_amount:-100}"
 
-		"$pod_script_env_file" "service:nginx:log:duration" \
-			--task_name="nginx_duration" \
-			--subtask_cmd="$command" \
+		"$pod_script_env_file" "service:$service:log:duration" \
+			--task_info="$title" \
 			--log_file="$dest_day_file" \
-            --file_exclude_paths="$nginx_sync_base_dir/manual/log-exclude-paths-full.conf" \
+            --file_exclude_paths="$service_sync_base_dir/manual/log-exclude-paths-full.conf" \
 			--log_idx_duration="3" \
 			--max_amount="$max_amount"
         ;;
-	"shared:log:nginx:summary:connections")
-		"$pod_script_env_file" "shared:log:nginx:verify"
+	"shared:log:nginx:summary:connections"|"shared:log:haproxy:summary:connections")
+		service="${command#shared:log:}"
+		service="${service%:summary:connections}"
+
+		"$pod_script_env_file" "shared:log:$service:verify"
 
 		"$pod_script_env_file" "shared:log:summary" \
-			--summary_name="nginx_basic_status" \
-			--cmd="service:nginx:log:connections" \
+			--summary_name="${service}_basic_status" \
+			--cmd="service:$service:log:connections" \
 			--subtask_cmd="$command" \
 			--days_ago="${arg_days_ago:-}" \
 			--max_amount="${arg_max_amount:-}"
@@ -272,9 +307,14 @@ case "$command" in
 	"shared:log:main:nginx_basic_status")
 		"$pod_script_env_file" exec-nontty toolbox curl -sL "http://nginx:9081/nginx/basic_status"
 		;;
+	"shared:log:main:haproxy_basic_status")
+		#TODO
+		echo ""
+		;;
 	"shared:log:register:"*)
 		task_name="${command#shared:log:register:}"
 		"$pod_script_env_file" "shared:log:register" \
+			--task_info="$title" \
 			--cmd="shared:log:main:$task_name" \
 			--log_dir="/var/log/main/register/$task_name" \
 			--filename_prefix="$task_name"

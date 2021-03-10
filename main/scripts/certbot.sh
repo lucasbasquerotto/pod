@@ -140,17 +140,28 @@ case "$command" in
 					--agree-tos \
 					--force-renewal \
 					--non-interactive" "$arg_certbot_service"
-
-			info "$title: Reloading $arg_webservice_type ..."
-			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
-				--webservice_service="$arg_webservice_service"
 		fi
 
 		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
+
+			fullchain="$data_path/live/$arg_main_domain/fullchain.pem"
+			privkey="$data_path/live/$arg_main_domain/privkey.pem"
+			concat="$data_path/live/$arg_main_domain/concat.pem"
+
+			if [ -f "\$fullchain" ] && [ -f "\$privkey" ]; then
+				cat "\$fullchain" "\$privkey" > "\$concat"
+			fi
+
 			mkdir -p "$data_dir_done"
 			echo "$(date '+%F %T')" >> "$data_file_done"
 		SHELL
+
+		if [ "${arg_dev:-}" != "true" ]; then
+			info "$title: Reloading $arg_webservice_type ..."
+			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
+				--webservice_service="$arg_webservice_service"
+		fi
 		;;
 	"certbot:renew")
 		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"

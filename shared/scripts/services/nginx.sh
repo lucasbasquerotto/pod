@@ -264,13 +264,14 @@ case "$command" in
 
 				ips_most_request_duration="\$( \
 					{ awk \
-            -v idx_ip="${arg_log_idx_ip:-}" \
-            -v idx_duration="${arg_log_idx_duration:-}" \
+						-v idx_ip="${arg_log_idx_ip:-}" \
+						-v idx_duration="${arg_log_idx_duration:-}" \
 						'{s[\$idx_ip]+=\$idx_duration} END \
-            { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
+						{ for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
 						"$arg_log_file" \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: ips_most_request_duration"
+						| sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: ips_most_request_duration"
 				echo -e "\$ips_most_request_duration"
 			fi
 
@@ -280,15 +281,17 @@ case "$command" in
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				users_most_requests="\$( \
-          { awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: users_most_requests"
+					{ \
+						awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" \
+						| sort | uniq -c | sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: users_most_requests"
 				echo -e "\$users_most_requests"
 			fi
 
 			if [ -n "${arg_log_idx_user:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
 				echo -e "======================================================="
-				echo -e "Users with Most Request Duration (s)"
+				echo -e "Users with Biggest Sum of Requests Duration (s)"
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				users_most_request_duration="\$( \

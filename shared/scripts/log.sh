@@ -265,8 +265,9 @@ case "$command" in
 	"shared:log:nginx:hour_path_prefix"|"shared:log:haproxy:hour_path_prefix")
 		service="${command#shared:log:}"
 		service="${service%:hour_path_prefix}"
+		container_name="${var_run__general__ctx_prefix_main}${service}"
 
-		log_hour_path_prefix="/var/log/main/fluentd/main/docker.$service/docker.$service.stdout"
+		log_hour_path_prefix="/var/log/main/fluentd/main/docker.$container_name/docker.$container_name.stdout"
 		echo "$log_hour_path_prefix"
 		;;
 	"shared:log:nginx:duration"|"shared:log:haproxy:duration")

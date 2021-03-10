@@ -86,7 +86,7 @@ case "$command" in
 				if [ -f "\$haproxy_file_path" ]; then
 					ips_most_requests=\$( \
 						{ \
-							awk '{print \$1}' "\$haproxy_file_path" \
+							awk '{print \$2}' "\$haproxy_file_path" \
 							| sort \
 							| uniq -c \
 							| sort -nr \
@@ -227,21 +227,43 @@ case "$command" in
 			echo -e "Limit: $arg_max_amount"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
+			grep_args=()
+
+			if [ -n "${arg_log_prefix:-}" ]; then
+				grep_args+=( "${arg_log_prefix:-}" )
+			fi
+
 			request_count="\$(wc -l < "$arg_log_file")"
 			echo -e "Requests: \$request_count"
 
 			if [ -n "${arg_log_idx_user:-}" ]; then
-				total_users="\$(awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
+				total_users="\$( \
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
+						||:; } \
+					| head -n 1)" || error "$command: total_users"
 				echo -e "Users: \$total_users"
 			fi
 
 			if [ -n "${arg_log_idx_http_user:-}" ]; then
-				total_http_users="\$(awk -v idx="${arg_log_idx_http_user:-}" '{print \$idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
+				total_http_users="\$( \
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_http_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
+						||:; \
+					} | head -n 1)" \
+					|| error "$command: total_http_users"
 				echo -e "HTTP Users: \$total_http_users"
 			fi
 
 			if [ -n "${arg_log_idx_duration:-}" ]; then
-				total_duration="\$(awk -v idx="${arg_log_idx_duration:-}" '{s+=\$idx} END {print s}' "$arg_log_file")"
+				total_duration="\$( \
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_duration:-}" '{s+=\$idx} END {print s}' \
+					})" \
+					|| error "$command: total_duration"
 				echo -e "Duration: \$total_duration"
 			fi
 
@@ -251,9 +273,12 @@ case "$command" in
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				ips_most_requests="\$( \
-					{ awk -v idx="${arg_log_idx_ip:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: ips_most_requests"
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_ip:-}" '{print \$idx}' \
+						| sort | uniq -c | sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: ips_most_requests"
 				echo -e "\$ips_most_requests"
 			fi
 
@@ -263,14 +288,16 @@ case "$command" in
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				ips_most_request_duration="\$( \
-					{ awk \
-            -v idx_ip="${arg_log_idx_ip:-}" \
-            -v idx_duration="${arg_log_idx_duration:-}" \
-						'{s[\$idx_ip]+=\$idx_duration} END \
-            { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
-						"$arg_log_file" \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: ips_most_request_duration"
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk \
+							-v idx_ip="${arg_log_idx_ip:-}" \
+							-v idx_duration="${arg_log_idx_duration:-}" \
+							'{s[\$idx_ip]+=\$idx_duration} END \
+							{ for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
+						| sort -nr ||:;  \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: ips_most_request_duration"
 				echo -e "\$ips_most_request_duration"
 			fi
 
@@ -280,23 +307,28 @@ case "$command" in
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				users_most_requests="\$( \
-          { awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: users_most_requests"
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' \
+						| sort | uniq -c | sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: users_most_requests"
 				echo -e "\$users_most_requests"
 			fi
 
 			if [ -n "${arg_log_idx_user:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
 				echo -e "======================================================="
-				echo -e "Users with Most Request Duration (s)"
+				echo -e "Users with Biggest Sum of Requests Duration (s)"
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				users_most_request_duration="\$( \
-					{ awk -v idx_user="${arg_log_idx_user:-}" -v idx_duration="${arg_log_idx_duration:-}" \
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx_user="${arg_log_idx_user:-}" -v idx_duration="${arg_log_idx_duration:-}" \
 						'{s[\$idx_user]+=\$idx_duration} END { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
-						"$arg_log_file" \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: users_most_request_duration"
+						| sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+          			|| error "$command: users_most_request_duration"
 				echo -e "\$users_most_request_duration"
 			fi
 
@@ -306,9 +338,12 @@ case "$command" in
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
 				status_most_requests="\$( \
-					{ awk -v idx="${arg_log_idx_status:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: status_most_requests"
+					{ \
+						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						| awk -v idx="${arg_log_idx_status:-}" '{print \$idx}' \
+						| sort | uniq -c | sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+          			|| error "$command: status_most_requests"
 				echo -e "\$status_most_requests"
 			fi
 
@@ -317,7 +352,7 @@ case "$command" in
 				echo -e "Requests with Longest Duration (s)"
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
-				grep_args=()
+				grep_tmp_args=( "\${grep_args[@]}" )
 
 				if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
 					regex="^[ ]*[^#^ ].*$"
@@ -325,21 +360,21 @@ case "$command" in
 
 					if [ -n "\$grep_lines" ]; then
 						while read -r grep_line; do
-							if [ "\${#grep_args[@]}" -eq 0 ]; then
-								grep_args=( "-v" )
+							if [ "\${#grep_tmp_args[@]}" -eq 0 ]; then
+								grep_tmp_args=( "-v" )
 							fi
 
-							grep_args+=( "-e" "\$grep_line" )
+							grep_tmp_args+=( "-e" "\$grep_line" )
 						done <<< "\$(echo -e "\$grep_lines")"
 					fi
 				fi
 
-				if [ "\${#grep_args[@]}" -eq 0 ]; then
-					grep_args=( "." )
+				if [ "\${#grep_tmp_args[@]}" -eq 0 ]; then
+					grep_tmp_args=( "." )
 				fi
 
 				longest_request_durations="\$( \
-					{ grep \${grep_args[@]+"\${grep_args[@]}"} "$arg_log_file" \
+					{ grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
 					| awk \
 						-v idx_ip="${arg_log_idx_ip:-}" \
 						-v idx_user="${arg_log_idx_user:-}" \

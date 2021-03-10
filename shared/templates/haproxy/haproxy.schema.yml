@@ -69,6 +69,9 @@ schemas:
       basic_auth_data_content:
         type: "str"
         description: "default content for basic authentication (when not defined in the service)"
+      no_rate_limits:
+        type: "bool"
+        description: "the default rate limit statements for the front-ends are not included"
       resolver:
         type: "str"
         description: "defaults to 127.0.0.11"
@@ -81,6 +84,9 @@ schemas:
       resolver_data:
         type: "str"
         description: "data to include in the resolvers section"
+      frontend_data:
+        type: "str"
+        description: "data to include in the frontend sections"
   node_dependency:
     type: "dict"
     lax: true
@@ -130,12 +136,14 @@ schemas:
       proxy:
         type: "bool"
         description: "when true, throws an error if the service endpoint isn't (or can't be) defined"
-      upstream_data:
+      frontend_data:
         type: "str"
-        description: >-
-          includes the data defined in this property in the upstream section (in the cases where the
-          request is proxied when there is more than 1 endpoint); some examples of that that could be
-          defined are zone and load-balancing method (each directive should end with a semicolon)
+        description: "includes the data defined in this property in the frontend section for the service"
+      backend_data:
+        type: "str"
+        description: .-
+          includes the data defined in this property in the backend section (for all paths),
+          when the location does not have a (more specific) custom 'data' property
       upstream_args:
         type: "str"
         description: "arguments to be used for the upstream servers"
@@ -191,6 +199,9 @@ schemas:
       data:
         type: "str"
         description: "data to be included in the location (backend for a the path specified)"
+      server_args:
+        type: "str"
+        description: "data (args) to be included for each server in the backend"
       no_proxy:
         type: "bool"
         description: "proxies the request, even if data is defined"

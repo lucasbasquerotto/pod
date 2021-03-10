@@ -20,6 +20,10 @@ schemas:
         type: "map"
         elem_type: "str"
         description: "dictionary with service names mapped to domains"
+      contents:
+        type: "map"
+        elem_type: "str"
+        description: "dictionary with the pod contents"
       dependencies:
         type: "map"
         elem_schema: "node_dependency"

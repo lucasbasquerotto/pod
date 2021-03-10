@@ -20,6 +20,10 @@ schemas:
         type: "map"
         elem_type: "str"
         description: "dictionary with service names mapped to domains"
+      contents:
+        type: "map"
+        elem_type: "str"
+        description: "dictionary with the pod contents"
       dependencies:
         type: "map"
         elem_schema: "node_dependency"
@@ -62,6 +66,9 @@ schemas:
       disable_basic_auth:
         type: "bool"
         description: "disables basic authentication for the services"
+      basic_auth_data_content:
+        type: "str"
+        description: "default content for basic authentication (when not defined in the service)"
       resolver:
         type: "str"
         description: "defaults to 127.0.0.11"
@@ -151,6 +158,10 @@ schemas:
         description: >-
           basic authentication data for the service (required when basic authentication
           is enabled for the service)
+      basic_auth_data_content:
+        type: "str"
+        description: >-
+          same as basic_auth_data, but instead is a name of a pod content (that will be the basic auth content)
       locations:
         type: "simple_list"
         elem_schema: "location_info"

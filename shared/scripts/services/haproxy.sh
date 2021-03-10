@@ -211,6 +211,8 @@ case "$command" in
 		fi
 		;;
 	"service:haproxy:log:summary:total")
+		default_prefix=">>> "
+
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -227,11 +229,7 @@ case "$command" in
 			echo -e "Limit: $arg_max_amount"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-			grep_args=()
-
-			if [ -n "${arg_log_prefix:-}" ]; then
-				grep_args+=( "${arg_log_prefix:-}" )
-			fi
+			grep_args=( "${arg_log_prefix:-$default_prefix}" )
 
 			request_count="\$(wc -l < "$arg_log_file")"
 			echo -e "Requests: \$request_count"
@@ -239,17 +237,17 @@ case "$command" in
 			if [ -n "${arg_log_idx_user:-}" ]; then
 				total_users="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
-						||:; } \
-					| head -n 1)" || error "$command: total_users"
+						||:; \
+					} | head -n 1)" || error "$command: total_users"
 				echo -e "Users: \$total_users"
 			fi
 
 			if [ -n "${arg_log_idx_http_user:-}" ]; then
 				total_http_users="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_http_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
 						||:; \
 					} | head -n 1)" \
@@ -260,9 +258,10 @@ case "$command" in
 			if [ -n "${arg_log_idx_duration:-}" ]; then
 				total_duration="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_duration:-}" '{s+=\$idx} END {print s}' \
-					})" \
+						||:; \
+					} | head -n 1)" \
 					|| error "$command: total_duration"
 				echo -e "Duration: \$total_duration"
 			fi
@@ -274,7 +273,7 @@ case "$command" in
 
 				ips_most_requests="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_ip:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
@@ -289,7 +288,7 @@ case "$command" in
 
 				ips_most_request_duration="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk \
 							-v idx_ip="${arg_log_idx_ip:-}" \
 							-v idx_duration="${arg_log_idx_duration:-}" \
@@ -308,7 +307,7 @@ case "$command" in
 
 				users_most_requests="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
@@ -323,7 +322,7 @@ case "$command" in
 
 				users_most_request_duration="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx_user="${arg_log_idx_user:-}" -v idx_duration="${arg_log_idx_duration:-}" \
 						'{s[\$idx_user]+=\$idx_duration} END { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
 						| sort -nr ||:; \
@@ -339,7 +338,7 @@ case "$command" in
 
 				status_most_requests="\$( \
 					{ \
-						grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
+						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_status:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
@@ -352,7 +351,7 @@ case "$command" in
 				echo -e "Requests with Longest Duration (s)"
 				echo -e "--------------------------------------------------------------------------------------------------------------"
 
-				grep_tmp_args=( "\${grep_args[@]}" )
+				grep_other_args=()
 
 				if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
 					regex="^[ ]*[^#^ ].*$"
@@ -360,35 +359,38 @@ case "$command" in
 
 					if [ -n "\$grep_lines" ]; then
 						while read -r grep_line; do
-							if [ "\${#grep_tmp_args[@]}" -eq 0 ]; then
-								grep_tmp_args=( "-v" )
+							if [ "\${#grep_other_args[@]}" -eq 0 ]; then
+								grep_other_args=( "-v" )
 							fi
 
-							grep_tmp_args+=( "-e" "\$grep_line" )
+							grep_other_args+=( "-e" "\$grep_line" )
 						done <<< "\$(echo -e "\$grep_lines")"
 					fi
 				fi
 
-				if [ "\${#grep_tmp_args[@]}" -eq 0 ]; then
-					grep_tmp_args=( "." )
+				if [ "\${#grep_other_args[@]}" -eq 0 ]; then
+					grep_other_args=( "." )
 				fi
 
 				longest_request_durations="\$( \
-					{ grep \${grep_tmp_args[@]+"\${grep_tmp_args[@]}"} "$arg_log_file" \
-					| awk \
-						-v idx_ip="${arg_log_idx_ip:-}" \
-						-v idx_user="${arg_log_idx_user:-}" \
-						-v idx_duration="${arg_log_idx_duration:-}" \
-						-v idx_time="${arg_log_idx_time:-}" \
-						-v idx_status="${arg_log_idx_status:-}" \
-						'{ printf "%10.1f %s %s %s %s\n", \
-							\$idx_duration, \
-							substr(\$idx_time, index(\$idx_time, ":") + 1), \
-							\$idx_status, \
-							\$idx_user, \
-							\$idx_ip }' \
-						| sort -nr ||:; } \
-					| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
+					{ \
+						grep \${grep_args[@]} "$arg_log_file" \
+						| grep \${grep_other_args[@]} \
+						| awk \
+							-v idx_ip="${arg_log_idx_ip:-}" \
+							-v idx_user="${arg_log_idx_user:-}" \
+							-v idx_duration="${arg_log_idx_duration:-}" \
+							-v idx_time="${arg_log_idx_time:-}" \
+							-v idx_status="${arg_log_idx_status:-}" \
+							'{ printf "%10.1f %s %s %s %s\n", \
+								\$idx_duration, \
+								substr(\$idx_time, index(\$idx_time, ":") + 1), \
+								\$idx_status, \
+								\$idx_user, \
+								\$idx_ip }' \
+						| sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: longest_request_durations"
 				echo -e "\$longest_request_durations"
 			fi
 		SHELL

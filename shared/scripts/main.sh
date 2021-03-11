@@ -142,7 +142,7 @@ case "$command" in
 
 		"$pod_script_env_file" up "toolbox"
 
-		"$pod_script_env_file" exec-nontty "toolbox" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "toolbox" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			dir="$data_dir/log/bg"
@@ -225,6 +225,79 @@ case "$command" in
 				fi
 			fi
 
+			if [ "${var_custom__use_haproxy:-}" = "true" ]; then
+				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+					dir_haproxy="$data_dir/sync/haproxy"
+
+					dir="\${dir_haproxy}/auto"
+					file="\${dir}/ips-blacklist-auto.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# 127.0.0.1 1;
+							# 1.2.3.4/16 1;
+						EOF
+					fi
+
+					dir="\${dir_haproxy}/manual"
+					file="\${dir}/ips-blacklist.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# 127.0.0.1 1;
+							# 0.0.0.0/0 1;
+						EOF
+					fi
+
+					dir="\${dir_haproxy}/manual"
+					file="\${dir}/ua-blacklist.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# ~(Mozilla|Chrome) 1;
+							# "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36" 1;
+							# "python-requests/2.18.4" 1;
+						EOF
+					fi
+
+					dir="\${dir_haproxy}/manual"
+					file="\${dir}/allowed-hosts.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# *.googlebot.com
+							# *.google.com
+						EOF
+					fi
+
+					dir="\${dir_haproxy}/manual"
+					file="\${dir}/log-exclude-paths.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# theia.localhost
+							# /app/uploads/
+						EOF
+					fi
+
+					dir="\${dir_haproxy}/manual"
+					file="\${dir}/log-exclude-paths-full.conf"
+
+					if [ ! -f "\$file" ]; then
+						mkdir -p "\$dir"
+						cat <<-EOF > "\$file"
+							# theia.localhost
+							# /app/uploads/
+						EOF
+					fi
+				fi
+			fi
+
 			if [ "${var_custom__use_mysql:-}" = "true" ]; then
 				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 					dir="$data_dir/mysql"
@@ -295,7 +368,7 @@ case "$command" in
 				"$pod_script_env_file" up mongo
 
 				info "$command - init the mongo database if needed"
-				"$pod_script_env_file" run mongo_init /bin/bash <<-SHELL || error "$command"
+				"$pod_script_env_file" run mongo_init /bin/bash <<-SHELL || error "$title"
 					set -eou pipefail
 
 					for i in \$(seq 1 30); do
@@ -412,9 +485,17 @@ case "$command" in
 		fi
 		;;
 	"action:exec:block_ips")
-		"$pod_script_env_file" "shared:log:nginx:verify"
+		service="${var_shared__block_ips__action_exec__service:-}"
 
-		dest_last_day_file="$("$pod_script_env_file" "shared:log:nginx:day" \
+		if [ "${var_shared__block_ips__action_exec__enabled:-}" != 'true' ]; then
+			error "$title: action is not enabled"
+		elif [ -z "$service" ]; then
+			error "$title: no service specified"
+		fi
+
+		"$pod_script_env_file" "shared:log:$service:verify"
+
+		dest_last_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
 			--force="${arg_force:-}" \
 			--days_ago="1" \
 			--max_amount="${arg_max_amount:-}")"
@@ -422,21 +503,20 @@ case "$command" in
 		dest_day_file=""
 
 		if [ "${var_shared__block_ips__action_exec__current_day:-}" = "true" ]; then
-			dest_day_file="$("$pod_script_env_file" "shared:log:nginx:day" \
+			dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
 				--force="${arg_force:-}" \
 				--max_amount="${arg_max_amount:-}")"
 		fi
 
-		nginx_sync_base_dir="/var/main/data/sync/nginx"
-		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:nginx:hour_path_prefix")"
+		service_sync_base_dir="/var/main/data/sync/$service"
+		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
 
-		"$pod_script_env_file" "service:nginx:block_ips" \
-			--task_name="block_ips" \
-			--subtask_cmd="$command" \
+		"$pod_script_env_file" "service:$service:block_ips" \
+			--task_info="$title" \
 			--max_amount="${var_shared__block_ips__action_exec__max_amount:-$arg_max_amount}" \
-			--output_file="$nginx_sync_base_dir/auto/ips-blacklist-auto.conf" \
-			--manual_file="$nginx_sync_base_dir/manual/ips-blacklist.conf" \
-			--allowed_hosts_file="$nginx_sync_base_dir/manual/allowed-hosts.conf" \
+			--output_file="$service_sync_base_dir/auto/ips-blacklist-auto.conf" \
+			--manual_file="$service_sync_base_dir/manual/ips-blacklist.conf" \
+			--allowed_hosts_file="$service_sync_base_dir/manual/allowed-hosts.conf" \
 			--log_file_last_day="$dest_last_day_file" \
 			--log_file_day="$dest_day_file" \
 			--amount_day="$var_shared__block_ips__action_exec__amount_day" \
@@ -585,11 +665,11 @@ case "$command" in
 
 		if ! [[ $delete_old_days =~ $re_number ]] ; then
 			msg="The variable 'var_shared__delete_old__days' should be a number"
-			error "$command: $msg (value=$delete_old_days)"
+			error "$title: $msg (value=$delete_old_days)"
 		fi
 
 		info "$command - create the backup base directory and clear old files"
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			for dir in "${dirs[@]}"; do

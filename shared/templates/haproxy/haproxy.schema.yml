@@ -69,6 +69,9 @@ schemas:
       basic_auth_data_content:
         type: "str"
         description: "default content for basic authentication (when not defined in the service)"
+      disable_blacklist:
+        type: "str"
+        description: "disables ip and user agent blacklist"
       no_rate_limits:
         type: "bool"
         description: "the default rate limit statements for the front-ends are not included"

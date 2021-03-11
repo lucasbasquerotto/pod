@@ -438,51 +438,10 @@ case "$command" in
 		SHELL
 		;;
 	"service:haproxy:log:connections")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
-
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "HTTP Connections"
-			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
-
-			if [ -f "$arg_log_file" ]; then
-				echo -e "##############################################################################################################"
-				echo -e "HTTP Active Connections"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				http_connections_max_logs="\$( \
-					{ grep -E '^(Time: |Active connections: )' "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3 " " \$4;}
-						else if(\$1 " " \$2 == "Active connections:") { printf "%10d %s\n", \$3, time }
-						}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: http_connections_max_logs"
-				echo -e "\$http_connections_max_logs"
-
-				echo -e "##############################################################################################################"
-				echo -e "HTTP Writing Connections"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				http_writing_max_logs="\$( \
-					{ grep -E '^(Time: |Reading: )' "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3 " " \$4;}
-						else if(\$3 == "Writing:") { printf "%10d %s\n", \$4, time }
-						}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: http_writing_max_logs"
-				echo -e "\$http_writing_max_logs"
-			fi
-		SHELL
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo "<< haproxy connections: unsupported >>"
+		echo -e "##############################################################################################################"
 		;;
 	*)
 		error "$command: invalid command"

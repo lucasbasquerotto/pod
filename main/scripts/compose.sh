@@ -164,15 +164,7 @@ case "$command" in
 	"kill")
 		cd "$pod_layer_dir/"
 
-		if [[ "${#args[@]}" -ne 0 ]]; then
-			sudo docker-compose -f "${file:-$main_file}" kill -s "${arg_signal:-}" "${@}"
-		else
-			sudo docker-compose -f "${file:-$main_file}" kill -s "${arg_signal:-}"
-
-			if [ -f "$run_file" ]; then
-				sudo docker-compose -f "$run_file" kill -s "${arg_signal:-}"
-			fi
-		fi
+		sudo docker-compose -f "${file:-$main_file}" kill "${args[@]}"
 		;;
 	"restart"|"logs"|"ps")
 		cd "$pod_layer_dir/"

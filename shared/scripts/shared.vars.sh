@@ -323,7 +323,17 @@ fi
 # Tasks
 
 if [ "$tmp_is_web" = 'true' ]; then
+	export var_shared__block_ips__action_exec__enabled="${var_load__block_ips:-}"
+
 	if [ "${var_load__block_ips:-}" = 'true' ]; then
+		if [ "${var_load_use__haproxy:-}" = 'true' ]; then
+			export var_shared__block_ips__action_exec__service='haproxy'
+		elif [ "${var_load_use__nginx:-}" = 'true' ]; then
+			export var_shared__block_ips__action_exec__service='nginx'
+		else
+			export var_shared__block_ips__action_exec__service=''
+		fi
+
 		export var_shared__block_ips__action_exec__max_amount="${var_load__block_ips__max_amount:-10000}"
 		export var_shared__block_ips__action_exec__amount_day="${var_load__block_ips__amount_day:-20000}"
 		export var_shared__block_ips__action_exec__amount_hour="${var_load__block_ips__amount_hour:-3600}"

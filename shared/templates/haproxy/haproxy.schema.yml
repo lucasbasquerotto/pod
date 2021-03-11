@@ -90,6 +90,24 @@ schemas:
       frontend_data:
         type: "str"
         description: "data to include in the frontend sections"
+      blacklist_ip_manual_path:
+        type: "str"
+        description: >-
+          path to the file that have the ips (or cidrs) that, when matched
+          with the client ip, will deny the request with a 403 error code;
+          defaults to '/var/main/data/sync/haproxy/manual/ips-blacklist.conf'
+      blacklist_ip_auto_path:
+        type: "str"
+        description: >-
+          path to the file that have the ips (or cidrs) that, when matched
+          with the client ip, will deny the request with a 403 error code;
+          defaults to '/var/main/data/sync/haproxy/auto/ips-blacklist-auto.conf'
+      blacklist_user_agent_path:
+        type: "str"
+        description: >-
+          path to the file that have the (exact) user agents) that, when matched
+          with the client user agent, will deny the request with a 403 error code;
+          defaults to '/var/main/data/sync/haproxy/manual/ua-blacklist.lst'
   node_dependency:
     type: "dict"
     lax: true

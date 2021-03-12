@@ -65,6 +65,9 @@ case "$command" in
 	"service:nginx:reload")
 		>&2 "$pod_script_env_file" exec-nontty "$arg_nginx_service" nginx -s reload
 		;;
+	"service:nginx:basic_status")
+		"$pod_script_env_file" exec-nontty toolbox curl -sL "http://nginx:9081/nginx/basic_status"
+		;;
 	"service:nginx:block_ips")
 		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
@@ -431,7 +434,8 @@ case "$command" in
 						else if(\$1 " " \$2 == "Active connections:") { printf "%10d %s\n", \$3, time }
 						}' \
 					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: http_connections_max_logs"
+          			|| error "$command: http_connections_max_logs"
+
 				echo -e "\$http_connections_max_logs"
 
 				echo -e "##############################################################################################################"
@@ -445,7 +449,8 @@ case "$command" in
 						else if(\$3 == "Writing:") { printf "%10d %s\n", \$4, time }
 						}' \
 					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: http_writing_max_logs"
+          			|| error "$command: http_writing_max_logs"
+
 				echo -e "\$http_writing_max_logs"
 			fi
 		SHELL

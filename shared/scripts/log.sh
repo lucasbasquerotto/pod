@@ -306,11 +306,10 @@ case "$command" in
 			--max_amount="${arg_max_amount:-}"
         ;;
 	"shared:log:main:nginx_basic_status")
-		"$pod_script_env_file" exec-nontty toolbox curl -sL "http://nginx:9081/nginx/basic_status"
+		"$pod_script_env_file" "service:nginx:basic_status"
 		;;
 	"shared:log:main:haproxy_basic_status")
-		#TODO
-		echo ""
+		"$pod_script_env_file" "service:haproxy:basic_status"
 		;;
 	"shared:log:register:"*)
 		task_name="${command#shared:log:register:}"

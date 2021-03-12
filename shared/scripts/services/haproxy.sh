@@ -65,11 +65,47 @@ case "$command" in
 	"service:haproxy:reload")
 		>&2 "$pod_script_env_file" kill -s HUP "$arg_haproxy_service"
 		;;
+	"service:haproxy:basic_status")
+		echo -e "##############################################################################################################"
+
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
+			set -eou pipefail
+
+			echo -e "##############################################################################################################"
+			echo -e "HAProxy Sessions"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			curl --silent "http://haproxy:9081/stats;csv" \
+				| grep -e pxname -e FRONTEND -e BACKEND \
+				| cut -d "," -f 1,2,5-8,34,35 \
+				| column -s, -t
+
+			echo -e "##############################################################################################################"
+			echo -e "HAProxy - Requests"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			curl --silent "http://haproxy:9081/stats;csv" \
+				| grep -e pxname -e FRONTEND -e BACKEND \
+				| cut -d "," -f 1,2,11,47,48,78,79 \
+				| column -s, -t
+
+			echo -e "##############################################################################################################"
+			echo -e "HAProxy - IO & Status"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			curl --silent "http://haproxy:9081/stats;csv" \
+				| grep -e pxname -e FRONTEND -e BACKEND \
+				| cut -d "," -f 1,2,9,10,40-43 \
+				| column -s, -t
+		SHELL
+
+		echo -e "##############################################################################################################"
+		;;
 	"service:haproxy:block_ips")
 		default_prefix=">>> "
 		log_prefix="${arg_log_prefix:-$default_prefix}"
 
-		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash 				<<-SHELL || error "$command"
+		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash 				<<-SHELL || error "$title"
 			set -eou pipefail
 
 			function error {
@@ -168,7 +204,7 @@ case "$command" in
 
 			if [ -n "${arg_log_file_last_day:-}" ] && [ -f "${arg_log_file_last_day:-}" ]; then
 				if [ "${arg_amount_day:-}" -le "0" ]; then
-					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
+					error "$title: amount_day (${arg_amount_day:-}) should be greater than 0"
 				fi
 
 				>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in the last day) - ${arg_log_file_last_day:-}"
@@ -177,7 +213,7 @@ case "$command" in
 
 			if [ -n "${arg_log_file_day:-}" ] && [ -f "${arg_log_file_day:-}" ]; then
 				if [ "${arg_amount_day:-}" -le "0" ]; then
-					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
+					error "$title: amount_day (${arg_amount_day:-}) should be greater than 0"
 				fi
 
 				>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in a day) - ${arg_log_file_day:-}"
@@ -186,7 +222,7 @@ case "$command" in
 
 			if [ -n "${arg_log_file_last_hour:-}" ] && [ -f "${arg_log_file_last_hour:-}" ]; then
 				if [ "${arg_amount_hour:-}" -le "0" ]; then
-					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
+					error "$title: amount_hour (${arg_amount_hour:-}) should be greater than 0"
 				fi
 
 				>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in the last hour) - ${arg_log_file_last_hour:-}"
@@ -195,7 +231,7 @@ case "$command" in
 
 			if [ -n "${arg_log_file_hour:-}" ] && [ -f "${arg_log_file_hour:-}" ]; then
 				if [ "${arg_amount_hour:-}" -le "0" ]; then
-					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
+					error "$title: amount_hour (${arg_amount_hour:-}) should be greater than 0"
 				fi
 
 				>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in an hour) - ${arg_log_file_hour:-}"
@@ -220,7 +256,7 @@ case "$command" in
 		default_prefix=">>> "
 		log_prefix="${arg_log_prefix:-$default_prefix}"
 
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			function error {
@@ -247,7 +283,7 @@ case "$command" in
 						grep \${grep_args[@]} "$arg_log_file" \
 						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
 						||:; \
-					} | head -n 1)" || error "$command: total_users"
+					} | head -n 1)" || error "$title: total_users"
 				echo -e "Users: \$total_users"
 			fi
 
@@ -258,7 +294,7 @@ case "$command" in
 						| awk -v idx="${arg_log_idx_http_user:-}" '{print \$idx}' | sort | uniq -c | wc -l \
 						||:; \
 					} | head -n 1)" \
-					|| error "$command: total_http_users"
+					|| error "$title: total_http_users"
 				echo -e "HTTP Users: \$total_http_users"
 			fi
 
@@ -269,7 +305,7 @@ case "$command" in
 						| awk -v idx="${arg_log_idx_duration:-}" '{s+=\$idx} END {print s}' \
 						||:; \
 					} | head -n 1)" \
-					|| error "$command: total_duration"
+					|| error "$title: total_duration"
 				echo -e "Duration: \$total_duration"
 			fi
 
@@ -284,7 +320,7 @@ case "$command" in
 						| awk -v idx="${arg_log_idx_ip:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-					|| error "$command: ips_most_requests"
+					|| error "$title: ips_most_requests"
 				echo -e "\$ips_most_requests"
 			fi
 
@@ -303,7 +339,7 @@ case "$command" in
 							{ for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
 						| sort -nr ||:;  \
 					} | head -n "$arg_max_amount")" \
-					|| error "$command: ips_most_request_duration"
+					|| error "$title: ips_most_request_duration"
 				echo -e "\$ips_most_request_duration"
 			fi
 
@@ -318,7 +354,7 @@ case "$command" in
 						| awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-					|| error "$command: users_most_requests"
+					|| error "$title: users_most_requests"
 				echo -e "\$users_most_requests"
 			fi
 
@@ -334,7 +370,7 @@ case "$command" in
 						'{s[\$idx_user]+=\$idx_duration} END { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
 						| sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-          			|| error "$command: users_most_request_duration"
+          			|| error "$title: users_most_request_duration"
 				echo -e "\$users_most_request_duration"
 			fi
 
@@ -349,7 +385,7 @@ case "$command" in
 						| awk -v idx="${arg_log_idx_status:-}" '{print \$idx}' \
 						| sort | uniq -c | sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-          			|| error "$command: status_most_requests"
+          			|| error "$title: status_most_requests"
 				echo -e "\$status_most_requests"
 			fi
 
@@ -397,7 +433,7 @@ case "$command" in
 								\$idx_ip }' \
 						| sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-					|| error "$command: longest_request_durations"
+					|| error "$title: longest_request_durations"
 				echo -e "\$longest_request_durations"
 			fi
 		SHELL
@@ -406,7 +442,7 @@ case "$command" in
 		default_prefix=">>> "
 		log_prefix="${arg_log_prefix:-$default_prefix}"
 
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			function error {
@@ -447,18 +483,17 @@ case "$command" in
 							'{ printf "%10.1f %s\n", \$idx_duration, \$0 }' \
 							| sort -nr ||:; \
 					} | head -n "$arg_max_amount")" \
-					|| error "$command: longest_request_durations"
+					|| error "$title: longest_request_durations"
 				echo -e "\$longest_request_durations"
 			fi
 		SHELL
 		;;
 	"service:haproxy:log:connections")
 		echo -e "##############################################################################################################"
-		echo -e "##############################################################################################################"
-		echo "<< haproxy connections: unsupported >>"
+		echo -e "HAProxy connections summary: Unsupported action"
 		echo -e "##############################################################################################################"
 		;;
 	*)
-		error "$command: invalid command"
+		error "$title: invalid command"
 		;;
 esac

@@ -403,6 +403,9 @@ case "$command" in
 		SHELL
 		;;
 	"service:haproxy:log:duration")
+		default_prefix=">>> "
+		log_prefix="${arg_log_prefix:-$default_prefix}"
+
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -412,7 +415,9 @@ case "$command" in
 			}
 
 			if [ -n "${arg_log_idx_duration:-}" ]; then
-				grep_args=()
+				grep_args=( "$log_prefix" )
+
+				grep_other_args=()
 
 				if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
 					regex="^[ ]*[^#^ ].*$"
@@ -420,26 +425,29 @@ case "$command" in
 
 					if [ -n "\$grep_lines" ]; then
 						while read -r grep_line; do
-							if [ "\${#grep_args[@]}" -eq 0 ]; then
-								grep_args=( "-v" )
+							if [ "\${#grep_other_args[@]}" -eq 0 ]; then
+								grep_other_args=( "-v" )
 							fi
 
-							grep_args+=( "-e" "\$grep_line" )
+							grep_other_args+=( "-e" "\$grep_line" )
 						done <<< "\$(echo -e "\$grep_lines")"
 					fi
 				fi
 
-				if [ "\${#grep_args[@]}" -eq 0 ]; then
-					grep_args=( "." )
+				if [ "\${#grep_other_args[@]}" -eq 0 ]; then
+					grep_other_args=( "." )
 				fi
 
 				longest_request_durations="\$( \
-					{ grep \${grep_args[@]+"\${grep_args[@]}"} "$arg_log_file" \
-					| awk \
-						-v idx_duration="${arg_log_idx_duration:-}" \
-						'{ printf "%10.1f %s\n", \$idx_duration, \$0 }' \
-						| sort -nr ||:; } \
-					| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
+					{
+						grep \${grep_args[@]} "$arg_log_file" \
+						| grep \${grep_other_args[@]} \
+						| awk \
+							-v idx_duration="${arg_log_idx_duration:-}" \
+							'{ printf "%10.1f %s\n", \$idx_duration, \$0 }' \
+							| sort -nr ||:; \
+					} | head -n "$arg_max_amount")" \
+					|| error "$command: longest_request_durations"
 				echo -e "\$longest_request_durations"
 			fi
 		SHELL

@@ -75,6 +75,9 @@ schemas:
       no_rate_limits:
         type: "bool"
         description: "the default rate limit statements for the front-ends are not included"
+      no_cli_stats:
+        type: "bool"
+        description: "the default stats statements in the global section (for cli access) are not included"
       resolver:
         type: "str"
         description: "defaults to 127.0.0.11"

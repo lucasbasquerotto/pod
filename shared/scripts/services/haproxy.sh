@@ -66,8 +66,6 @@ case "$command" in
 		>&2 "$pod_script_env_file" kill -s HUP "$arg_haproxy_service"
 		;;
 	"service:haproxy:basic_status")
-		echo -e "##############################################################################################################"
-
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
@@ -95,11 +93,11 @@ case "$command" in
 
 			curl --silent "http://haproxy:9081/stats;csv" \
 				| grep -e pxname -e FRONTEND -e BACKEND \
-				| cut -d "," -f 1,2,9,10,40-43 \
+				| cut -d "," -f 1,2,9,10,41-44 \
 				| column -s, -t
-		SHELL
 
-		echo -e "##############################################################################################################"
+			echo -e "##############################################################################################################"
+		SHELL
 		;;
 	"service:haproxy:block_ips")
 		default_prefix=">>> "

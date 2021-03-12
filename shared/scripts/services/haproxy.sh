@@ -66,7 +66,10 @@ case "$command" in
 		>&2 "$pod_script_env_file" kill -s HUP "$arg_haproxy_service"
 		;;
 	"service:haproxy:block_ips")
-		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		default_prefix=">>> "
+		log_prefix="${arg_log_prefix:-$default_prefix}"
+
+		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash 				<<-SHELL || error "$command"
 			set -eou pipefail
 
 			function error {
@@ -78,6 +81,8 @@ case "$command" in
 				[[ "\$1" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.)){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]] && echo "0" || echo "1"
 			}
 
+			grep_args=( "$log_prefix" )
+
 			function ipstoblock {
 				haproxy_file_path="\${1:-}"
 				amount="\${2:-10}"
@@ -86,11 +91,12 @@ case "$command" in
 				if [ -f "\$haproxy_file_path" ]; then
 					ips_most_requests=\$( \
 						{ \
-							awk '{print \$2}' "\$haproxy_file_path" \
+							grep \${grep_args[@]} "\$haproxy_file_path" \
+							| awk '{print \$2}' \
 							| sort \
 							| uniq -c \
 							| sort -nr \
-							| awk -v amount="\$amount" '{if(\$1 > amount) {printf "%s 1; # %s\n", \$2, \$1}}' \
+							| awk -v amount="\$amount" '{if(\$1 > amount) {printf "%s # %s\n", \$2, \$1}}' \
 							||:; \
 						} \
 						| head -n "$arg_max_amount" \
@@ -109,7 +115,7 @@ case "$command" in
 						else
 							# include ip if it isn't already defined
 							# it will be considered as defined even if it is commented
-							if ! grep -qE "^(\$ip[ ]|[#]+[ ]*\$ip[ ])" "$arg_output_file"; then
+							if ! grep -qE "^([#]+[ ]*)?\${ip}([ ].*)?$" "$arg_output_file"; then
 								output_aux="\n\$i";
 
 								# do nothing if ip already exists in manual file
@@ -212,6 +218,7 @@ case "$command" in
 		;;
 	"service:haproxy:log:summary:total")
 		default_prefix=">>> "
+		log_prefix="${arg_log_prefix:-$default_prefix}"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
@@ -229,7 +236,7 @@ case "$command" in
 			echo -e "Limit: $arg_max_amount"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-			grep_args=( "${arg_log_prefix:-$default_prefix}" )
+			grep_args=( "$log_prefix" )
 
 			request_count="\$(wc -l < "$arg_log_file")"
 			echo -e "Requests: \$request_count"

@@ -589,8 +589,8 @@ case "$command" in
 
 		opts+=( "--s3_dest_alias=backup_replica" )
 		opts+=( "--s3_remote_dest=true" )
-		opts+=( "--s3_bucket_dest_name=$var_shared__s3_replicate_backup__bucket_dest_name" )
-		opts+=( "--s3_bucket_dest_path=${var_shared__s3_replicate_backup__bucket_dest_path:-}" )
+		opts+=( "--s3_bucket_dest_name=$var_task__s3_backup_replica__s3_subtask__bucket_name" )
+		opts+=( "--s3_bucket_dest_path=${var_task__s3_backup_replica__s3_subtask__bucket_path:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
@@ -608,8 +608,8 @@ case "$command" in
 
 		opts+=( "--s3_dest_alias=uploads_replica" )
 		opts+=( "--s3_remote_dest=true" )
-		opts+=( "--s3_bucket_dest_name=$var_shared__s3_replicate_s3_uploads__bucket_dest_name" )
-		opts+=( "--s3_bucket_dest_path=${var_shared__s3_replicate_s3_uploads__bucket_dest_path:-}" )
+		opts+=( "--s3_bucket_dest_name=$var_task__s3_uploads_replica__s3_subtask__bucket_name" )
+		opts+=( "--s3_bucket_dest_path=${var_task__s3_uploads_replica__s3_subtask__bucket_path:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;

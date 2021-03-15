@@ -298,28 +298,6 @@ export var_run__tasks__setup='group_setup'
 export var_task__group_setup__task__type='group'
 export var_task__group_setup__group_task__task_names="$tmp_group_setup"
 
-# Tasks - Replicate
-
-if [ "$tmp_is_web" = 'true' ]; then
-	if [ "${var_load_enable__backup_replica:-}" = 'true' ]; then
-		if [ -z "${var_load__s3_backup__bucket_name:-}" ]; then
-			tmp_errors+=("[shared] var_load__s3_backup__bucket_name is not defined (s3_replicate_backup)")
-		fi
-
-		export var_shared__s3_replicate_backup__bucket_dest_name="${var_load__backup_replica__bucket_name:-}"
-		export var_shared__s3_replicate_backup__bucket_dest_path="${var_load__backup_replica__bucket_path:-}"
-	fi
-
-	if [ "${var_load_enable__uploads_replica:-}" = 'true' ]; then
-		if [ -z "${var_load__s3_uploads__bucket_name:-}" ]; then
-			tmp_errors+=("[shared] var_load__s3_uploads__bucket_name is not defined (s3_replicate_uploads)")
-		fi
-
-		export var_shared__s3_replicate_uploads__bucket_dest_name="${var_load__uploads_replica__bucket_name:-}"
-		export var_shared__s3_replicate_uploads__bucket_dest_path="${var_load__uploads_replica__bucket_path:-}"
-	fi
-fi
-
 # Tasks
 
 if [ "$tmp_is_web" = 'true' ]; then
@@ -337,9 +315,6 @@ if [ "$tmp_is_web" = 'true' ]; then
 		export var_shared__block_ips__action_exec__max_amount="${var_load__block_ips__max_amount:-10000}"
 		export var_shared__block_ips__action_exec__amount_day="${var_load__block_ips__amount_day:-20000}"
 		export var_shared__block_ips__action_exec__amount_hour="${var_load__block_ips__amount_hour:-3600}"
-
-		export var_shared__s3_replicate_uploads__bucket_dest_name="${var_load__uploads_replica_bucket_name:-}"
-		export var_shared__s3_replicate_uploads__bucket_dest_path="${var_load__uploads_replica_bucket_path:-}"
 	fi
 fi
 

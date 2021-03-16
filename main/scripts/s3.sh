@@ -102,6 +102,9 @@ case "$command" in
 			rclone copy --verbose "$s3_src" "$s3_dest" \
 			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
 		;;
+	"s3:main:rclone:lifecycle")
+		error "$title: action not supported for this s3 client"
+		;;
 	"s3:mc:exec:"*)
 		cmd="${command#s3:mc:exec:}"
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}

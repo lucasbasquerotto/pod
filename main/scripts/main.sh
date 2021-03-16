@@ -858,7 +858,6 @@ case "$command" in
 
 		opts+=( "--toolbox_service=${!param_toolbox_service}" )
 		opts+=( "--certbot_service=${!param_certbot_service}" )
-		opts+=( "--webservice_type=${!param_webservice_type}" )
 		opts+=( "--data_base_path=${!param_data_base_path}" )
 		opts+=( "--main_domain=${!param_main_domain}" )
 		opts+=( "--domains=${!param_domains}" )

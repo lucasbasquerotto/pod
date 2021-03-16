@@ -31,7 +31,6 @@ while getopts ':-:' OPT; do
 		task_info ) arg_task_info="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		certbot_service ) arg_certbot_service="${OPTARG:-}";;
-		webservice_type ) arg_webservice_type="${OPTARG:-}";;
 		webservice_service ) arg_webservice_service="${OPTARG:-}";;
 		data_base_path ) arg_data_base_path="${OPTARG:-}";;
 		main_domain ) arg_main_domain="${OPTARG:-}";;
@@ -106,8 +105,8 @@ case "$command" in
 				-out '$inner_path/fullchain.pem' \
 				-subj '/CN=localhost'" "$arg_certbot_service"
 
-		info "$title: Starting $arg_webservice_type ..."
-		>&2 "$pod_script_env_file" "run:certbot:ws:start:$arg_webservice_type" \
+		info "$title: Starting $arg_webservice_service ..."
+		>&2 "$pod_script_env_file" "run:certbot:ws:start" \
 			--webservice_service="$arg_webservice_service"
 
 		if [ "${arg_dev:-}" != "true" ]; then
@@ -158,8 +157,8 @@ case "$command" in
 		SHELL
 
 		if [ "${arg_dev:-}" != "true" ]; then
-			info "$title: Reloading $arg_webservice_type ..."
-			>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
+			info "$title: Reloading $arg_webservice_service ..."
+			>&2 "$pod_script_env_file" "run:certbot:ws:reload" \
 				--webservice_service="$arg_webservice_service"
 		fi
 		;;
@@ -171,16 +170,15 @@ case "$command" in
 		>&2 "$pod_script_env_file" run \
 			--entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
 
-		info "$title: Reloading $arg_webservice_type ..."
-		>&2 "$pod_script_env_file" "run:certbot:ws:reload:$arg_webservice_type" \
+		info "$title: Reloading $arg_webservice_service ..."
+		>&2 "$pod_script_env_file" "run:certbot:ws:reload" \
 			--webservice_service="$arg_webservice_service"
 		;;
-	"certbot:ws:start:nginx")
+	"certbot:ws:start")
 		>&2 "$pod_script_env_file" up "$arg_webservice_service"
-		>&2 "$pod_script_env_file" restart "$arg_webservice_service"
 		;;
-	"certbot:ws:reload:nginx")
-		>&2 "$pod_script_env_file" exec-nontty "$arg_webservice_service" nginx -s reload
+	"certbot:ws:reload")
+		>&2 "$pod_script_env_file" exec-nontty "service:$arg_webservice_service:reload"
 		;;
 	*)
 		error "$command: invalid command"

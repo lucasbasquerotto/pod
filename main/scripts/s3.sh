@@ -39,6 +39,7 @@ while getopts ':-:' OPT; do
 		s3_alias ) arg_s3_alias="${OPTARG:-}";;
 		s3_endpoint ) arg_s3_endpoint="${OPTARG:-}";;
 		s3_bucket_name ) arg_s3_bucket_name="${OPTARG:-}";;
+		s3_lifecycle_file ) arg_s3_lifecycle_file="${OPTARG:-}";;
 		s3_remote_src ) arg_s3_remote_src="${OPTARG:-}" ;;
 		s3_src_alias ) arg_s3_src_alias="${OPTARG:-}" ;;
 		s3_src ) arg_s3_src="${OPTARG:-}" ;;
@@ -71,40 +72,6 @@ function s3cmd_run {
 }
 
 case "$command" in
-	"s3:rclone:exec:"*)
-		cmd="${command#s3:rclone:exec:}"
-		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
-		;;
-	"s3:rclone:run:"*)
-		cmd="${command#s3:rclone:run:}"
-		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
-		;;
-	"s3:main:rclone:create_bucket")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone mkdir "$arg_s3_alias:$arg_s3_bucket_name"
-		;;
-	"s3:main:rclone:rb")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone purge "$arg_s3_alias:$arg_s3_bucket_name"
-		;;
-	"s3:main:rclone:delete_old")
-		if [ -z "${arg_s3_older_than_days:-}" ]; then
-			error "$title: parameter s3_older_than_days undefined"
-		fi
-
-		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			rclone delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path"
-		;;
-	"s3:main:rclone:cp"|"s3:main:rclone:sync")
-		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
-		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
-
-		cmd="${command#s3:main:rclone:}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			rclone copy --verbose "$s3_src" "$s3_dest" \
-			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-		;;
-	"s3:main:rclone:lifecycle")
-		error "$title: action not supported for this s3 client"
-		;;
 	"s3:mc:exec:"*)
 		cmd="${command#s3:mc:exec:}"
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
@@ -154,6 +121,40 @@ case "$command" in
 
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" \
 			< "$conf_file"
+		;;
+	"s3:rclone:exec:"*)
+		cmd="${command#s3:rclone:exec:}"
+		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
+		;;
+	"s3:rclone:run:"*)
+		cmd="${command#s3:rclone:run:}"
+		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
+		;;
+	"s3:main:rclone:create_bucket")
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone mkdir "$arg_s3_alias:$arg_s3_bucket_name"
+		;;
+	"s3:main:rclone:rb")
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone purge "$arg_s3_alias:$arg_s3_bucket_name"
+		;;
+	"s3:main:rclone:delete_old")
+		if [ -z "${arg_s3_older_than_days:-}" ]; then
+			error "$title: parameter s3_older_than_days undefined"
+		fi
+
+		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
+			rclone delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path"
+		;;
+	"s3:main:rclone:cp"|"s3:main:rclone:sync")
+		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
+		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
+
+		cmd="${command#s3:main:rclone:}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
+			rclone copy --verbose "$s3_src" "$s3_dest" \
+			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		;;
+	"s3:main:rclone:lifecycle")
+		error "$title: action not supported for this s3 client"
 		;;
 	"s3:awscli:exec:"*)
 		cmd="${command#s3:awscli:exec:}"

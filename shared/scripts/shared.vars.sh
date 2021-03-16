@@ -143,6 +143,8 @@ export var_run__general__main_base_dir="${var_load_general__main_base_dir:-}"
 export var_run__general__main_base_dir_container="${var_load_general__main_base_dir_container:-}"
 export var_run__general__backup_is_delete_old="${var_load_general__backup_is_delete_old:-}"
 export var_run__general__s3_cli="${var_load_general__s3_cli:-}"
+export var_run__general__define_s3_backup_lifecycle="${var_load_general__define_s3_backup_lifecycle:-}"
+export var_run__general__define_s3_uploads_lifecycle="${var_load_general__define_s3_uploads_lifecycle:-}"
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 
@@ -410,7 +412,7 @@ if [ "$tmp_is_db" = 'true' ]; then
 			export var_task__db_backup__backup_local__db_file_name="${tmp_default_file_name:-}"
 		fi
 
-		tmp_default_sync_dir='[[ date ]]'
+		tmp_default_sync_dir='db/[[ date ]]'
 
 		if [ -z "${var_load__s3_backup__bucket_name:-}" ]; then
 			tmp_errors+=("[shared] var_load__s3_backup__bucket_name is not defined (db_backup)")
@@ -604,6 +606,7 @@ if [ -n "${var_load__s3_backup__bucket_name:-}" ]; then
 	export var_task__s3_backup__s3_subtask__bucket_path="${var_load__s3_backup__bucket_path:-}"
 	export var_task__s3_backup__s3_subtask__cli="${var_load__s3_backup__cli:-awscli}"
 	export var_task__s3_backup__s3_subtask__endpoint="${var_load__s3_backup__endpoint:-}"
+	export var_task__s3_backup__s3_subtask__lifecycle_file="${var_load__s3_backup__lifecycle_file:-}"
 fi
 
 if [ "$tmp_is_web" = 'true' ]; then
@@ -629,6 +632,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 		export var_task__s3_uploads__s3_subtask__bucket_path="${var_load__s3_uploads__bucket_path:-}"
 		export var_task__s3_uploads__s3_subtask__cli="${var_load__s3_uploads__cli:-awscli}"
 		export var_task__s3_uploads__s3_subtask__endpoint="${var_load__s3_uploads__endpoint:-}"
+		export var_task__s3_uploads__s3_subtask__lifecycle_file="${var_load__s3_uploads__lifecycle_file:-}"
 	fi
 fi
 
@@ -689,7 +693,7 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" != 'true' ];
 		tmp_compressed_file_name="${var_load__uploads_backup__compressed_file_name:-$tmp_default_compressed_file_name}"
 		tmp_uploads_compress_dest_file="${tmp_uploads_tmp_dir}/${tmp_compressed_file_name}"
 
-		tmp_default_sync_dir='[[ date ]]'
+		tmp_default_sync_dir='uploads/[[ date ]]'
 		tmp_sync_dir="${var_load__uploads_backup__backup_bucket_sync_dir:-$tmp_default_sync_dir}"
 
 		export var_task__uploads_backup__task__type='backup'

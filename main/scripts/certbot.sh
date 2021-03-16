@@ -178,7 +178,8 @@ case "$command" in
 		>&2 "$pod_script_env_file" up "$arg_webservice_service"
 		;;
 	"certbot:ws:reload")
-		>&2 "$pod_script_env_file" exec-nontty "service:$arg_webservice_service:reload"
+		>&2 "$pod_script_env_file" "service:$arg_webservice_service:reload" \
+			--task_info="$title"
 		;;
 	*)
 		error "$command: invalid command"

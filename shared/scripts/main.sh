@@ -372,6 +372,28 @@ case "$command" in
 			"$pod_script_env_file" up nginx
 		fi
 
+		if [ "${var_custom__use_haproxy:-}" = "true" ]; then
+			"$pod_script_env_file" up haproxy
+		fi
+
+		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = "true" ]; then
+			bucket_exists="$("$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=bucket_exists --task_info="$title")"
+
+			if [ "$bucket_exists" = "true" ]; then
+				info "$title - $arg_toolbox_service - s3:subtask:s3_backup - define the backup bucket lifecycle policy"
+				>&2 "$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=lifecycle --task_info="$title"
+			fi
+		fi
+
+		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = "true" ]; then
+			bucket_exists="$("$pod_script_env_file" "s3:subtask:s3_uploads" --s3_cmd=bucket_exists --task_info="$title")"
+
+			if [ "$bucket_exists" = "true" ]; then
+				info "$title - $arg_toolbox_service - s3:subtask:s3_uploads - define the uploads bucket lifecycle policy"
+				>&2 "$pod_script_env_file" "s3:subtask:s3_uploads" --s3_cmd=lifecycle --task_info="$title"
+			fi
+		fi
+
 		if [ "${var_custom__use_mongo:-}" = "true" ]; then
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo

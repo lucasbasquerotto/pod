@@ -66,7 +66,7 @@ case "$command" in
 			dummy_certificate_days="10000"
 
 			info "$title: Preparing the development certificate environment ..."
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 				set -eou pipefail
 
 				if [ -f "$data_file_done" ]; then
@@ -88,7 +88,7 @@ case "$command" in
 		fi
 
 		if [ -z "${arg_email:-}" ]; then
-			error "$command: [Error] Specify an email to generate a TLS certificate"
+			error "$title: [Error] Specify an email to generate a TLS certificate"
 		fi
 
 		info "$title: Preparing the directory $arg_main_domain ..."
@@ -104,6 +104,19 @@ case "$command" in
 				-keyout '$inner_path/privkey.pem' \
 				-out '$inner_path/fullchain.pem' \
 				-subj '/CN=localhost'" "$arg_certbot_service"
+
+		info "$title: Creating dummy concatenated certificate for $arg_main_domain ..."
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
+			set -eou pipefail
+
+			fullchain="$data_path/live/$arg_main_domain/fullchain.pem"
+			privkey="$data_path/live/$arg_main_domain/privkey.pem"
+			concat="$data_path/live/$arg_main_domain/concat.pem"
+
+			if [ -f "\$fullchain" ] && [ -f "\$privkey" ]; then
+				cat "\$fullchain" "\$privkey" > "\$concat"
+			fi
+		SHELL
 
 		info "$title: Starting $arg_webservice_service ..."
 		>&2 "$pod_script_env_file" "run:certbot:ws:start" \
@@ -141,7 +154,7 @@ case "$command" in
 					--non-interactive" "$arg_certbot_service"
 		fi
 
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			fullchain="$data_path/live/$arg_main_domain/fullchain.pem"
@@ -182,6 +195,6 @@ case "$command" in
 			--task_info="$title"
 		;;
 	*)
-		error "$command: invalid command"
+		error "$title: invalid command"
 		;;
 esac

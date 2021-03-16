@@ -106,6 +106,16 @@ case "$command" in
 		"$pod_script_env_file" run logrotator
 		;;
 	"build")
+		if [ -n "${var_run__general__s3_cli:-}" ]; then
+			env_dir_s3_cli="$pod_layer_dir/env/$var_run__general__s3_cli"
+
+			dir="${env_dir_s3_cli}/etc"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+		fi
+
 		if [ "${var_custom__use_nginx:-}" = "true" ]; then
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
 				env_dir_nginx="$pod_layer_dir/env/nginx"

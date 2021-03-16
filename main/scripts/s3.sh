@@ -2,6 +2,8 @@
 set -eou pipefail
 
 # shellcheck disable=SC2154
+pod_layer_dir="$var_pod_layer_dir"
+# shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
 function info {
@@ -56,56 +58,6 @@ title=''
 [ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
 title="${title}${command}"
 
-# function awscli_general {
-# 	>&2 echo ">$1 $arg_s3_service: aws ${*:2}"
-# 	>&2 "$pod_script_env_file" "$1" "$arg_s3_service" aws "${@:2}"
-# }
-
-# function awscli_exec {
-# 	awscli_general exec-nontty "${@}"
-# }
-
-# function awscli_run {
-# 	awscli_general run "${@}"
-# }
-
-# function awscli_is_empty_bucket {
-# 	cmd="$1"
-
-# 	error_log_dir="$pod_tmp_dir/s3/"
-# 	mkdir -p "$error_log_dir"
-
-# 	error_filename="error.$(date '+%s').$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log"
-# 	error_log_file="$error_log_dir/$error_filename"
-
-# 	if ! awscli_general "$cmd" \
-# 		s3 --endpoint="$arg_s3_endpoint" \
-# 		ls "s3://$arg_s3_bucket_name" \
-# 		2> "$error_log_file";
-# 	then
-# 		if grep -q 'NoSuchBucket' "$error_log_file"; then
-# 			echo "true"
-# 			exit 0
-# 		fi
-# 	fi
-
-# 	echo "false"
-# }
-
-# function awscli_rb {
-# 	cmd="$1"
-
-# 	empty_bucket="$(awscli_is_empty_bucket "$cmd")"
-
-# 	if [ "$empty_bucket" = "true" ]; then
-# 		>&2 echo "skipping (no_bucket)"
-# 	elif [ "$empty_bucket" = "false" ]; then
-# 		awscli_general "$cmd" s3 rb --endpoint="$arg_s3_endpoint" --force "s3://$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-# 	else
-# 		error "$title - awscli_rb: invalid result (empty_bucket should be true or false): $empty_bucket"
-# 	fi
-# }
-
 function s3cmd_general {
 	>&2 "$pod_script_env_file" "$1" "$arg_s3_service" s3cmd "${@:2}"
 }
@@ -135,7 +87,7 @@ case "$command" in
 		;;
 	"s3:main:rclone:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then
-			error "$command: parameter s3_older_than_days undefined"
+			error "$title: parameter s3_older_than_days undefined"
 		fi
 
 		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
@@ -166,7 +118,7 @@ case "$command" in
 		;;
 	"s3:main:mc:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then
-			error "$command: parameter s3_older_than_days undefined"
+			error "$title: parameter s3_older_than_days undefined"
 		fi
 
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
@@ -183,6 +135,22 @@ case "$command" in
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
 			mc "$cmd" "$s3_src" "$s3_dest" \
 			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		;;
+	"s3:main:mc:lifecycle")
+		if [ -z "${arg_s3_lifecycle_file:-}" ]; then
+			error "$title: parameter s3_lifecycle_file undefined"
+		elif [ ! -f "${pod_layer_dir}/${arg_s3_lifecycle_file:-}" ]; then
+			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
+		fi
+
+		conf_file="${pod_layer_dir}/${arg_s3_lifecycle_file:-}"
+
+		inner_cmd=( mc ilm import "$arg_s3_src_alias/$arg_s3_bucket_name" )
+
+		info "s3 command: ${inner_cmd[*]} < $conf_file"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" \
+			< "$conf_file"
 		;;
 	"s3:awscli:exec:"*)
 		cmd="${command#s3:awscli:exec:}"
@@ -251,7 +219,7 @@ case "$command" in
 		;;
 	"s3:main:awscli:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then
-			error "$command: parameter s3_older_than_days undefined"
+			error "$title: parameter s3_older_than_days undefined"
 		fi
 
 		>&2 echo ">$arg_cli_cmd $arg_s3_service: aws rm $arg_s3_endpoint (< $arg_s3_older_than_days day(s))"
@@ -287,42 +255,25 @@ case "$command" in
 
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
-	# "s3:awscli:exec:is_empty_bucket")
-	# 	awscli_is_empty_bucket exec-nontty
-	#   ;;
-	# "s3:awscli:run:is_empty_bucket")
-	# 	awscli_is_empty_bucket run
-	#   ;;
-	# "s3:awscli:exec:create_bucket")
-	# 	awscli_exec s3api create_bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
-	# "s3:awscli:run:create_bucket")
-	# 	awscli_run s3api create_bucket --endpoint="$arg_s3_endpoint" --bucket "$arg_s3_bucket_name" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
-	# "s3:awscli:exec:rb")
-	# 	awscli_rb exec-nontty
-	# 	;;
-	# "s3:awscli:run:rb")
-	# 	awscli_rb run
-	# 	;;
-	# "s3:awscli:exec:cp")
-	# 	awscli_exec s3 --endpoint="$arg_s3_endpoint" cp "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
-	# "s3:awscli:run:cp")
-	# 	awscli_run s3 --endpoint="$arg_s3_endpoint" cp "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
-	# "s3:awscli:exec:delete_old")
-	# 	"$pod_script_env_file" "run:s3:main:awscli:delete_old" --cli_cmd="exec-nontty" ${args[@]+"${args[@]}"}
-	# 	;;
-	# "s3:awscli:run:delete_old")
-	# 	"$pod_script_env_file" "run:s3:main:awscli:delete_old" --cli_cmd="run" ${args[@]+"${args[@]}"}
-	# 	;;
-	# "s3:awscli:exec:sync")
-	# 	awscli_exec s3  --endpoint="$arg_s3_endpoint" sync "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
-	# "s3:awscli:run:sync")
-	# 	awscli_run s3 --endpoint="$arg_s3_endpoint" sync "$arg_s3_src" "$arg_s3_dest" ${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
-	# 	;;
+	"s3:main:awscli:lifecycle")
+		if [ -z "${arg_s3_lifecycle_file:-}" ]; then
+			error "$title: parameter s3_lifecycle_file undefined"
+		elif [ ! -f "${pod_layer_dir}/${arg_s3_lifecycle_file:-}" ]; then
+			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
+		fi
+
+		inner_conf_file="/etc/main/${arg_s3_lifecycle_file:-}"
+
+		inner_cmd=( aws --profile="$arg_s3_alias" )
+		inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
+		inner_cmd+=( put-bucket-lifecycle-configuration )
+		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
+		inner_cmd+=( --lifecycle-configuration "file://$inner_conf_file" )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+		;;
 	*)
 		error "Invalid command: $command"
 		;;

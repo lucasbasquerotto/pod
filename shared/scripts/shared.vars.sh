@@ -142,6 +142,7 @@ export var_run__general__orchestration="${var_load_general__orchestration:-compo
 export var_run__general__main_base_dir="${var_load_general__main_base_dir:-}"
 export var_run__general__main_base_dir_container="${var_load_general__main_base_dir_container:-}"
 export var_run__general__backup_is_delete_old="${var_load_general__backup_is_delete_old:-}"
+export var_run__general__s3_cli="${var_load_general__s3_cli:-}"
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 
@@ -336,8 +337,15 @@ if [ "$tmp_is_web" = 'true' ]; then
 		export var_task__certbot__certbot_task__certbot_cmd='setup'
 		export var_task__certbot__certbot_subtask__certbot_service='certbot'
 		export var_task__certbot__certbot_subtask__toolbox_service='toolbox'
-		export var_task__certbot__certbot_subtask__webservice_type='nginx'
 		export var_task__certbot__certbot_subtask__data_base_path='/var/main/data/sync/certbot'
+
+		if [ "${var_load_use__haproxy:-}" = 'true' ]; then
+			export var_task__certbot__certbot_subtask__webservice_type='haproxy'
+		elif [ "${var_load_use__nginx:-}" = 'true' ]; then
+			export var_task__certbot__certbot_subtask__webservice_type='nginx'
+		else
+			export var_task__certbot__certbot_subtask__webservice_type=''
+		fi
 
 		export var_task__certbot__certbot_subtask__dev="${var_load__certbot__dev:-$var_custom__local}"
 		export var_task__certbot__certbot_subtask__domains="${var_load__certbot__domains:-}"

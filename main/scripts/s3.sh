@@ -261,7 +261,7 @@ case "$command" in
 
 			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		else
-			error "$title: invalid result (empty_bucket should be true or false): $empty_bucket"
+			error "$title: invalid result (bucket_exists should be true or false): $bucket_exists"
 		fi
 		;;
 	"s3:main:awscli:delete_old")

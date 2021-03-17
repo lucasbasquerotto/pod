@@ -364,7 +364,7 @@ case "$command" in
 		fi
 
 		if [ "${var_custom__use_certbot:-}" = "true" ]; then
-			info "$command - run certbot if needed..."
+			info "$title - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
 		fi
 
@@ -398,7 +398,7 @@ case "$command" in
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo
 
-				info "$command - init the mongo database if needed"
+				info "$title - init the mongo database if needed"
 				"$pod_script_env_file" run mongo_init /bin/bash <<-SHELL || error "$title"
 					set -eou pipefail
 
@@ -444,18 +444,19 @@ case "$command" in
 		if [ "${var_custom__use_varnish:-}" = "true" ]; then
 			"$pod_script_env_file" up varnish
 
-			info "$command - clear varnish cache..."
+			info "$title - clear varnish cache..."
 			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_custom__use_nextcloud:-}" = "true" ]; then
-			info "$command - prepare nextcloud..."
+			info "$title - prepare nextcloud..."
 			"$pod_script_env_file" "shared:service:nextcloud:setup" \
 				${next_args[@]+"${next_args[@]}"}
 		fi
 		;;
 	"shared:service:nextcloud:setup")
 		"$pod_script_env_file" "service:nextcloud:setup" \
+			--task_info="$title >> nextcloud" \
 			--task_name="nextcloud" \
 			--subtask_cmd="$command" \
 			--admin_user="$var_shared__nextcloud__setup__admin_user" \
@@ -466,18 +467,21 @@ case "$command" in
 			--nextcloud_protocol="$var_shared__nextcloud__setup__protocol"
 
 		"$pod_script_env_file" "service:nextcloud:fs" \
+			--task_info="$title >> nextcloud_action" \
 			--task_name="nextcloud_action" \
 			--subtask_cmd="$command" \
 			--mount_point="/action" \
 			--datadir="/var/main/data/action"
 
 		"$pod_script_env_file" "service:nextcloud:fs" \
+			--task_info="$title >> nextcloud_data" \
 			--task_name="nextcloud_data" \
 			--subtask_cmd="$command" \
 			--mount_point="/data" \
 			--datadir="/var/main/data"
 
 		"$pod_script_env_file" "service:nextcloud:fs" \
+			--task_info="$title >> nextcloud_sync" \
 			--task_name="nextcloud_sync" \
 			--subtask_cmd="$command" \
 			--mount_point="/sync" \
@@ -485,6 +489,7 @@ case "$command" in
 
 		if [ "${var_shared__nextcloud__s3_backup__enable:-}" = "true" ]; then
 			"$pod_script_env_file" "service:nextcloud:s3" \
+				--task_info="$title >> nextcloud_backup" \
 				--task_name="nextcloud_backup" \
 				--subtask_cmd="$command" \
 				--mount_point="/backup" \
@@ -501,6 +506,7 @@ case "$command" in
 
 		if [ "${var_shared__nextcloud__s3_uploads__enable:-}" = "true" ]; then
 			"$pod_script_env_file" "service:nextcloud:s3" \
+				--task_info="$title >> nextcloud_uploads" \
 				--task_name="nextcloud_uploads" \
 				--subtask_cmd="$command" \
 				--mount_point="/uploads" \
@@ -565,6 +571,7 @@ case "$command" in
 		task_name="${command#shared:bg:}"
 
 		"$pod_script_env_file" "bg:subtask" \
+			--task_name="$title >> $task_name" \
 			--task_name="$task_name" \
 			--subtask_cmd="$command" \
 			--bg_file="$pod_data_dir/log/bg/$task_name.$(date -u '+%Y%m%d.%H%M%S').$$.log" \
@@ -575,6 +582,8 @@ case "$command" in
 
 		opts=()
 
+		opts=( "--task_info=$title >> $task_name" )
+
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
@@ -584,6 +593,7 @@ case "$command" in
 		"$pod_main_run_file" "unique:subtask" "${opts[@]}"
 		;;
 	"action:exec:watch")
+		#TODO
 		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
 			while read -r _ _ file; do
 				"$pod_script_env_file" "shared:action:$file"
@@ -594,6 +604,8 @@ case "$command" in
 
 		opts=()
 
+		opts=( "--task_info=$title >> $task_name" )
+
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 
@@ -602,15 +614,34 @@ case "$command" in
 
 		"$pod_main_run_file" "action:subtask" "${opts[@]}"
 		;;
+	"shared:create_actions")
+		info "$title - create the following actions: ${args[*]}"
+		for action in "${args[@]}"; do
+			echo "touch '/var/main/data/action/$action'"
+		done | "$pod_script_env_file" exec-nontty toolbox /bin/bash
+		;;
 	"action:exec:log_register."*)
 		task_name="${command#action:exec:log_register.}"
 		"$pod_script_env_file" "shared:log:register:$task_name" \
 			${next_args[@]+"${next_args[@]}"}
 		;;
+	"action:exec:replicate_s3")
+		if [ "${var_run__enable__backup_replica:-}" = "true" ]; then
+			"$pod_script_env_file" "shared:s3:replicate:backup"
+		fi
+
+		if [ "${var_run__enable__uploads_replica:-}" = "true" ]; then
+			"$pod_script_env_file" "shared:s3:replicate:uploads"
+		fi
+		;;
 	"shared:s3:replicate:backup")
+		task_name='s3_backup_replica'
+
 		opts=()
 
-		opts+=( "--task_name=s3_backup_replica" )
+		opts=( "--task_info=$title >> $task_name" )
+
+		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--s3_cmd=sync" )
 
@@ -627,9 +658,13 @@ case "$command" in
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
 	"shared:s3:replicate:uploads")
+		task_name='s3_uploads_replica'
+
 		opts=()
 
-		opts+=( "--task_name=s3_uploads_replica" )
+		opts=( "--task_info=$title >> $task_name" )
+
+		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
 		opts+=( "--s3_cmd=sync" )
 
@@ -686,7 +721,7 @@ case "$command" in
 		fi
 		;;
 	"delete:old")
-		info "$command - clear old files"
+		info "$title - clear old files"
 		>&2 "$pod_script_env_file" up toolbox
 
 		dirs=( "/var/log/main/" "/tmp/main/tmp/" )
@@ -699,7 +734,7 @@ case "$command" in
 			error "$title: $msg (value=$delete_old_days)"
 		fi
 
-		info "$command - create the backup base directory and clear old files"
+		info "$title - create the backup base directory and clear old files"
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 

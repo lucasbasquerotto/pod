@@ -301,6 +301,9 @@ export var_run__tasks__setup='group_setup'
 export var_task__group_setup__task__type='group'
 export var_task__group_setup__group_task__task_names="$tmp_group_setup"
 
+export var_run__enable__backup_replica="${var_load_enable__backup_replica:-}"
+export var_run__enable__uploads_replica="${var_load_enable__uploads_replica:-}"
+
 # Tasks
 
 if [ "$tmp_is_web" = 'true' ]; then

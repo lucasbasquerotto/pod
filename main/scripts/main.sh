@@ -810,6 +810,38 @@ case "$command" in
 		info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;
+	"main:s3:"*)
+		task_name="${command#main:s3:}"
+
+		prefix="var_task__${task_name}__s3_subtask_"
+
+		param_cli="${prefix}_cli"
+		param_cli_cmd="${prefix}_cli_cmd"
+		param_service="${prefix}_service"
+		param_tmp_dir="${prefix}_tmp_dir"
+		param_alias="${prefix}_alias"
+		param_endpoint="${prefix}_endpoint"
+
+		alias="${!param_alias:-}"
+
+		if [ -z "${!param_alias:-}" ]; then
+			alias="${arg_s3_alias:-}"
+		fi
+
+		opts=( "--task_info=$title >> $task_name" )
+
+		opts+=( "--s3_service=${!param_service:-}" )
+		opts+=( "--s3_tmp_dir=${!param_tmp_dir:-}" )
+		opts+=( "--s3_alias=$alias" )
+		opts+=( "--s3_endpoint=${!param_endpoint:-}" )
+
+		opts+=( "--s3_opts" )
+		opts+=( ${args[@]+"${args[@]}"} )
+
+		inner_cmd="s3:${!param_cli}:${!param_cli_cmd}:cmd"
+		info "$command - $inner_cmd"
+		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
+		;;
 	"certbot:task:"*)
 		task_name="${command#certbot:task:}"
 		prefix="var_task__${task_name}__certbot_task_"

@@ -321,6 +321,15 @@ case "$command" in
 
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
+	"s3:main:awscli:cmd")
+		inner_cmd=( aws --profile="$arg_s3_alias" )
+		inner_cmd+=( --endpoint="$arg_s3_endpoint" )
+		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+		;;
 	*)
 		error "Invalid command: $command"
 		;;

@@ -376,22 +376,8 @@ case "$command" in
 			"$pod_script_env_file" up haproxy
 		fi
 
-		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = "true" ]; then
-			bucket_exists="$("$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=bucket_exists --task_info="$title")"
-
-			if [ "$bucket_exists" = "true" ]; then
-				info "$title - $arg_toolbox_service - s3:subtask:s3_backup - define the backup bucket lifecycle policy"
-				>&2 "$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=lifecycle --task_info="$title"
-			fi
-		fi
-
-		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = "true" ]; then
-			bucket_exists="$("$pod_script_env_file" "s3:subtask:s3_uploads" --s3_cmd=bucket_exists --task_info="$title")"
-
-			if [ "$bucket_exists" = "true" ]; then
-				info "$title - $arg_toolbox_service - s3:subtask:s3_uploads - define the uploads bucket lifecycle policy"
-				>&2 "$pod_script_env_file" "s3:subtask:s3_uploads" --s3_cmd=lifecycle --task_info="$title"
-			fi
+		if [ "${var_custom__local:-}" = "false" ]; then
+			"$pod_script_env_file" "shared:setup:prepare:s3" --task_info="$title"
 		fi
 
 		if [ "${var_custom__use_mongo:-}" = "true" ]; then
@@ -439,6 +425,19 @@ case "$command" in
 		fi
 
 		"$pod_main_run_file" setup ${next_args[@]+"${next_args[@]}"}
+		;;
+	"shared:setup:prepare:s3")
+		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = "true" ]; then
+			cmd="s3:subtask:s3_backup"
+			info "$title - $cmd - define the backup bucket lifecycle policy"
+			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
+		fi
+
+		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = "true" ]; then
+			cmd="s3:subtask:s3_uploads"
+			info "$title - $cmd - define the uploads bucket lifecycle policy"
+			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
+		fi
 		;;
 	"migrate")
 		if [ "${var_custom__use_varnish:-}" = "true" ]; then

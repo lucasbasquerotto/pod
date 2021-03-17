@@ -130,7 +130,7 @@ case "$command" in
 				rm -Rf $inner_path_base/renewal/$arg_main_domain.conf" "$arg_certbot_service"
 
 			info "$title: Requesting Let's Encrypt certificate for $arg_main_domain ..."
-			#Join each domain to -d args
+			# Join each domain to -d args
 			IFS=' ' read -r -a domains_array <<< "$arg_domains"
 			domain_args=""
 			for domain in "${domains_array[@]}"; do

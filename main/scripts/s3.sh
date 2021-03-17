@@ -131,7 +131,7 @@ case "$command" in
 	"s3:main:mc:lifecycle")
 		if [ -z "${arg_s3_lifecycle_file:-}" ]; then
 			error "$title: parameter s3_lifecycle_file undefined"
-		elif [ ! -f "${pod_layer_dir}/${arg_s3_lifecycle_file:-}" ]; then
+		elif [ ! -f "${pod_layer_dir}/env/mc/etc/${arg_s3_lifecycle_file:-}" ]; then
 			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
 		fi
 
@@ -305,8 +305,8 @@ case "$command" in
 	"s3:main:awscli:lifecycle")
 		if [ -z "${arg_s3_lifecycle_file:-}" ]; then
 			error "$title: parameter s3_lifecycle_file undefined"
-		elif [ ! -f "${pod_layer_dir}/${arg_s3_lifecycle_file:-}" ]; then
-			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
+		elif [ ! -f "${pod_layer_dir}/env/awscli/etc/${arg_s3_lifecycle_file:-}" ]; then
+			error "$title: s3_lifecycle_file ($arg_s3_lifecycle_file) not found"
 		fi
 
 		inner_conf_file="/etc/main/${arg_s3_lifecycle_file:-}"

@@ -591,11 +591,20 @@ case "$command" in
 
 		"$pod_main_run_file" "unique:subtask" "${opts[@]}"
 		;;
-	"action:exec:watch")
-		#TODO
+	"shared:watch")
+		run-one "$pod_script_env_file" "shared:main:watch"
+		;;
+	"shared:new:watch")
+		run-this-one "$pod_script_env_file" "shared:main:watch"
+		;;
+	"shared:main:watch")
 		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
 			while read -r _ _ file; do
-				"$pod_script_env_file" "shared:action:$file"
+				if [[ $file != *.running ]] && [[ $file != *.error ]]; then
+					"$pod_script_env_file" "shared:action:$file" \
+						|| error "$title: error when running action $file" ||:
+					echo "waiting next action..."
+				fi
 			done
 		;;
 	"shared:action:"*)

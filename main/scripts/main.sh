@@ -703,15 +703,18 @@ case "$command" in
 			alias="${arg_s3_alias:-}"
 		fi
 
+		s3_src_alias="$alias"
 		bucket_src_name="${!param_bucket_name:-}"
 		bucket_src_path="${!param_bucket_path:-}"
 
 		if [ -n "${!param_bucket_src_name:-}" ]; then
+			s3_src_alias="${!param_src_alias:-}"
 			bucket_src_name="${!param_bucket_src_name:-}"
 			bucket_src_path="${!param_bucket_src_path:-}"
 		fi
 
 		if [ -n "${arg_s3_bucket_src_name:-}" ]; then
+			s3_src_alias="${arg_s3_src_alias:-}"
 			bucket_src_name="${arg_s3_bucket_src_name:-}"
 			bucket_src_path="${arg_s3_bucket_src_path:-}"
 		fi
@@ -734,15 +737,18 @@ case "$command" in
 			s3_src=$(echo "$s3_src" | tr -s /)
 		fi
 
+		s3_dest_alias="$alias"
 		bucket_dest_name="${!param_bucket_name:-}"
 		bucket_dest_path="${!param_bucket_path:-}"
 
 		if [ -n "${!param_bucket_dest_name:-}" ]; then
+			s3_dest_alias="${!param_dest_alias:-}"
 			bucket_dest_name="${!param_bucket_dest_name:-}"
 			bucket_dest_path="${!param_bucket_dest_path:-}"
 		fi
 
 		if [ -n "${arg_s3_bucket_dest_name:-}" ]; then
+			s3_dest_alias="${arg_s3_dest_alias:-}"
 			bucket_dest_name="${arg_s3_bucket_dest_name:-}"
 			bucket_dest_path="${arg_s3_bucket_dest_path:-}"
 		fi
@@ -796,10 +802,10 @@ case "$command" in
 		opts+=( "--s3_lifecycle_file=${!param_lifecycle_file:-}" )
 
 		opts+=( "--s3_remote_src=${arg_s3_remote_src:-}" )
-		opts+=( "--s3_src_alias=${arg_s3_src_alias:-}" )
+		opts+=( "--s3_src_alias=$s3_src_alias" )
 		opts+=( "--s3_src=${s3_src:-}" )
 		opts+=( "--s3_remote_dest=${arg_s3_remote_dest:-}" )
-		opts+=( "--s3_dest_alias=${arg_s3_dest_alias:-}" )
+		opts+=( "--s3_dest_alias=$s3_dest_alias" )
 		opts+=( "--s3_dest=${s3_dest:-}" )
 		opts+=( "--s3_path=${s3_path:-}" )
 		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )

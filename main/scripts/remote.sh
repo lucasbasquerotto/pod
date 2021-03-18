@@ -131,12 +131,8 @@ case "$command" in
 			info "$title - $msg - $arg_backup_src_dir to /${backup_bucket_sync_dir:-} (s3)"
 		fi
 
-		bucket_exists="$("$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=bucket_exists --task_info="$title")"
-
-		if [ "$bucket_exists" = "false" ]; then
-			info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
-			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket --task_info="$title"
-		fi
+		info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
+		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket --task_info="$title"
 
 		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
 			--s3_src="$backup_src_dir" \

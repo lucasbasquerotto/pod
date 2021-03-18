@@ -81,7 +81,9 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:create_bucket")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" mc mb --ignore-existing "$arg_s3_bucket_name"
+		inner_cmd=( mb --ignore-existing "$arg_s3_alias/$arg_s3_bucket_name" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:bucket_exists")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
@@ -92,7 +94,7 @@ case "$command" in
 			error_filename="error.\$(date '+%s').\$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log" >&2
 			error_log_file="$arg_s3_tmp_dir/\$error_filename" >&2
 
-			if ! mc ls "$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
+			if ! mc ls "$arg_s3_alias/$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
 				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
 					echo "false"
 					exit 0
@@ -106,43 +108,63 @@ case "$command" in
 		SHELL
 		;;
 	"s3:main:mc:rb")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" mc rb --force "$arg_s3_bucket_name"
+		inner_cmd=( rb --force "$arg_s3_alias/$arg_s3_bucket_name" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			mc rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path"
+		inner_cmd=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:sync")
-		"$pod_script_env_file" "s3:main:mc:mirror" ${args[@]+"${args[@]}"}
+		"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:cp"|"s3:main:mc:mirror")
-		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias/$arg_s3_src" || s3_src="$arg_s3_src"
-		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias/$arg_s3_dest" || s3_dest="$arg_s3_dest"
+		[ "${arg_s3_remote_src:-}" = "true" ] \
+			&& s3_src="$arg_s3_src_alias/$arg_s3_src" \
+			|| s3_src="$arg_s3_src"
+		[ "${arg_s3_remote_dest:-}" = "true" ] \
+			&& s3_dest="$arg_s3_dest_alias/$arg_s3_dest" \
+			|| s3_dest="$arg_s3_dest"
 
 		cmd="${command#s3:main:mc:}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			mc "$cmd" "$s3_src" "$s3_dest" \
-			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+
+		params=()
+
+		if [ "$cmd" = 'mirror' ]; then
+			params+=( --overwrite )
+		fi
+
+		inner_cmd=()
+		inner_cmd+=( "$cmd" )
+		inner_cmd+=( ${params[@]+"${params[@]}"} )
+		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+		inner_cmd+=( "$s3_src" "$s3_dest" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:lifecycle")
+		conf_file="${pod_layer_dir}/env/mc/etc/${arg_s3_lifecycle_file:-}"
+
 		if [ -z "${arg_s3_lifecycle_file:-}" ]; then
 			error "$title: parameter s3_lifecycle_file undefined"
-		elif [ ! -f "${pod_layer_dir}/env/mc/etc/${arg_s3_lifecycle_file:-}" ]; then
+		elif [ ! -f "$conf_file" ]; then
 			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
 		fi
 
-		conf_file="${pod_layer_dir}/${arg_s3_lifecycle_file:-}"
-
-		inner_cmd=( mc ilm import "$arg_s3_bucket_name" )
-
+		inner_cmd=( ilm import "$arg_s3_alias/$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]} < $conf_file"
-
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" \
-			< "$conf_file"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" < "$conf_file"
+		;;
+	"s3:main:mc:cmd")
+		inner_cmd=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:rclone:exec:"*)
 		cmd="${command#s3:rclone:exec:}"

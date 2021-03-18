@@ -1,8 +1,8 @@
-<% set ns_aliases = namespace(inner = {}) %>
+{% set ns_aliases = namespace(inner = {}) %}
 
 {% for param in params | default([]) %}
 
-{% if param.when | default(true, true) | bool %}
+{% if param.when | default(true) | bool %}
 
 {% set ns_aliases.inner = ns_aliases.inner | combine({
         param.alias: {

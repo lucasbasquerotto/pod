@@ -7,16 +7,24 @@ schemas:
   params_item:
     type: "dict"
     props:
+      when:
+        type: "bool"
+        description: "when false, the profile is ignored; defaults to true"
       alias:
         type: "str"
         non_empty: true
-      endpoint:
-        type: "str"
-      region:
-        type: "str"
+        description: "s3 alias (profile identifier)"
       access_key:
         type: "str"
+        non_empty: true
+        description: "s3 access key"
       secret_key:
         type: "str"
-      when:
-        type: "bool"
+        non_empty: true
+        description: "s3 secret key"
+      endpoint:
+        type: "str"
+        description: "s3 endpoint"
+      region:
+        type: "str"
+        description: "s3 region"

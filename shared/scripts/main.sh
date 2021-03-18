@@ -41,13 +41,14 @@ done
 shift $((OPTIND-1))
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
-haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
-nginx_run_file="$pod_layer_dir/shared/scripts/services/nginx.sh"
-nextcloud_run_file="$pod_layer_dir/shared/scripts/services/nextcloud.sh"
-mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
-redis_run_file="$pod_layer_dir/shared/scripts/services/redis.sh"
 log_run_file="$pod_layer_dir/shared/scripts/log.sh"
 test_run_file="$pod_layer_dir/shared/scripts/test.sh"
+pod_script_cron_file="$pod_layer_dir/shared/scripts/services/cron.sh"
+haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
+mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
+nextcloud_run_file="$pod_layer_dir/shared/scripts/services/nextcloud.sh"
+nginx_run_file="$pod_layer_dir/shared/scripts/services/nginx.sh"
+redis_run_file="$pod_layer_dir/shared/scripts/services/redis.sh"
 ssl_local_run_file="$pod_layer_dir/shared/scripts/lib/ssl.local.sh"
 
 title="${arg_task_name:-}"
@@ -59,7 +60,7 @@ next_args=( --task_name"${arg_task_name:-}" --subtask_cmd="$command" )
 
 case "$command" in
 	"upgrade")
-		if [ "${var_custom__use_main_network:-}" = "true" ]; then
+		if [ "${var_custom__use_main_network:-}" = 'true' ]; then
 			"$pod_main_run_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
@@ -96,7 +97,7 @@ case "$command" in
 	"action:exec:backup"|"action:exec:local.backup")
 		task_name="${command#action:exec:}"
 
-		if [ "${var_custom__use_logrotator:-}" = "true" ]; then
+		if [ "${var_custom__use_logrotator:-}" = 'true' ]; then
 			"$pod_script_env_file" "shared:unique:rotate" ${next_args[@]+"${next_args[@]}"} ||:
 		fi
 
@@ -116,7 +117,7 @@ case "$command" in
 			fi
 		fi
 
-		if [ "${var_custom__use_nginx:-}" = "true" ]; then
+		if [ "${var_custom__use_nginx:-}" = 'true' ]; then
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
 				env_dir_nginx="$pod_layer_dir/env/nginx"
 
@@ -162,7 +163,7 @@ case "$command" in
 				chmod 777 "\$dir"
 			fi
 
-			if [ "${var_custom__use_nginx:-}" = "true" ]; then
+			if [ "${var_custom__use_nginx:-}" = 'true' ]; then
 				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
 					dir_nginx="$data_dir/sync/nginx"
 
@@ -235,7 +236,7 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_haproxy:-}" = "true" ]; then
+			if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
 				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
 					dir_haproxy="$data_dir/sync/haproxy"
 
@@ -307,7 +308,7 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_mysql:-}" = "true" ]; then
+			if [ "${var_custom__use_mysql:-}" = 'true' ]; then
 				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 					dir="$data_dir/mysql"
 
@@ -332,7 +333,7 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_mongo:-}" = "true" ]; then
+			if [ "${var_custom__use_mongo:-}" = 'true' ]; then
 				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 					dir="$data_dir/mongo/db"
 
@@ -352,35 +353,35 @@ case "$command" in
 		SHELL
 		;;
 	"setup")
-		if [ "${var_custom__local:-}" = "true" ]; then
+		if [ "${var_custom__local:-}" = 'true' ]; then
 			"$pod_script_env_file" "action:exec:setup" ${next_args[@]+"${next_args[@]}"}
 		else
 			"$pod_script_env_file" "shared:bg:setup" ${next_args[@]+"${next_args[@]}"}
 		fi
 		;;
 	"action:exec:setup")
-		if [ "${var_custom__use_theia:-}" = "true" ]; then
+		if [ "${var_custom__use_theia:-}" = 'true' ]; then
 			"$pod_script_env_file" up theia
 		fi
 
-		if [ "${var_custom__use_certbot:-}" = "true" ]; then
+		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
 			info "$title - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_custom__use_nginx:-}" = "true" ]; then
+		if [ "${var_custom__use_nginx:-}" = 'true' ]; then
 			"$pod_script_env_file" up nginx
 		fi
 
-		if [ "${var_custom__use_haproxy:-}" = "true" ]; then
+		if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
 			"$pod_script_env_file" up haproxy
 		fi
 
-		if [ "${var_custom__local:-}" = "false" ]; then
+		if [ "${var_custom__local:-}" = 'false' ]; then
 			"$pod_script_env_file" "shared:setup:prepare:s3" --task_info="$title"
 		fi
 
-		if [ "${var_custom__use_mongo:-}" = "true" ]; then
+		if [ "${var_custom__use_mongo:-}" = 'true' ]; then
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo
 
@@ -427,31 +428,44 @@ case "$command" in
 		"$pod_main_run_file" setup ${next_args[@]+"${next_args[@]}"}
 		;;
 	"shared:setup:prepare:s3")
-		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = "true" ]; then
+		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = 'true' ]; then
 			cmd="s3:subtask:s3_backup"
 			info "$title - $cmd - define the backup bucket lifecycle policy"
 			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
 		fi
 
-		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = "true" ]; then
+		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = 'true' ]; then
 			cmd="s3:subtask:s3_uploads"
 			info "$title - $cmd - define the uploads bucket lifecycle policy"
 			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
 		fi
 		;;
 	"migrate")
-		if [ "${var_custom__use_varnish:-}" = "true" ]; then
+		if [ "${var_custom__use_varnish:-}" = 'true' ]; then
 			"$pod_script_env_file" up varnish
 
 			info "$title - clear varnish cache..."
 			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_custom__use_nextcloud:-}" = "true" ]; then
+		if [ "${var_custom__use_nextcloud:-}" = 'true' ]; then
 			info "$title - prepare nextcloud..."
 			"$pod_script_env_file" "shared:service:nextcloud:setup" \
 				${next_args[@]+"${next_args[@]}"}
 		fi
+
+		if [ "${var_shared__define_cron:-}" = 'true' ] && [ "${var_custom__local:-}" = 'false' ]; then
+			"$pod_script_env_file" cron --task_info="$title"
+		fi
+		;;
+	"cron")
+		"$pod_script_cron_file" \
+			--cron_src="$pod_layer_dir/${var_shared__cron__src:-}" \
+			--cron_dest="${var_shared__cron__dest:-}" \
+			--cron_tmp_dir="$pod_data_dir/tmp/cron"
+		;;
+	"cron:custom")
+		"$pod_script_cron_file" "${args[@]}"
 		;;
 	"shared:service:nextcloud:setup")
 		"$pod_script_env_file" "service:nextcloud:setup" \
@@ -486,7 +500,7 @@ case "$command" in
 			--mount_point="/sync" \
 			--datadir="/var/main/data/sync"
 
-		if [ "${var_shared__nextcloud__s3_backup__enable:-}" = "true" ]; then
+		if [ "${var_shared__nextcloud__s3_backup__enable:-}" = 'true' ]; then
 			"$pod_script_env_file" "service:nextcloud:s3" \
 				--task_info="$title >> nextcloud_backup" \
 				--task_name="nextcloud_backup" \
@@ -503,7 +517,7 @@ case "$command" in
 				--secret="$var_shared__nextcloud__s3_backup__secret_key"
 		fi
 
-		if [ "${var_shared__nextcloud__s3_uploads__enable:-}" = "true" ]; then
+		if [ "${var_shared__nextcloud__s3_uploads__enable:-}" = 'true' ]; then
 			"$pod_script_env_file" "service:nextcloud:s3" \
 				--task_info="$title >> nextcloud_uploads" \
 				--task_name="nextcloud_uploads" \
@@ -538,7 +552,7 @@ case "$command" in
 
 		dest_day_file=""
 
-		if [ "${var_shared__block_ips__action_exec__current_day:-}" = "true" ]; then
+		if [ "${var_shared__block_ips__action_exec__current_day:-}" = 'true' ]; then
 			dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
 				--force="${arg_force:-}" \
 				--max_amount="${arg_max_amount:-}")"
@@ -634,11 +648,11 @@ case "$command" in
 			${next_args[@]+"${next_args[@]}"}
 		;;
 	"action:exec:replicate_s3")
-		if [ "${var_run__enable__backup_replica:-}" = "true" ]; then
+		if [ "${var_run__enable__backup_replica:-}" = 'true' ]; then
 			"$pod_script_env_file" "shared:s3:replicate:backup"
 		fi
 
-		if [ "${var_run__enable__uploads_replica:-}" = "true" ]; then
+		if [ "${var_run__enable__uploads_replica:-}" = 'true' ]; then
 			"$pod_script_env_file" "shared:s3:replicate:uploads"
 		fi
 		;;

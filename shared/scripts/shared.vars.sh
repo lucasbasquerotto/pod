@@ -148,6 +148,12 @@ export var_run__general__define_s3_uploads_lifecycle="${var_load_general__define
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 
+if [ "${var_load_shared__define_cron:-}" = 'true' ]; then
+    export var_shared__define_cron="${var_load_shared__define_cron:-}"
+    export var_shared__cron__src="${var_load_shared__cron__src:-}"
+    export var_shared__cron__dest="${var_load_shared__cron__dest:-}"
+fi
+
 export var_custom__pod_type="${var_load_main__pod_type:-}"
 export var_custom__local="${var_load_main__local:-}"
 

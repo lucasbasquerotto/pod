@@ -58,8 +58,8 @@ else
 	sed '/^#/d' < "$cron_dest" > "$tmp_old"
 	sed '/^#/d' < "$cron_src" > "$tmp_new"
 
-	sum_old="$(md5sum "$tmp_old")"
-	sum_new="$(md5sum "$tmp_new")"
+	sum_old="$(md5sum "$tmp_old" | awk '{ print $1 }')"
+	sum_new="$(md5sum "$tmp_new" | awk '{ print $1 }')"
 
 	if [ "$sum_old" != "$sum_new" ]; then
 		echo "copying $cron_src to $cron_dest..."

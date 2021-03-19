@@ -146,6 +146,22 @@ export var_run__general__s3_cli="${var_load_general__s3_cli:-}"
 export var_run__general__define_s3_backup_lifecycle="${var_load_general__define_s3_backup_lifecycle:-}"
 export var_run__general__define_s3_uploads_lifecycle="${var_load_general__define_s3_uploads_lifecycle:-}"
 
+if [ "${var_load_general__define_s3_backup_lifecycle:-}" = 'true' ]; then
+	tmp_cli="${var_load__s3_backup__cli:-awscli}"
+
+	if [ "$tmp_cli" != 'awscli' ] && [ "$tmp_cli" != 'mc' ] && [ "$tmp_cli" != 'custom' ]; then
+		tmp_errors+=("[shared] s3 backup cli ($tmp_cli) unsupported for lifecycle")
+	fi
+fi
+
+if [ "${var_load_general__define_s3_uploads_lifecycle:-}" = 'true' ]; then
+	tmp_cli="${var_load__s3_uploads__cli:-awscli}"
+
+	if [ "$tmp_cli" != 'awscli' ] && [ "$tmp_cli" != 'mc' ] && [ "$tmp_cli" != 'custom' ]; then
+		tmp_errors+=("[shared] s3 uploads cli ($tmp_cli) unsupported for lifecycle")
+	fi
+fi
+
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
 
 if [ "${var_load_shared__define_cron:-}" = 'true' ]; then

@@ -47,7 +47,9 @@ while getopts ':-:' OPT; do
 		s3_dest_alias ) arg_s3_dest_alias="${OPTARG:-}" ;;
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
 		s3_path ) arg_s3_path="${OPTARG:-}";;
+		s3_file ) arg_s3_file="${OPTARG:-}";;
 		s3_older_than_days ) arg_s3_older_than_days="${OPTARG:-}";;
+		s3_ignore_path ) arg_s3_ignore_path="${OPTARG:-}";;
 		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -122,6 +124,14 @@ case "$command" in
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:sync")
+		if [ -n "${arg_s3_file:-}" ]; then
+			"$pod_script_env_file" "run:s3:main:mc:sync_file" ${args[@]+"${args[@]}"}
+		else
+			"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
+		fi
+		;;
+	"s3:main:mc:sync_file")
+		#TODO
 		"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:cp"|"s3:main:mc:mirror")
@@ -138,6 +148,10 @@ case "$command" in
 
 		if [ "$cmd" = 'mirror' ]; then
 			params+=( --overwrite )
+		fi
+
+		if [ -n "${arg_s3_ignore_path:-}" ]; then
+			params+=( --exclude "${arg_s3_ignore_path:-}" )
 		fi
 
 		inner_cmd=()
@@ -175,10 +189,14 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:rclone:create_bucket")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone mkdir "$arg_s3_alias:$arg_s3_bucket_name"
+		inner_cmd=( mkdir "$arg_s3_alias:$arg_s3_bucket_name" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:rb")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" rclone purge "$arg_s3_alias:$arg_s3_bucket_name"
+		inner_cmd=( purge "$arg_s3_alias:$arg_s3_bucket_name" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:bucket_exists")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
@@ -207,17 +225,39 @@ case "$command" in
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
-		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			rclone delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path"
+		inner_cmd=( delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:cp"|"s3:main:rclone:sync")
 		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
 		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
 
+		params=()
+
+		if [ -n "${arg_s3_file:-}" ]; then
+			[[ "$s3_src" = */ ]] && s3_src="${s3_src}${arg_s3_file}" || s3_src="$s3_src/$arg_s3_file"
+			[[ "$s3_dest" = */ ]] && s3_src="$s3_dest" || s3_src="$s3_dest/"
+		elif [ -n "${arg_s3_ignore_path:-}" ]; then
+			exclude="${arg_s3_ignore_path:-}"
+
+			if [[ $exclude = *\* ]] && [[ $exclude != *\*\* ]]; then
+				exclude="${exclude}*"
+			fi
+
+			params+=( --exclude "$exclude" )
+		fi
+
 		cmd="${command#s3:main:rclone:}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			rclone copy --verbose "$s3_src" "$s3_dest" \
-			${arg_s3_opts[@]+"${arg_s3_opts[@]}"}
+		inner_cmd=()
+		inner_cmd+=( copy --verbose )
+		inner_cmd+=( ${params[@]+"${params[@]}"} )
+		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
+		inner_cmd+=( "$s3_src" "$s3_dest" )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:lifecycle")
 		error "$title: action not supported for this s3 client"
@@ -318,6 +358,13 @@ case "$command" in
 		inner_cmd=( aws --profile="$arg_s3_alias" )
 		inner_cmd+=( s3 --endpoint="$arg_s3_endpoint" )
 		inner_cmd+=( "$cmd" "$s3_src" "$s3_dest" )
+
+		if [ -n "${arg_s3_file:-}" ]; then
+			inner_cmd+=( --exclude "*" --include "$arg_s3_file" )
+		elif [ -n "${arg_s3_ignore_path:-}" ]; then
+			inner_cmd+=( --exclude "${arg_s3_ignore_path:-}" )
+		fi
+
 		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
 
 		info "s3 command: ${inner_cmd[*]}"

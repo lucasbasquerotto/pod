@@ -697,6 +697,7 @@ case "$command" in
 		param_bucket_dest_path="${prefix}_bucket_dest_path"
 		param_lifecycle_file="${prefix}_lifecycle_file"
 
+		s3_cli="${!param_cli}"
 		alias="${!param_alias:-}"
 
 		if [ -z "${!param_alias:-}" ]; then
@@ -783,15 +784,6 @@ case "$command" in
 			s3_path="$bucket_base_prefix/$param_bucket_path"
 		fi
 
-		s3_opts=()
-
-		if [ -n "${arg_s3_file:-}" ]; then
-			s3_opts+=( --exclude "*" --include "$arg_s3_file" )
-		fi
-		if [ -n "${arg_s3_ignore_path:-}" ]; then
-			s3_opts+=( --exclude "${arg_s3_ignore_path:-}" )
-		fi
-
 		opts=( "--task_info=$title" )
 
 		opts+=( "--s3_service=${!param_service:-}" )
@@ -808,11 +800,11 @@ case "$command" in
 		opts+=( "--s3_dest_alias=$s3_dest_alias" )
 		opts+=( "--s3_dest=${s3_dest:-}" )
 		opts+=( "--s3_path=${s3_path:-}" )
+		opts+=( "--s3_file=${arg_s3_file:-}" )
+		opts+=( "--s3_ignore_path=${arg_s3_ignore_path:-}" )
 		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
-		opts+=( "--s3_opts" )
-		opts+=( ${s3_opts[@]+"${s3_opts[@]}"} )
 
-		inner_cmd="s3:${!param_cli}:${!param_cli_cmd}:$arg_s3_cmd"
+		inner_cmd="s3:$s3_cli:${!param_cli_cmd}:$arg_s3_cmd"
 		info "$command - $inner_cmd"
 		"$pod_script_s3_file" "$inner_cmd" "${opts[@]}"
 		;;

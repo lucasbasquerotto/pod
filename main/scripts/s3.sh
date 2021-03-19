@@ -87,28 +87,6 @@ case "$command" in
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
-	"s3:main:mc:bucket_exists")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
-			set -eou pipefail
-
-			mkdir -p "$arg_s3_tmp_dir" >&2
-
-			error_filename="error.\$(date '+%s').\$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log" >&2
-			error_log_file="$arg_s3_tmp_dir/\$error_filename" >&2
-
-			if ! mc ls "$arg_s3_alias/$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
-				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
-					echo "false"
-					exit 0
-				else
-					cat "\$error_log_file" >&2
-					exit 2
-				fi
-			fi
-
-			echo "true"
-		SHELL
-		;;
 	"s3:main:mc:rb")
 		inner_cmd=( rb --force "$arg_s3_alias/$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]}"
@@ -131,14 +109,13 @@ case "$command" in
 		fi
 		;;
 	"s3:main:mc:sync_file")
-		#TODO
 		"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:cp"|"s3:main:mc:mirror")
-		[ "${arg_s3_remote_src:-}" = "true" ] \
+		[ "${arg_s3_remote_src:-}" = 'true' ] \
 			&& s3_src="$arg_s3_src_alias/$arg_s3_src" \
 			|| s3_src="$arg_s3_src"
-		[ "${arg_s3_remote_dest:-}" = "true" ] \
+		[ "${arg_s3_remote_dest:-}" = 'true' ] \
 			&& s3_dest="$arg_s3_dest_alias/$arg_s3_dest" \
 			|| s3_dest="$arg_s3_dest"
 
@@ -151,7 +128,17 @@ case "$command" in
 		fi
 
 		if [ -n "${arg_s3_ignore_path:-}" ]; then
-			params+=( --exclude "${arg_s3_ignore_path:-}" )
+			[[ "$s3_src" = */ ]] \
+				&& s3_src_aux="${s3_src}" \
+				|| s3_src_aux="$s3_src/"
+
+			s3_ignore_path="${arg_s3_ignore_path:-}"
+
+			if [[ "$s3_ignore_path" == "$s3_src_aux"* ]]; then
+				s3_ignore_path=${s3_ignore_path#"$s3_src_aux"}
+			fi
+
+			params+=( --exclude "$s3_ignore_path" )
 		fi
 
 		inner_cmd=()
@@ -198,28 +185,6 @@ case "$command" in
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
-	"s3:main:rclone:bucket_exists")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
-			set -eou pipefail
-
-			mkdir -p "$arg_s3_tmp_dir" >&2
-
-			error_filename="error.\$(date '+%s').\$(od -A n -t d -N 1 /dev/urandom | grep -o "[0-9]*").log" >&2
-			error_log_file="$arg_s3_tmp_dir/\$error_filename" >&2
-
-			if ! mc ls "$arg_s3_alias:$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
-				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
-					echo "false"
-					exit 0
-				else
-					cat "\$error_log_file" >&2
-					exit 2
-				fi
-			fi
-
-			echo "true"
-		SHELL
-		;;
 	"s3:main:rclone:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then
 			error "$title: parameter s3_older_than_days undefined"
@@ -230,14 +195,14 @@ case "$command" in
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:cp"|"s3:main:rclone:sync")
-		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
-		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
+		[ "${arg_s3_remote_src:-}" = 'true' ] && s3_src="$arg_s3_src_alias:$arg_s3_src" || s3_src="$arg_s3_src"
+		[ "${arg_s3_remote_dest:-}" = 'true' ] && s3_dest="$arg_s3_dest_alias:$arg_s3_dest" || s3_dest="$arg_s3_dest"
 
 		params=()
 
 		if [ -n "${arg_s3_file:-}" ]; then
 			[[ "$s3_src" = */ ]] && s3_src="${s3_src}${arg_s3_file}" || s3_src="$s3_src/$arg_s3_file"
-			[[ "$s3_dest" = */ ]] && s3_src="$s3_dest" || s3_src="$s3_dest/"
+			[[ "$s3_dest" = */ ]] && s3_dest="$s3_dest" || s3_dest="$s3_dest/"
 		elif [ -n "${arg_s3_ignore_path:-}" ]; then
 			exclude="${arg_s3_ignore_path:-}"
 
@@ -273,7 +238,7 @@ case "$command" in
 	"s3:main:awscli:create_bucket")
 		bucket_exists="$("$pod_script_env_file" "run:s3:main:awscli:bucket_exists" ${args[@]+"${args[@]}"})"
 
-		if [ "$bucket_exists" = "false" ]; then
+		if [ "$bucket_exists" = 'false' ]; then
 			info "$title - create bucket"
 			inner_cmd=( aws --profile="$arg_s3_alias" )
 			inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
@@ -283,6 +248,8 @@ case "$command" in
 			info "s3 command: ${inner_cmd[*]}"
 
 			"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+		elif [ "$bucket_exists" != 'true' ]; then
+			error "$title: invalid result (bucket_exists should be true or false): $bucket_exists"
 		fi
 		;;
 	"s3:main:awscli:bucket_exists")
@@ -297,7 +264,7 @@ case "$command" in
 			if ! aws s3 --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
 					ls "s3://$arg_s3_bucket_name" 1>&2 2> "\$error_log_file"; then
 				if grep -q 'NoSuchBucket' "\$error_log_file" >&2; then
-					echo "false"
+					echo 'false'
 					exit 0
 				else
 					cat "\$error_log_file" >&2
@@ -305,15 +272,15 @@ case "$command" in
 				fi
 			fi
 
-			echo "true"
+			echo 'true'
 		SHELL
 		;;
 	"s3:main:awscli:rb")
 		bucket_exists="$("$pod_script_env_file" "run:s3:main:awscli:bucket_exists" ${args[@]+"${args[@]}"})"
 
-		if [ "$bucket_exists" = "false" ]; then
+		if [ "$bucket_exists" = 'false' ]; then
 			>&2 echo "skipping (no_bucket)"
-		elif [ "$bucket_exists" = "true" ]; then
+		elif [ "$bucket_exists" = 'true' ]; then
 			inner_cmd=( aws --profile="$arg_s3_alias" )
 			inner_cmd+=( s3 --endpoint="$arg_s3_endpoint" )
 			inner_cmd+=( rb --force "s3://$arg_s3_bucket_name" )
@@ -350,8 +317,8 @@ case "$command" in
 		SHELL
 		;;
 	"s3:main:awscli:cp"|"s3:main:awscli:sync")
-		[ "${arg_s3_remote_src:-}" = "true" ] && s3_src="s3://$arg_s3_src" || s3_src="$arg_s3_src"
-		[ "${arg_s3_remote_dest:-}" = "true" ] && s3_dest="s3://$arg_s3_dest" || s3_dest="$arg_s3_dest"
+		[ "${arg_s3_remote_src:-}" = 'true' ] && s3_src="s3://$arg_s3_src" || s3_src="$arg_s3_src"
+		[ "${arg_s3_remote_dest:-}" = 'true' ] && s3_dest="s3://$arg_s3_dest" || s3_dest="$arg_s3_dest"
 
 		cmd="${command#s3:main:awscli:}"
 

@@ -183,7 +183,8 @@ case "$command" in
 
 		info "$title: Renewing the certificate for $arg_main_domain ..."
 		>&2 "$pod_script_env_file" run \
-			--entrypoint "certbot renew --force-renewal" "$arg_certbot_service"
+			--entrypoint "certbot renew --cert-name '$arg_main_domain' --force-renewal" \
+			"$arg_certbot_service"
 
 		info "$title: Reloading $arg_webservice_service ..."
 		>&2 "$pod_script_env_file" "run:certbot:ws:reload" \

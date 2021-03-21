@@ -144,7 +144,9 @@ case "$command" in
 			if [ "${arg_staging:-}" != "false" ]; then staging_arg="--staging"; fi
 
 			>&2 "$pod_script_env_file" run --entrypoint "\
-				certbot certonly --webroot -w /var/www/certbot \
+				certbot certonly --webroot \
+					-w /var/www/certbot \
+					--cert-name '$arg_main_domain' \
 					$staging_arg \
 					$email_arg \
 					$domain_args \

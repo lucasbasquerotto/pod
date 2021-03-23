@@ -634,6 +634,7 @@ case "$command" in
 					done
 
 					echo "waiting next action..."
+					sleep 1
 				fi
 			done
 		;;

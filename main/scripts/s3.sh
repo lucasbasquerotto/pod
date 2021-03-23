@@ -83,12 +83,17 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:mc:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:create_bucket")
-		inner_cmd=( mb --ignore-existing "$arg_s3_alias/$arg_s3_bucket_name" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( mb --ignore-existing "$arg_s3_alias/$arg_s3_bucket_name" )
+		info "arg_cli_cmd=$arg_cli_cmd"
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:rb")
-		inner_cmd=( rb --force "$arg_s3_alias/$arg_s3_bucket_name" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( rb --force "$arg_s3_alias/$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -97,7 +102,9 @@ case "$command" in
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
-		inner_cmd=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -142,6 +149,7 @@ case "$command" in
 		fi
 
 		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
 		inner_cmd+=( "$cmd" )
 		inner_cmd+=( ${params[@]+"${params[@]}"} )
 		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
@@ -158,7 +166,9 @@ case "$command" in
 			error "$title: file ($arg_s3_lifecycle_file) s3_lifecycle_file not found"
 		fi
 
-		inner_cmd=( ilm import "$arg_s3_alias/$arg_s3_bucket_name" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( ilm import "$arg_s3_alias/$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]} < $conf_file"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" < "$conf_file"
 		;;

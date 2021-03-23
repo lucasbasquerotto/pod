@@ -617,6 +617,22 @@ case "$command" in
 				if [[ $file != *.running ]] && [[ $file != *.error ]]; then
 					"$pod_script_env_file" "shared:action:$file" \
 						|| error "$title: error when running action $file" ||:
+
+					amount=1
+
+					while [ "$amount" -gt 0 ]; do
+						amount=0
+
+						find "$pod_data_dir/action" -maxdepth 1  | while read -r file; do
+							if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
+								amount=$(( amount + 1 ))
+
+								"$pod_script_env_file" "shared:action:$file" \
+									|| error "$title: error when running inner action $file" ||:
+							fi
+						done
+					done
+
 					echo "waiting next action..."
 				fi
 			done

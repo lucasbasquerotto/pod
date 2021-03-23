@@ -625,7 +625,7 @@ fi
 if [ -n "${var_load__s3_backup__bucket_name:-}" ]; then
 	export var_task__s3_backup__s3_subtask__alias='backup'
 	export var_task__s3_backup__s3_subtask__service='s3_cli'
-	export var_task__s3_backup__s3_subtask__cli_cmd='run'
+	export var_task__s3_backup__s3_subtask__cli_cmd="${var_load__s3_backup__cli_cmd:-exec}"
 	export var_task__s3_backup__s3_subtask__tmp_dir='/tmp/main/tmp/s3-backup'
 	export var_task__s3_backup__s3_subtask__bucket_name="${var_load__s3_backup__bucket_name:-}"
 	export var_task__s3_backup__s3_subtask__bucket_path="${var_load__s3_backup__bucket_path:-}"

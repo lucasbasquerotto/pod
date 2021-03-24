@@ -37,7 +37,7 @@ while getopts ':-:' OPT; do
 		summary_name ) arg_summary_name="${OPTARG:-}";;
 		days_ago ) arg_days_ago="${OPTARG:-}";;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
-		force ) arg_force="${OPTARG:-}";;
+		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		cmd ) arg_cmd="${OPTARG:-}";;
 		log_dir ) arg_log_dir="${OPTARG:-}";;
 		log_file ) arg_log_file="${OPTARG:-}";;

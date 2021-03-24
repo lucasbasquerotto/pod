@@ -73,7 +73,7 @@ while getopts ':-:' OPT; do
 		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
-		force ) arg_force="${OPTARG:-}";;
+		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		src_dir ) arg_src_dir="${OPTARG:-}";;
 		src_file ) arg_src_file="${OPTARG:-}";;
 		s3_alias ) arg_s3_alias="${OPTARG:-}";;

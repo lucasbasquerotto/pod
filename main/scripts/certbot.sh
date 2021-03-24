@@ -40,7 +40,7 @@ while getopts ':-:' OPT; do
 		dev ) arg_dev="${OPTARG:-}";;
 		dev_renew_days ) arg_dev_renew_days="${OPTARG:-}";;
 		staging ) arg_staging="${OPTARG:-}";;
-		force ) arg_force="${OPTARG:-}";;
+		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		??* ) error "$command: Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac

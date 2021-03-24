@@ -32,7 +32,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		force ) arg_force="${OPTARG:-}";;
+		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 		??* ) ;; ## ignore
 		\? )  ;; ## ignore

@@ -73,6 +73,7 @@ while getopts ':-:' OPT; do
 		task_info ) arg_task_info="${OPTARG:-}";;
 		task_name ) arg_task_name="${OPTARG:-}";;
 		local ) arg_local="${OPTARG:-}";;
+		force ) arg_force="${OPTARG:-}";;
 		src_dir ) arg_src_dir="${OPTARG:-}";;
 		src_file ) arg_src_file="${OPTARG:-}";;
 		s3_alias ) arg_s3_alias="${OPTARG:-}";;
@@ -946,7 +947,7 @@ case "$command" in
 	"bg:subtask")
 		touch "$arg_bg_file"
 
-		nohup "${pod_script_env_file}" "unique:subtask:$arg_task_name" \
+		nohup "${pod_script_env_file}" "unique:action:$arg_task_name" \
 			--task_info="$title" \
 			--action_dir="$arg_action_dir" \
 			>> "$arg_bg_file" 2>&1 &
@@ -1000,7 +1001,13 @@ case "$command" in
 			|| error "$command"
 
 		if [ "$execute" = "true" ]; then
-			"$pod_script_env_file" "action:exec:$arg_task_name" && status="$?" || status="$?"
+			cmd="unique:cmd"
+			[ "${arg_force:-}" = 'true' ] && cmd="unique:cmd:force"
+
+			"$pod_script_env_file" "$cmd" \
+				"$pod_script_env_file" "action:exec:$arg_task_name" \
+				&& status="$?" || status="$?"
+
 			"$pod_script_env_file" "action:remove:$arg_task_name" \
 				--status="$status" "${opts[@]}"
 
@@ -1065,55 +1072,21 @@ case "$command" in
 			error "$command exited with status ${arg_status:-}"
 		fi
 		;;
-	"unique:task:"*)
-		task_name="${command#unique:task:}"
-		prefix="var_task__${task_name}__unique_task_"
+	"unique:action:"*)
+		task_name="${command#unique:action:}"
 
-		param_toolbox_service="${prefix}_toolbox_service"
-		param_action_dir="${prefix}_action_dir"
+		cmd="unique:cmd"
+		[ "${arg_force:-}" = 'true' ] && cmd="unique:cmd:force"
 
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--toolbox_service=${!param_toolbox_service}" )
-		opts+=( "--action_dir=${!param_action_dir}" )
-
-		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
+		"$pod_script_env_file" "$cmd" "$pod_script_env_file" "action:exec:$task_name"
 		;;
-	"unique:subtask:"*)
-		task_name="${command#unique:subtask:}"
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--action_dir=$arg_action_dir" )
-
-		"$pod_script_env_file" "unique:subtask" "${opts[@]}"
+	"unique:cmd")
+		info "$title: run-one ${args[*]}"
+		run-one "${args[@]}" || error "$title"
 		;;
-	"unique:subtask")
-		opts=( "--task_info=$title" )
-
-		opts+=( "--task_name=$arg_task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
-		opts+=( "--action_dir=$arg_action_dir" )
-		opts+=( "--action_skip_check=true" )
-
-		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" \
-			|| error "$command"
-
-		if [ "$execute" = "true" ]; then
-			"$pod_script_env_file" "action:exec:$arg_task_name" && status="$?" || status="$?"
-			"$pod_script_env_file" "action:remove:$arg_task_name" \
-				--status="$status" "${opts[@]}"
-		else
-			error "$command: process already running"
-		fi
+	"unique:cmd:force")
+		info "$title: run-this-one ${args[*]}"
+		run-this-one "${args[@]}" || error "$title"
 		;;
 	"run:container:image:"*)
 		run_cmd="${command#run:}"

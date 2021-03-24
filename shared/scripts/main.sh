@@ -98,12 +98,12 @@ case "$command" in
 		task_name="${command#action:exec:}"
 
 		if [ "${var_custom__use_logrotator:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:unique:rotate" ${next_args[@]+"${next_args[@]}"} ||:
+			"$pod_script_env_file" "unique:action:logrotate" ${next_args[@]+"${next_args[@]}"} ||:
 		fi
 
 		"$pod_main_run_file" "$task_name" ${next_args[@]+"${next_args[@]}"}
 		;;
-	"action:exec:rotate")
+	"action:exec:logrotate")
 		"$pod_script_env_file" run logrotator
 		;;
 	"build")
@@ -590,51 +590,40 @@ case "$command" in
 			--bg_file="$pod_data_dir/log/bg/$task_name.$(date -u '+%Y%m%d.%H%M%S').$$.log" \
 			--action_dir="/var/main/data/action"
 		;;
-	"shared:unique:"*)
-		task_name="${command#shared:unique:}"
-
-		opts=()
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--toolbox_service=toolbox" )
-		opts+=( "--action_dir=/var/main/data/action" )
-
-		"$pod_main_run_file" "unique:subtask" "${opts[@]}"
-		;;
 	"shared:watch")
-		run-one "$pod_script_env_file" "shared:main:watch"
+		"$pod_script_env_file" "unique:cmd" "$pod_script_env_file" "shared:main:watch"
 		;;
 	"shared:new:watch")
-		run-this-one "$pod_script_env_file" "shared:main:watch"
+		"$pod_script_env_file" "unique:cmd:force" "$pod_script_env_file" "shared:main:watch"
 		;;
 	"shared:main:watch")
+		function run_pending_actions {
+			amount=1
+
+			while [ "$amount" -gt 0 ]; do
+				amount=0
+
+				find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
+					if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
+						filename="$(basename "$file")"
+						amount=$(( amount + 1 ))
+
+						"$pod_script_env_file" "shared:action:$filename" \
+							|| error "$title: error when running inner action $filename" ||:
+
+						sleep 1
+					fi
+				done
+			done
+		}
+
+		run_pending_actions
+
 		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
 			while read -r _ _ file; do
 				if [[ $file != *.running ]] && [[ $file != *.error ]]; then
-					"$pod_script_env_file" "shared:action:$file" \
-						|| error "$title: error when running action $file" ||:
-
-					amount=1
-
-					while [ "$amount" -gt 0 ]; do
-						amount=0
-
-						find "$pod_data_dir/action" -maxdepth 1  | while read -r file; do
-							if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
-								amount=$(( amount + 1 ))
-
-								"$pod_script_env_file" "shared:action:$file" \
-									|| error "$title: error when running inner action $file" ||:
-							fi
-						done
-					done
-
+					run_pending_actions
 					echo "waiting next action..."
-					sleep 1
 				fi
 			done
 		;;

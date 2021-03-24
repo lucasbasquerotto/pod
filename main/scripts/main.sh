@@ -1072,6 +1072,17 @@ case "$command" in
 			error "$command exited with status ${arg_status:-}"
 		fi
 		;;
+	"unique:all"|"unique:all:force")
+		cmd="unique:cmd"
+		[ "$command" = "unique:all:force" ] && cmd="unique:cmd:force"
+
+		info "$title - run the following actions: ${args[*]}"
+
+		for action in "${args[@]}"; do
+			"$pod_script_env_file" "$cmd" "$pod_script_env_file" "unique:action:$action" \
+				|| error "$title: error when running the action: $action" ||:
+		done
+		;;
 	"unique:action:"*)
 		task_name="${command#unique:action:}"
 

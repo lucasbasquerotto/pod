@@ -597,35 +597,34 @@ case "$command" in
 		"$pod_script_env_file" "unique:cmd:force" "$pod_script_env_file" "shared:main:watch"
 		;;
 	"shared:main:watch")
-		function run_pending_actions {
-			amount=1
-
-			while [ "$amount" -gt 0 ]; do
-				amount=0
-
-				find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
-					if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
-						filename="$(basename "$file")"
-						amount=$(( amount + 1 ))
-
-						"$pod_script_env_file" "shared:action:$filename" \
-							|| error "$title: error when running inner action $filename" ||:
-
-						sleep 1
-					fi
-				done
-			done
-		}
-
-		run_pending_actions
+		"$pod_script_env_file" "action:exec:pending"
 
 		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
 			while read -r _ _ file; do
 				if [[ $file != *.running ]] && [[ $file != *.error ]]; then
-					run_pending_actions
+					"$pod_script_env_file" "action:exec:pending"
 					echo "waiting next action..."
 				fi
 			done
+		;;
+	"action:exec:pending")
+		amount=1
+
+		while [ "$amount" -gt 0 ]; do
+			amount=0
+
+			find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
+				if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
+					filename="$(basename "$file")"
+					amount=$(( amount + 1 ))
+
+					"$pod_script_env_file" "shared:action:$filename" \
+						|| error "$title: error when running action $filename" ||:
+
+					sleep 1
+				fi
+			done
+		done
 		;;
 	"shared:action:"*)
 		task_name="${command#shared:action:}"

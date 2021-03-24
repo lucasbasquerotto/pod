@@ -1058,12 +1058,15 @@ case "$command" in
 			dir="$arg_action_dir"
 			file="\${dir}/$arg_task_name.running"
 			error_file="\${dir}/$arg_task_name.error"
+			done_file="\${dir}/$arg_task_name.done"
+			result_file="\$done_file"
 
 			if [ -f "\$file" ]; then
 				if [ "${arg_status:-}" != "0" ]; then
-					echo "\$(date '+%F %T')" > "\$error_file"
+					result_file="\$error_file"
 				fi
 
+				echo "\$(date '+%F %T')" > "\$result_file"
 				rm -f "\$file"
 			fi
 		SHELL

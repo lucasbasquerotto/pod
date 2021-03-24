@@ -601,7 +601,7 @@ case "$command" in
 
 		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
 			while read -r _ _ file; do
-				if [[ $file != *.running ]] && [[ $file != *.error ]]; then
+				if [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
 					"$pod_script_env_file" "action:exec:pending"
 					echo "waiting next action..."
 				fi
@@ -614,7 +614,7 @@ case "$command" in
 			amount=0
 
 			find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
-				if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]]; then
+				if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
 					filename="$(basename "$file")"
 					amount=$(( amount + 1 ))
 

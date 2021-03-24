@@ -186,12 +186,16 @@ case "$command" in
 		"$pod_script_env_file" "run:s3:main:rclone:$cmd" --cli_cmd="run" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:rclone:create_bucket")
-		inner_cmd=( mkdir "$arg_s3_alias:$arg_s3_bucket_name" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
+		inner_cmd+=( mkdir "$arg_s3_alias:$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:rclone:rb")
-		inner_cmd=( purge "$arg_s3_alias:$arg_s3_bucket_name" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
+		inner_cmd+=( purge "$arg_s3_alias:$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -200,7 +204,9 @@ case "$command" in
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
-		inner_cmd=( delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path" )
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
+		inner_cmd+=( delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -223,8 +229,8 @@ case "$command" in
 			params+=( --exclude "$exclude" )
 		fi
 
-		cmd="${command#s3:main:rclone:}"
 		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
 		inner_cmd+=( copy --verbose )
 		inner_cmd+=( ${params[@]+"${params[@]}"} )
 		inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )

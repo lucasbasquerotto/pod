@@ -110,13 +110,17 @@ case "$command" in
 		;;
 	"s3:main:mc:sync")
 		if [ -n "${arg_s3_file:-}" ]; then
-			"$pod_script_env_file" "run:s3:main:mc:sync_file" ${args[@]+"${args[@]}"}
+			[[ "$arg_s3_src" = */ ]] \
+				&& s3_src="${arg_s3_src}${arg_s3_file}" \
+				|| s3_src="$arg_s3_src/$arg_s3_file"
+			[[ "$arg_s3_dest" = */ ]] \
+				&& s3_dest="$arg_s3_dest" \
+				|| s3_dest="$arg_s3_dest/"
+			"$pod_script_env_file" "run:s3:main:mc:cp" ${args[@]+"${args[@]}"} \
+				--s3_src="$s3_src" --s3_dest="$s3_dest"
 		else
 			"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
 		fi
-		;;
-	"s3:main:mc:sync_file")
-		"$pod_script_env_file" "run:s3:main:mc:mirror" ${args[@]+"${args[@]}"}
 		;;
 	"s3:main:mc:cp"|"s3:main:mc:mirror")
 		[ "${arg_s3_remote_src:-}" = 'true' ] \

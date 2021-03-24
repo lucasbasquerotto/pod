@@ -106,6 +106,127 @@ case "$command" in
 	"action:exec:logrotate")
 		"$pod_script_env_file" run logrotator
 		;;
+	"shared:bg:"*)
+		task_name="${command#shared:bg:}"
+
+		"$pod_script_env_file" "bg:subtask" \
+			--task_name="$title >> $task_name" \
+			--task_name="$task_name" \
+			--subtask_cmd="$command" \
+			--bg_file="$pod_data_dir/log/bg/$task_name.$(date -u '+%Y%m%d.%H%M%S').$$.log" \
+			--action_dir="/var/main/data/action"
+		;;
+	"action:exec:watch")
+		"$pod_script_env_file" "action:exec:pending"
+
+		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
+			while read -r _ _ file; do
+				if [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
+					"$pod_script_env_file" "action:exec:pending"
+					echo "waiting next action..."
+				fi
+			done
+		;;
+	"action:exec:pending")
+		amount=1
+
+		while [ "$amount" -gt 0 ]; do
+			amount=0
+
+			find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
+				if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
+					filename="$(basename "$file")"
+					amount=$(( amount + 1 ))
+
+					"$pod_script_env_file" "shared:action:$filename" \
+						|| error "$title: error when running action $filename" ||:
+
+					sleep 1
+				fi
+			done
+		done
+		;;
+	"shared:action:"*)
+		task_name="${command#shared:action:}"
+
+		opts=()
+
+		opts=( "--task_info=$title >> $task_name" )
+
+		opts+=( "--task_name=$task_name" )
+		opts+=( "--subtask_cmd=$command" )
+
+		opts+=( "--toolbox_service=toolbox" )
+		opts+=( "--action_dir=/var/main/data/action" )
+
+		"$pod_main_run_file" "action:subtask" "${opts[@]}"
+		;;
+	"shared:create_actions")
+		info "$title - create the following actions: ${args[*]}"
+		for action in "${args[@]}"; do
+			echo "touch '/var/main/data/action/$action'"
+		done | "$pod_script_env_file" exec-nontty toolbox /bin/bash
+		;;
+	"action:exec:log_register."*)
+		task_name="${command#action:exec:log_register.}"
+		"$pod_script_env_file" "shared:log:register:$task_name" \
+			${next_args[@]+"${next_args[@]}"}
+		;;
+	"action:exec:replicate_s3")
+		if [ "${var_run__enable__backup_replica:-}" = 'true' ]; then
+			"$pod_script_env_file" "shared:s3:replicate:backup"
+		fi
+
+		if [ "${var_run__enable__uploads_replica:-}" = 'true' ]; then
+			"$pod_script_env_file" "shared:s3:replicate:uploads"
+		fi
+		;;
+	"action:exec:nginx_reload")
+		"$pod_script_env_file" "service:nginx:reload" ${args[@]+"${args[@]}"}
+		;;
+	"action:exec:haproxy_reload")
+		"$pod_script_env_file" "service:haproxy:reload" ${args[@]+"${args[@]}"}
+		;;
+	"action:exec:block_ips")
+		service="${var_shared__block_ips__action_exec__service:-}"
+
+		if [ "${var_shared__block_ips__action_exec__enabled:-}" != 'true' ]; then
+			error "$title: action is not enabled"
+		elif [ -z "$service" ]; then
+			error "$title: no service specified"
+		fi
+
+		"$pod_script_env_file" "shared:log:$service:verify"
+
+		dest_last_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
+			--force="${arg_force:-}" \
+			--days_ago="1" \
+			--max_amount="${arg_max_amount:-}")"
+
+		dest_day_file=""
+
+		if [ "${var_shared__block_ips__action_exec__current_day:-}" = 'true' ]; then
+			dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
+				--force="${arg_force:-}" \
+				--max_amount="${arg_max_amount:-}")"
+		fi
+
+		service_sync_base_dir="/var/main/data/sync/$service"
+		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
+
+		"$pod_script_env_file" "service:$service:block_ips" \
+			--task_info="$title" \
+			--max_amount="${var_shared__block_ips__action_exec__max_amount:-$arg_max_amount}" \
+			--output_file="$service_sync_base_dir/auto/ips-blacklist-auto.conf" \
+			--manual_file="$service_sync_base_dir/manual/ips-blacklist.conf" \
+			--allowed_hosts_file="$service_sync_base_dir/manual/allowed-hosts.conf" \
+			--log_file_last_day="$dest_last_day_file" \
+			--log_file_day="$dest_day_file" \
+			--amount_day="$var_shared__block_ips__action_exec__amount_day" \
+			--log_file_hour="$log_hour_path_prefix.$(date -u '+%Y-%m-%d.%H').log" \
+			--log_file_last_hour="$log_hour_path_prefix.$(date -u -d '1 hour ago' '+%Y-%m-%d.%H').log" \
+			--amount_hour="$var_shared__block_ips__action_exec__amount_hour"
+		;;
 	"build")
 		if [ -n "${var_run__general__s3_cli:-}" ]; then
 			env_dir_s3_cli="$pod_layer_dir/env/$var_run__general__s3_cli"
@@ -532,133 +653,6 @@ case "$command" in
 				--legacy_auth="$var_shared__nextcloud__s3_uploads__legacy_auth"  \
 				--key="$var_shared__nextcloud__s3_uploads__access_key" \
 				--secret="$var_shared__nextcloud__s3_uploads__secret_key"
-		fi
-		;;
-	"action:exec:block_ips")
-		service="${var_shared__block_ips__action_exec__service:-}"
-
-		if [ "${var_shared__block_ips__action_exec__enabled:-}" != 'true' ]; then
-			error "$title: action is not enabled"
-		elif [ -z "$service" ]; then
-			error "$title: no service specified"
-		fi
-
-		"$pod_script_env_file" "shared:log:$service:verify"
-
-		dest_last_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
-			--force="${arg_force:-}" \
-			--days_ago="1" \
-			--max_amount="${arg_max_amount:-}")"
-
-		dest_day_file=""
-
-		if [ "${var_shared__block_ips__action_exec__current_day:-}" = 'true' ]; then
-			dest_day_file="$("$pod_script_env_file" "shared:log:$service:day" \
-				--force="${arg_force:-}" \
-				--max_amount="${arg_max_amount:-}")"
-		fi
-
-		service_sync_base_dir="/var/main/data/sync/$service"
-		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
-
-		"$pod_script_env_file" "service:$service:block_ips" \
-			--task_info="$title" \
-			--max_amount="${var_shared__block_ips__action_exec__max_amount:-$arg_max_amount}" \
-			--output_file="$service_sync_base_dir/auto/ips-blacklist-auto.conf" \
-			--manual_file="$service_sync_base_dir/manual/ips-blacklist.conf" \
-			--allowed_hosts_file="$service_sync_base_dir/manual/allowed-hosts.conf" \
-			--log_file_last_day="$dest_last_day_file" \
-			--log_file_day="$dest_day_file" \
-			--amount_day="$var_shared__block_ips__action_exec__amount_day" \
-			--log_file_hour="$log_hour_path_prefix.$(date -u '+%Y-%m-%d.%H').log" \
-			--log_file_last_hour="$log_hour_path_prefix.$(date -u -d '1 hour ago' '+%Y-%m-%d.%H').log" \
-			--amount_hour="$var_shared__block_ips__action_exec__amount_hour"
-		;;
-	"action:exec:nginx_reload")
-		"$pod_script_env_file" "service:nginx:reload" ${args[@]+"${args[@]}"}
-		;;
-	"action:exec:haproxy_reload")
-		"$pod_script_env_file" "service:haproxy:reload" ${args[@]+"${args[@]}"}
-		;;
-	"shared:bg:"*)
-		task_name="${command#shared:bg:}"
-
-		"$pod_script_env_file" "bg:subtask" \
-			--task_name="$title >> $task_name" \
-			--task_name="$task_name" \
-			--subtask_cmd="$command" \
-			--bg_file="$pod_data_dir/log/bg/$task_name.$(date -u '+%Y%m%d.%H%M%S').$$.log" \
-			--action_dir="/var/main/data/action"
-		;;
-	"shared:watch")
-		"$pod_script_env_file" "unique:cmd" "$pod_script_env_file" "shared:main:watch"
-		;;
-	"shared:new:watch")
-		"$pod_script_env_file" "unique:cmd:force" "$pod_script_env_file" "shared:main:watch"
-		;;
-	"shared:main:watch")
-		"$pod_script_env_file" "action:exec:pending"
-
-		inotifywait -m "$pod_data_dir/action" -e create -e moved_to |
-			while read -r _ _ file; do
-				if [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
-					"$pod_script_env_file" "action:exec:pending"
-					echo "waiting next action..."
-				fi
-			done
-		;;
-	"action:exec:pending")
-		amount=1
-
-		while [ "$amount" -gt 0 ]; do
-			amount=0
-
-			find "$pod_data_dir/action" -maxdepth 1 | while read -r file; do
-				if [ -f "$file" ] && [[ $file != *.running ]] && [[ $file != *.error ]] && [[ $file != *.done ]]; then
-					filename="$(basename "$file")"
-					amount=$(( amount + 1 ))
-
-					"$pod_script_env_file" "shared:action:$filename" \
-						|| error "$title: error when running action $filename" ||:
-
-					sleep 1
-				fi
-			done
-		done
-		;;
-	"shared:action:"*)
-		task_name="${command#shared:action:}"
-
-		opts=()
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--toolbox_service=toolbox" )
-		opts+=( "--action_dir=/var/main/data/action" )
-
-		"$pod_main_run_file" "action:subtask" "${opts[@]}"
-		;;
-	"shared:create_actions")
-		info "$title - create the following actions: ${args[*]}"
-		for action in "${args[@]}"; do
-			echo "touch '/var/main/data/action/$action'"
-		done | "$pod_script_env_file" exec-nontty toolbox /bin/bash
-		;;
-	"action:exec:log_register."*)
-		task_name="${command#action:exec:log_register.}"
-		"$pod_script_env_file" "shared:log:register:$task_name" \
-			${next_args[@]+"${next_args[@]}"}
-		;;
-	"action:exec:replicate_s3")
-		if [ "${var_run__enable__backup_replica:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:s3:replicate:backup"
-		fi
-
-		if [ "${var_run__enable__uploads_replica:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:s3:replicate:uploads"
 		fi
 		;;
 	"shared:s3:replicate:backup")

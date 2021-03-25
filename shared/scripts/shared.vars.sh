@@ -240,10 +240,6 @@ else
 	tmp_enable_uploads_backup="${var_load_enable__custom_uploads_backup:-}"
 fi
 
-if [ "$tmp_enable_uploads_backup" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" = 'true' ]; then
-	tmp_errors+=("[shared] uploads_backup is enabled with use_s3_storage=true")
-fi
-
 if [ "$tmp_is_db" = 'true' ]; then
 	if [ "$tmp_enable_db_backup" = 'true' ]; then
 		tmp_group_backup="$tmp_group_backup,db_backup"
@@ -715,7 +711,7 @@ if [ "${var_load_enable__sync_setup:-}" = 'true' ]; then
     export var_task__sync_setup__setup_remote__restore_bucket_path_dir="${var_load__sync_setup__restore_bucket_path_dir:-}"
 fi
 
-if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" != 'true' ]; then
+if [ "$tmp_is_web" = 'true' ]; then
 	if [ "${var_load_enable__uploads_backup:-}" = 'true' ]; then
 		tmp_uploads_src_dir="/var/main/data/${var_load_name:-}/uploads"
 		tmp_uploads_tmp_dir='/tmp/main/tmp/backup/uploads'
@@ -760,7 +756,9 @@ if [ "$tmp_is_web" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" != 'true' ];
 		export var_task__uploads_backup__backup_remote__backup_time_format="${var_load__uploads_backup__backup_time_format:-}"
 		export var_task__uploads_backup__backup_remote__backup_datetime_format="${var_load__uploads_backup__backup_datetime_format:-}"
 	fi
+fi
 
+if [ "$tmp_is_web" = 'true' ] && [ "${var_load_use__s3_storage:-}" != 'true' ]; then
 	if [ "${var_load_enable__uploads_setup:-}" = 'true' ]; then
 		tmp_restore_use_s3="${var_load__uploads_setup__restore_use_s3:-}"
 		tmp_restore_s3_sync="${var_load__uploads_setup__restore_s3_sync:-}"

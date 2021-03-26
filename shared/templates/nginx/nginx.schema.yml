@@ -136,6 +136,9 @@ schemas:
       client_header_timeout:
         type: "str"
         description: "defaults to 5s"
+      client_max_body_size:
+        type: "str"
+        description: "defaults to 1M"
       map_hash_max_size:
         type: "str"
         description: "defaults to 1024"

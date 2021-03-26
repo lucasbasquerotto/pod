@@ -16,11 +16,9 @@ schemas:
         description: "s3 alias (profile identifier)"
       access_key:
         type: "str"
-        non_empty: true
         description: "s3 access key"
       secret_key:
         type: "str"
-        non_empty: true
         description: "s3 secret key"
       endpoint:
         type: "str"

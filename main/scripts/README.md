@@ -14,7 +14,7 @@
 
 ## 1.1.1. Restore File from Remote Bucket Directory
 
-`restore_remote_bucket_path_dir`: this parameter is required and corresponds to the s3 remote directory that will be synchronized with the local directory (in the path `s3_bucket_name`/`s3_bucket_path`).
+`restore_bucket_path_dir`: this parameter is required and corresponds to the s3 remote directory that will be synchronized with the local directory (in the path `s3_bucket_name`/`s3_bucket_path`).
 
 `restore_dest_dir`: this parameter is required and corresponds to the local directory that will receive the restored files and folders present in the remote bucket.
 

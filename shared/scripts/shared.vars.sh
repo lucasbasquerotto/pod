@@ -183,13 +183,14 @@ export var_custom__local="${var_load_main__local:-}"
 export var_custom__use_main_network="${var_load_use__main_network:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
+export var_custom__use_s3="${var_load_use__s3:-}"
+export var_custom__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
 	export var_custom__use_nginx="${var_load_use__nginx:-}"
 	export var_custom__use_haproxy="${var_load_use__haproxy:-}"
 	export var_custom__use_theia="${var_load_use__theia:-}"
 	export var_custom__use_varnish="${var_load_use__varnish:-}"
-	export var_custom__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
 
 	if [ "${var_load_use__ssl:-}" = 'true' ]; then
 		export var_custom__use_certbot="${var_load_use__certbot:-}"

@@ -101,7 +101,7 @@ case "$command" in
 	"s3:main:mc:delete_old")
 		if [ -z "${arg_s3_alias:-}" ]; then
 			error "$title: parameter s3_alias is undefined"
-		elif [ -z "${s3_bucket_name:-}" ]; then
+		elif [ -z "${arg_s3_bucket_name:-}" ]; then
 			error "$title: parameter s3_bucket_name is undefined"
 		elif [ -z "${arg_s3_older_than_days:-}" ]; then
 			error "$title: parameter s3_older_than_days undefined"
@@ -109,12 +109,13 @@ case "$command" in
 
 		s3_full_path="$arg_s3_alias/$arg_s3_bucket_name/$arg_s3_path"
 
+		older_than_unit='d'
+		[ "${arg_s3_test:-}" = 'true' ] && older_than_unit='m'
+		s3_older_than="${arg_s3_older_than_days:-}$older_than_unit"
+
 		inner_cmd=()
 		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
-		inner_cmd+=( rm -r --force )
-		[ "${arg_s3_test:-}" != 'true' ] && inner_cmd+=( --older-than "$s3_older_than_days" )
-		[ "${arg_s3_test:-}" = 'true' ] && inner_cmd+=( --newer-than "$s3_older_than_days" )
-		inner_cmd+=( "$s3_full_path" )
+		inner_cmd+=( rm -r --force --older-than "$s3_older_than" "$s3_full_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;

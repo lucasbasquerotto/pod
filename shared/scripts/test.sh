@@ -21,6 +21,15 @@ fi
 shift;
 
 case "$command" in
+	"shared:test:s3:delete_old")
+		if [ "${var_custom__local:-}" = 'true' ]; then
+			"$pod_script_env_file" "s3:subtask:s3_backup" \
+				--s3_cmd='delete_old' \
+				--s3_path="log" \
+				--s3_older_than_days="3" \
+				--s3_test='true'
+		fi
+		;;
 	"shared:test:zip")
 		"$pod_script_env_file" up "toolbox"
 

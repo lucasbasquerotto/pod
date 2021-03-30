@@ -50,6 +50,7 @@ while getopts ':-:' OPT; do
 		s3_file ) arg_s3_file="${OPTARG:-}";;
 		s3_older_than_days ) arg_s3_older_than_days="${OPTARG:-}";;
 		s3_ignore_path ) arg_s3_ignore_path="${OPTARG:-}";;
+		s3_test ) arg_s3_test="${OPTARG:-}";;
 		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -98,13 +99,19 @@ case "$command" in
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:delete_old")
-		if [ -z "${arg_s3_older_than_days:-}" ]; then
+		if [ -z "${arg_s3_alias:-}" ]; then
+			error "$title: parameter s3_alias is undefined"
+		elif [ -z "${s3_bucket_name:-}" ]; then
+			error "$title: parameter s3_bucket_name is undefined"
+		elif [ -z "${arg_s3_older_than_days:-}" ]; then
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
+		s3_full_path="$arg_s3_alias/$arg_s3_bucket_name/$arg_s3_path"
+
 		inner_cmd=()
 		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
-		inner_cmd+=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$arg_s3_path" )
+		inner_cmd+=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$s3_full_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -273,7 +280,7 @@ case "$command" in
 		fi
 		;;
 	"s3:main:awscli:bucket_exists")
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL || error "$title"
 			set -eou pipefail
 
 			mkdir -p "$arg_s3_tmp_dir" >&2
@@ -318,22 +325,25 @@ case "$command" in
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
-		>&2 echo ">$arg_cli_cmd $arg_s3_service: aws rm $arg_s3_endpoint (< $arg_s3_older_than_days day(s))"
-		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" <<-SHELL
+		>&2 "$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL || error "$title"
 			set -eou pipefail
 
 			s3_max_date=''
 
 			if [ -n "${arg_s3_older_than_days:-}" ]; then
-				s3_max_date="\$(date --date="$arg_s3_older_than_days days ago" '+%F %X')"
+				seconds=$(( ${arg_s3_older_than_days:-}*24*60*60 ))
+				[ "${arg_s3_test:-}" = 'true' ] && seconds=$(( ${arg_s3_older_than_days:-}*60 ))
+				s3_max_date="\$(date --date=@"\$(( \$(date '+%s') - \$seconds ))" -Iseconds)"
 			fi
 
-			aws s3 --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
-				ls --recursive "$arg_s3_path" \
-				| awk '\$1 < "'"\$s3_max_date"'" {print \$4}' \
-				| xargs -n1 -t -I 'KEY' \
-					aws s3 --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
-						rm "$arg_s3_endpoint"/'KEY'
+			aws --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
+				s3api list-objects --bucket "$arg_s3_bucket_name" \
+				--query "Contents[?LastModified<='\$s3_max_date'].[Key]" \
+				--prefix "${arg_s3_path:-}" \
+				--output text \
+				| xargs -I {} \
+				 	aws --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
+						s3 rm s3://"$arg_s3_bucket_name"/{}
 		SHELL
 		;;
 	"s3:main:awscli:cp"|"s3:main:awscli:sync")

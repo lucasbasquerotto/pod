@@ -90,9 +90,10 @@ while getopts ':-:' OPT; do
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
 		s3_dest_rel ) arg_s3_dest_rel="${OPTARG:-}";;
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}";;
-		s3_bucket_path ) arg_s3_bucket_path="${OPTARG:-}";;
 		s3_older_than_days ) arg_s3_older_than_days="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;
+		s3_path ) arg_s3_path="${OPTARG:-}";;
+		s3_test ) arg_s3_test="${OPTARG:-}";;
 		s3_ignore_path ) arg_s3_ignore_path="${OPTARG:-}";;
 		db_subtask_cmd ) arg_db_subtask_cmd="${OPTARG:-}";;
 		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
@@ -674,10 +675,11 @@ case "$command" in
 		opts+=( "--s3_dest=${arg_s3_dest:-}" )
 		opts+=( "--s3_remote_dest=${arg_s3_remote_dest:-}" )
 		opts+=( "--s3_dest_rel=${arg_s3_dest_rel:-}" )
-		opts+=( "--s3_bucket_path=${arg_s3_bucket_path:-}" )
-		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
+		opts+=( "--s3_path=${arg_s3_path:-}" )
 		opts+=( "--s3_file=${arg_s3_file:-}" )
 		opts+=( "--s3_ignore_path=${arg_s3_ignore_path:-}" )
+		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
+		opts+=( "--s3_test=${arg_s3_test:-}" )
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
@@ -773,18 +775,6 @@ case "$command" in
 			s3_dest=$(echo "$s3_dest" | tr -s /)
 		fi
 
-		bucket_base_prefix="s3://$param_bucket_name"
-
-		if [ -n "${s3_alias:-}" ]; then
-			bucket_base_prefix="$s3_alias/$param_bucket_name"
-		fi
-
-		s3_path="$bucket_base_prefix"
-
-		if [ -n "${param_bucket_path:-}" ]; then
-			s3_path="$bucket_base_prefix/$param_bucket_path"
-		fi
-
 		opts=( "--task_info=$title" )
 
 		opts+=( "--s3_service=${!param_service:-}" )
@@ -800,10 +790,11 @@ case "$command" in
 		opts+=( "--s3_remote_dest=${arg_s3_remote_dest:-}" )
 		opts+=( "--s3_dest_alias=$s3_dest_alias" )
 		opts+=( "--s3_dest=${s3_dest:-}" )
-		opts+=( "--s3_path=${s3_path:-}" )
+		opts+=( "--s3_path=${arg_s3_path:-}" )
 		opts+=( "--s3_file=${arg_s3_file:-}" )
 		opts+=( "--s3_ignore_path=${arg_s3_ignore_path:-}" )
 		opts+=( "--s3_older_than_days=${arg_s3_older_than_days:-}" )
+		opts+=( "--s3_test=${arg_s3_test:-}" )
 
 		inner_cmd="s3:$s3_cli:${!param_cli_cmd}:$arg_s3_cmd"
 		info "$command - $inner_cmd"

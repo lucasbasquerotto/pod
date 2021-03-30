@@ -219,9 +219,15 @@ case "$command" in
 			error "$title: parameter s3_older_than_days undefined"
 		fi
 
+		older_than_unit='d'
+		[ "${arg_s3_test:-}" = 'true' ] && older_than_unit='m'
+		s3_older_than="${arg_s3_older_than_days:-}$older_than_unit"
+
+		s3_full_path="$arg_s3_alias:$arg_s3_bucket_name/$arg_s3_path"
+
 		inner_cmd=()
 		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
-		inner_cmd+=( delete --min-age "${arg_s3_older_than_days:-}d" "$arg_s3_path" )
+		inner_cmd+=( delete --verbose --min-age "$s3_older_than" "$s3_full_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;

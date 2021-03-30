@@ -111,7 +111,10 @@ case "$command" in
 
 		inner_cmd=()
 		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
-		inner_cmd+=( rm -r --older-than "${arg_s3_older_than_days:-}" --force "$s3_full_path" )
+		inner_cmd+=( rm -r --force )
+		[ "${arg_s3_test:-}" != 'true' ] && inner_cmd+=( --older-than "$s3_older_than_days" )
+		[ "${arg_s3_test:-}" = 'true' ] && inner_cmd+=( --newer-than "$s3_older_than_days" )
+		inner_cmd+=( "$s3_full_path" )
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
@@ -331,8 +334,8 @@ case "$command" in
 			s3_max_date=''
 
 			if [ -n "${arg_s3_older_than_days:-}" ]; then
-				seconds=$(( ${arg_s3_older_than_days:-}*24*60*60 ))
-				[ "${arg_s3_test:-}" = 'true' ] && seconds=$(( ${arg_s3_older_than_days:-}*60 ))
+				seconds=\$(( ${arg_s3_older_than_days:-}*24*60*60 ))
+				[ "${arg_s3_test:-}" = 'true' ] && seconds=\$(( ${arg_s3_older_than_days:-}*60 ))
 				s3_max_date="\$(date --date=@"\$(( \$(date '+%s') - \$seconds ))" -Iseconds)"
 			fi
 
@@ -341,8 +344,9 @@ case "$command" in
 				--query "Contents[?LastModified<='\$s3_max_date'].[Key]" \
 				--prefix "${arg_s3_path:-}" \
 				--output text \
-				| xargs -I {} \
-				 	aws --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
+				| { grep -v None ||:; } \
+				| xargs --no-run-if-empty -I {} \
+					aws --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \
 						s3 rm s3://"$arg_s3_bucket_name"/{}
 		SHELL
 		;;

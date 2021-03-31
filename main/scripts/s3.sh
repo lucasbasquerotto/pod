@@ -91,6 +91,35 @@ case "$command" in
 		info "arg_cli_cmd=$arg_cli_cmd"
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+
+		if [ -n "${arg_s3_acl:-}" ]; then
+			"$pod_script_env_file" "run:s3:main:mc:acl" ${args[@]+"${args[@]}"}
+		fi
+		;;
+	"s3:main:mc:acl")
+		if [ -z "${arg_s3_acl:-}" ]; then
+			error "$title: parameter s3_acl undefined"
+		fi
+
+		policy='none'
+
+		if [ "${arg_s3_acl:-}" = 'public-read' ]; then
+			policy='download'
+		elif [ "${arg_s3_acl:-}" = 'public-read-write' ]; then
+			policy='public'
+		elif [ "${arg_s3_acl:-}" != 'private' ]; then
+			error "$title: parameter s3_acl invalid (${arg_s3_acl:-})"
+		fi
+
+		policy='none'
+		[ "${arg_s3_acl:-}" = 'public-read' ] && policy='download'
+
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( policy set "$policy" )
+		inner_cmd+=( "$arg_s3_alias/$arg_s3_bucket_name/${arg_s3_path:-}" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:rb")
 		inner_cmd=()
@@ -188,23 +217,6 @@ case "$command" in
 		info "s3 command: ${inner_cmd[*]} < $conf_file"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" < "$conf_file"
 		;;
-	"s3:main:mc:acl")
-		if [ -z "${arg_s3_acl:-}" ]; then
-			error "$title: parameter s3_acl undefined"
-		elif [ "${arg_s3_acl:-}" != 'private' ] && [ "${arg_s3_acl:-}" != 'public-read' ]; then
-			error "$title: parameter s3_acl invalid (${arg_s3_acl:-})"
-		fi
-
-		policy='none'
-		[ "${arg_s3_acl:-}" = 'public-read' ] && policy='download'
-
-		inner_cmd=()
-		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
-		inner_cmd+=( policy set "$policy" )
-		inner_cmd+=( "$arg_s3_alias/$arg_s3_bucket_name/${arg_s3_path:-}" )
-		info "s3 command: ${inner_cmd[*]}"
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
-		;;
 	"s3:main:mc:cmd")
 		inner_cmd=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
 		info "s3 command: ${inner_cmd[*]}"
@@ -221,9 +233,19 @@ case "$command" in
 	"s3:main:rclone:create_bucket")
 		inner_cmd=()
 		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( rclone )
-		inner_cmd+=( mkdir "$arg_s3_alias:$arg_s3_bucket_name" )
+		inner_cmd+=( mkdir )
+
+		if [ -n "${arg_s3_acl:-}" ]; then
+			inner_cmd+=( --s3-bucket-acl "${arg_s3_acl:-}" )
+		fi
+
+		inner_cmd+=( "$arg_s3_alias:$arg_s3_bucket_name" )
+
 		info "s3 command: ${inner_cmd[*]}"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+		;;
+	"s3:main:rclone:acl")
+		error "$title: action not supported for this s3 client"
 		;;
 	"s3:main:rclone:rb")
 		inner_cmd=()
@@ -298,6 +320,11 @@ case "$command" in
 			inner_cmd=( aws --profile="$arg_s3_alias" )
 			inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
 			inner_cmd+=( create-bucket --bucket "$arg_s3_bucket_name" )
+
+			if [ -n "${arg_s3_acl:-}" ]; then
+				inner_cmd+=( --acl "${arg_s3_acl:-}" )
+			fi
+
 			inner_cmd+=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
 
 			info "s3 command: ${inner_cmd[*]}"
@@ -306,6 +333,21 @@ case "$command" in
 		elif [ "$bucket_exists" != 'true' ]; then
 			error "$title: invalid result (bucket_exists should be true or false): $bucket_exists"
 		fi
+		;;
+	"s3:main:awscli:acl")
+		if [ -z "${arg_s3_acl:-}" ]; then
+			error "$title: parameter s3_acl undefined"
+		fi
+
+		inner_cmd=( aws --profile="$arg_s3_alias" )
+		inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
+		inner_cmd+=( put-bucket-acl )
+		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
+		inner_cmd+=( --acl "${arg_s3_acl:-}" )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:awscli:bucket_exists")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" /bin/sh <<-SHELL || error "$title"
@@ -411,25 +453,6 @@ case "$command" in
 		inner_cmd+=( put-bucket-lifecycle-configuration )
 		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
 		inner_cmd+=( --lifecycle-configuration "file://$inner_conf_file" )
-
-		info "s3 command: ${inner_cmd[*]}"
-
-		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
-		;;
-	"s3:main:awscli:acl")
-		if [ -z "${arg_s3_acl:-}" ]; then
-			error "$title: parameter s3_acl undefined"
-		elif [ "${arg_s3_acl:-}" != 'private' ] && [ "${arg_s3_acl:-}" != 'public-read' ]; then
-			error "$title: parameter s3_acl invalid (${arg_s3_acl:-})"
-		fi
-
-		inner_conf_file="/etc/main/${arg_s3_lifecycle_file:-}"
-
-		inner_cmd=( aws --profile="$arg_s3_alias" )
-		inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
-		inner_cmd+=( put-bucket-acl )
-		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
-		inner_cmd+=( --acl "${arg_s3_acl:-}" )
 
 		info "s3 command: ${inner_cmd[*]}"
 

@@ -637,6 +637,7 @@ if [ -n "${var_load__s3_backup__bucket_name:-}" ]; then
 	export var_task__s3_backup__s3_subtask__cli="${var_load__s3_backup__cli:-awscli}"
 	export var_task__s3_backup__s3_subtask__endpoint="${var_load__s3_backup__endpoint:-}"
 	export var_task__s3_backup__s3_subtask__lifecycle_file="${var_load__s3_backup__lifecycle_file:-}"
+	export var_task__s3_backup__s3_subtask__acl="${var_load__s3_backup__acl:-private}"
 fi
 
 if [ "$tmp_is_web" = 'true' ]; then
@@ -663,6 +664,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 		export var_task__s3_uploads__s3_subtask__cli="${var_load__s3_uploads__cli:-awscli}"
 		export var_task__s3_uploads__s3_subtask__endpoint="${var_load__s3_uploads__endpoint:-}"
 		export var_task__s3_uploads__s3_subtask__lifecycle_file="${var_load__s3_uploads__lifecycle_file:-}"
+		export var_task__s3_uploads__s3_subtask__acl="${var_load__s3_uploads__acl:-public-read}"
 	fi
 fi
 

@@ -699,6 +699,7 @@ case "$command" in
 		param_bucket_dest_name="${prefix}_bucket_dest_name"
 		param_bucket_dest_path="${prefix}_bucket_dest_path"
 		param_lifecycle_file="${prefix}_lifecycle_file"
+		param_acl="${prefix}_acl"
 
 		s3_cli="${!param_cli}"
 		alias="${!param_alias:-}"
@@ -783,6 +784,7 @@ case "$command" in
 		opts+=( "--s3_endpoint=${!param_endpoint:-}" )
 		opts+=( "--s3_bucket_name=${!param_bucket_name:-}" )
 		opts+=( "--s3_lifecycle_file=${!param_lifecycle_file:-}" )
+		opts+=( "--s3_acl=${!param_acl:-}" )
 
 		opts+=( "--s3_remote_src=${arg_s3_remote_src:-}" )
 		opts+=( "--s3_src_alias=$s3_src_alias" )

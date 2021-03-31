@@ -40,6 +40,7 @@ while getopts ':-:' OPT; do
 		s3_endpoint ) arg_s3_endpoint="${OPTARG:-}";;
 		s3_bucket_name ) arg_s3_bucket_name="${OPTARG:-}";;
 		s3_lifecycle_file ) arg_s3_lifecycle_file="${OPTARG:-}";;
+		s3_acl ) arg_s3_acl="${OPTARG:-}";;
 		s3_remote_src ) arg_s3_remote_src="${OPTARG:-}" ;;
 		s3_src_alias ) arg_s3_src_alias="${OPTARG:-}" ;;
 		s3_src ) arg_s3_src="${OPTARG:-}" ;;
@@ -186,6 +187,23 @@ case "$command" in
 		inner_cmd+=( ilm import "$arg_s3_alias/$arg_s3_bucket_name" )
 		info "s3 command: ${inner_cmd[*]} < $conf_file"
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}" < "$conf_file"
+		;;
+	"s3:main:mc:acl")
+		if [ -z "${arg_s3_acl:-}" ]; then
+			error "$title: parameter s3_acl undefined"
+		elif [ "${arg_s3_acl:-}" != 'private' ] && [ "${arg_s3_acl:-}" != 'public-read' ]; then
+			error "$title: parameter s3_acl invalid (${arg_s3_acl:-})"
+		fi
+
+		policy='none'
+		[ "${arg_s3_acl:-}" = 'public-read' ] && policy='download'
+
+		inner_cmd=()
+		[ "$arg_cli_cmd" != 'run' ] && inner_cmd+=( mc )
+		inner_cmd+=( policy set "$policy" )
+		inner_cmd+=( "$arg_s3_alias/$arg_s3_bucket_name/${arg_s3_path:-}" )
+		info "s3 command: ${inner_cmd[*]}"
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
 		;;
 	"s3:main:mc:cmd")
 		inner_cmd=( ${arg_s3_opts[@]+"${arg_s3_opts[@]}"} )
@@ -393,6 +411,25 @@ case "$command" in
 		inner_cmd+=( put-bucket-lifecycle-configuration )
 		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
 		inner_cmd+=( --lifecycle-configuration "file://$inner_conf_file" )
+
+		info "s3 command: ${inner_cmd[*]}"
+
+		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" "${inner_cmd[@]}"
+		;;
+	"s3:main:awscli:acl")
+		if [ -z "${arg_s3_acl:-}" ]; then
+			error "$title: parameter s3_acl undefined"
+		elif [ "${arg_s3_acl:-}" != 'private' ] && [ "${arg_s3_acl:-}" != 'public-read' ]; then
+			error "$title: parameter s3_acl invalid (${arg_s3_acl:-})"
+		fi
+
+		inner_conf_file="/etc/main/${arg_s3_lifecycle_file:-}"
+
+		inner_cmd=( aws --profile="$arg_s3_alias" )
+		inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
+		inner_cmd+=( put-bucket-acl )
+		inner_cmd+=( --bucket "$arg_s3_bucket_name" )
+		inner_cmd+=( --acl "${arg_s3_acl:-}" )
 
 		info "s3 command: ${inner_cmd[*]}"
 

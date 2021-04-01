@@ -28,7 +28,7 @@ function warn {
 }
 
 function error {
-	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${*}"
 }
 
 function info_inner {
@@ -124,7 +124,7 @@ title="${title}${command}"
 start="$(date '+%F %T')"
 
 case "$command" in
-	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
+	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
 		|"util:"*|"run:util:"*)
 		;;
@@ -149,7 +149,7 @@ case "$command" in
 	"migrate")
 		>&2 info "$command - do nothing..."
 		;;
-	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
+	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
 
 		if [ -n "${var_orchestration__main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
@@ -1135,7 +1135,7 @@ esac
 end="$(date '+%F %T')"
 
 case "$command" in
-	"up"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
+	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
 		|"util:"*|"run:util:"*)
 		;;

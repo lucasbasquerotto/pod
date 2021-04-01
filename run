@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 command="${1:-}"
 
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${command}: ${*}"
+	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${command}: ${*}"
 	>&2 echo -e "${RED}${msg}${NC}"
 	exit 2
 }

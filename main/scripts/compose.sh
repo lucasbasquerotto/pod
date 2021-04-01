@@ -11,7 +11,7 @@ run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"
 file=''
 
 function error {
-	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}: line ${BASH_LINENO[0]}: ${*}"
+	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${*}"
 }
 
 command="${1:-}"
@@ -79,6 +79,10 @@ case "$command" in
 	"up")
 		cd "$pod_layer_dir/"
 		sudo docker-compose -f "$main_file" up -d --remove-orphans "${@}"
+		;;
+	"down")
+		cd "$pod_layer_dir/"
+		sudo docker-compose -f "$main_file" down "${@}"
 		;;
 	"exec"|"exec-nontty")
 		cd "$pod_layer_dir/"

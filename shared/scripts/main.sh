@@ -73,6 +73,7 @@ case "$command" in
 	"local:clear")
 		mapfile -t list < <(sudo docker ps -aq)
 		[[ ${#list[@]} -gt 0 ]] && sudo docker container rm -f "${list[@]}"
+		"$pod_script_env_file" down -v
 		sudo docker container prune -f
 		sudo docker network prune -f
 		sudo rm -rf "$pod_data_dir"
@@ -84,7 +85,7 @@ case "$command" in
 		sudo docker network prune -f
 		sudo docker volume prune -f
 
-		data_dir_aux="$pod_data_dir/../../../../data"
+		data_dir_aux="$pod_data_dir/../../../data"
 
 		if [ -d "$data_dir_aux" ]; then
 			data_dir="$(cd "$data_dir_aux" && pwd)"

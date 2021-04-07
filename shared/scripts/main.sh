@@ -61,11 +61,11 @@ next_args=( --task_name"${arg_task_name:-}" --subtask_cmd="$command" )
 case "$command" in
 	"upgrade")
 		if [ "${var_custom__use_main_network:-}" = 'true' ]; then
-			"$pod_main_run_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
+			"$pod_script_env_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_custom__use_secrets:-}" = 'true' ]; then
-			"$pod_main_run_file" "shared:create_secrets"
+			"$pod_script_env_file" "shared:create_secrets"
 		fi
 
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
@@ -240,11 +240,15 @@ case "$command" in
 		fi
 
 		while IFS='=' read -r key value; do
-			if [[ "$key" = */* ]]; then
-				error "$title: refusing to remove a file in another directory ($key)"
-			fi
+			trimmed_key="$(echo "$key" | xargs)"
 
-			echo -e "$(echo "$value" | xargs)" > "${secrets_dir}/${key}.txt"
+			if [[ ! "$trimmed_key" == \#* ]]; then
+				if [[ "$trimmed_key" = */* ]]; then
+					error "$title: invalid file name (secret): $trimmed_key"
+				fi
+
+				echo -e "$(echo "$value" | xargs)" > "${secrets_dir}/${trimmed_key}.txt"
+			fi
 		done < "$pod_layer_dir/env/secrets.sh"
 		;;
 	"build")

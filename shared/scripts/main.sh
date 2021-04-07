@@ -64,6 +64,10 @@ case "$command" in
 			"$pod_main_run_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
+		if [ "${var_custom__use_secrets:-}" = 'true' ]; then
+			"$pod_main_run_file" "shared:create_secrets"
+		fi
+
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"local:ssl")
@@ -227,6 +231,21 @@ case "$command" in
 			--log_file_hour="$log_hour_path_prefix.$(date -u '+%Y-%m-%d.%H').log" \
 			--log_file_last_hour="$log_hour_path_prefix.$(date -u -d '1 hour ago' '+%Y-%m-%d.%H').log" \
 			--amount_hour="$var_shared__block_ips__action_exec__amount_hour"
+		;;
+	"shared:create_secrets")
+		secrets_dir="$pod_data_dir/secrets"
+
+		if [ ! -d "$secrets_dir" ]; then
+			mkdir -p "$secrets_dir"
+		fi
+
+		while IFS='=' read -r key value; do
+			if [[ "$key" = */* ]]; then
+				error "$title: refusing to remove a file in another directory ($key)"
+			fi
+
+			echo -e "$(echo "$value" | xargs)" > "${secrets_dir}/${key}.txt"
+		done < "$pod_layer_dir/env/secrets.sh"
 		;;
 	"build")
 		if [ -n "${var_run__general__s3_cli:-}" ]; then

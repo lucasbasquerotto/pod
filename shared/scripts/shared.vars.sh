@@ -181,6 +181,7 @@ export var_custom__pod_type="${var_load_main__pod_type:-}"
 export var_custom__local="${var_load_main__local:-}"
 
 export var_custom__use_main_network="${var_load_use__main_network:-}"
+export var_custom__use_secrets="${var_load_use__secrets:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 export var_custom__use_s3="${var_load_use__s3:-}"

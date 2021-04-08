@@ -186,6 +186,7 @@ export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
 export var_custom__use_s3="${var_load_use__s3:-}"
 export var_custom__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
+export var_custom__use_local_s3="${var_load_use__local_s3:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
 	export var_custom__use_nginx="${var_load_use__nginx:-}"

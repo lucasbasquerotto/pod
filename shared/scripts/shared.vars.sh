@@ -33,6 +33,10 @@ if [ -z "${var_load_main__pod_type:-}" ]; then
 	tmp_errors+=("[shared] var_load_main__pod_type is not defined")
 fi
 
+if [ -z "${var_load_main__instance_index:-}" ]; then
+	tmp_errors+=("[shared] var_load_main__instance_index is not defined")
+fi
+
 # Directories
 
 #shellcheck disable=SC2154
@@ -178,6 +182,7 @@ if [ "${var_load_shared__define_cron:-}" = 'true' ]; then
 fi
 
 export var_custom__pod_type="${var_load_main__pod_type:-}"
+export var_load_main__instance_index="${var_load_main__instance_index:-}"
 export var_custom__local="${var_load_main__local:-}"
 
 export var_custom__use_main_network="${var_load_use__main_network:-}"
@@ -220,7 +225,12 @@ fi
 
 tmp_group_backup=""
 
+if [ "${var_load_enable__db_backup:-}" = 'true' ] && [ "${var_load_enable__db_backup_sync:-}" = 'true' ]; then
+	tmp_errors+=("[shared] db_backup and db_backup_sync are both enabled")
+fi
+
 tmp_enable_db_backup="${var_load_enable__db_backup:-}"
+[ "$tmp_enable_db_backup" != 'true' ] && tmp_enable_db_backup="${var_load_enable__db_backup_sync:-}"
 
 if [ "$tmp_enable_db_backup" = 'true' ]; then
 	if [ "${var_load_enable__custom_db_backup:-}" = 'true' ]; then
@@ -245,7 +255,9 @@ else
 fi
 
 if [ "$tmp_is_db" = 'true' ]; then
-	if [ "$tmp_enable_db_backup" = 'true' ]; then
+	if [ "${var_load_enable__db_backup_sync:-}" = 'true' ]; then
+		tmp_group_backup="$tmp_group_backup,db_backup_sync"
+	elif [ "$tmp_enable_db_backup" = 'true' ]; then
 		tmp_group_backup="$tmp_group_backup,db_backup"
 	fi
 fi
@@ -270,7 +282,12 @@ export var_task__group_backup__group_task__task_names="$tmp_group_backup"
 
 tmp_group_setup=""
 
+if [ "${var_load_enable__db_setup:-}" = 'true' ] && [ "${var_load_enable__db_setup_sync:-}" = 'true' ]; then
+	tmp_errors+=("[shared] db_setup and db_setup_sync are both enabled")
+fi
+
 tmp_enable_db_setup="${var_load_enable__db_setup:-}"
+[ "$tmp_enable_db_setup" != 'true' ] && tmp_enable_db_setup="${var_load_enable__db_setup_sync:-}"
 
 if [ "$tmp_enable_db_setup" = 'true' ]; then
 	if [ "${var_load_enable__custom_db_setup:-}" = 'true' ]; then
@@ -313,7 +330,9 @@ if [ "$tmp_is_web" = 'true' ]; then
 fi
 
 if [ "$tmp_is_db" = 'true' ]; then
-	if [ "$tmp_enable_db_setup" = 'true' ]; then
+	if [ "${var_load_enable__db_setup_sync:-}" = 'true' ]; then
+		tmp_group_setup="$tmp_group_setup,db_setup_sync"
+	elif [ "$tmp_enable_db_setup" = 'true' ]; then
 		tmp_group_setup="$tmp_group_setup,db_setup"
 	fi
 fi
@@ -391,7 +410,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 	fi
 fi
 
-if [ "$tmp_is_db" = 'true' ]; then
+if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_backup" = 'true' ]; then
 	if [ "${var_load_enable__db_backup:-}" = 'true' ]; then
 		if [ -z "${var_load_main__db_service:-}" ]; then
 			tmp_errors+=("[shared] var_load_main__db_service is not defined (db_backup)")
@@ -455,6 +474,25 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_backup__backup_remote__backup_date_format="${var_load__db_backup__backup_date_format:-}"
 		export var_task__db_backup__backup_remote__backup_time_format="${var_load__db_backup__backup_time_format:-}"
 		export var_task__db_backup__backup_remote__backup_datetime_format="${var_load__db_backup__backup_datetime_format:-}"
+	elif [ "${var_load_enable__db_backup_sync:-}" = 'true' ]; then
+		if [ -z "${var_load__s3_backup__bucket_name:-}" ]; then
+			tmp_errors+=("[shared] var_load__s3_backup__bucket_name is not defined (db_backup_sync)")
+		fi
+
+		if [ -z "${var_load__db_backup_sync__src_relpath:-}" ]; then
+			tmp_errors+=("[shared] var_load__db_backup_sync__src_relpath is not defined")
+		fi
+
+		tmp_default_sync_dir="db/${var_load_main__instance_index:-}"
+
+		export var_task__db_backup_sync__task__type='backup'
+		export var_task__db_backup_sync__backup_task__subtask_cmd_remote='backup:remote:default'
+		export var_task__db_backup_sync__backup_task__backup_src="/var/main/data/${var_load__db_backup_sync__src_relpath:-}"
+		export var_task__db_backup_sync__backup_remote__subtask_cmd_s3='s3:subtask:s3_backup'
+		export var_task__db_backup_sync__backup_remote__backup_bucket_sync_dir="${var_load__db_backup_sync__backup_bucket_sync_dir:-$tmp_default_sync_dir}"
+		export var_task__db_backup_sync__backup_remote__backup_date_format="${var_load__db_backup_sync__backup_date_format:-}"
+		export var_task__db_backup_sync__backup_remote__backup_time_format="${var_load__db_backup_sync__backup_time_format:-}"
+		export var_task__db_backup_sync__backup_remote__backup_datetime_format="${var_load__db_backup_sync__backup_datetime_format:-}"
 	fi
 fi
 
@@ -469,7 +507,9 @@ if [ -n "${var_load_main__db_service:-}" ]; then
 	export var_task__db_main__db_subtask__authentication_database="${var_load__db_main__authentication_database:-}"
 fi
 
-if [ "$tmp_is_db" = 'true' ]; then
+if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
+	tmp_default_file_to_skip='/tmp/main/setup/db.skip'
+
 	if [ "${var_load_enable__db_setup:-}" = 'true' ]; then
 		if [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
 			tmp_errors+=("[shared] var_load_enable__db_setup and var_load_enable__db_setup_new are both true (choose only one)")
@@ -482,7 +522,6 @@ if [ "$tmp_is_db" = 'true' ]; then
 		tmp_db_dest_dir="/tmp/main/tmp/${var_load_main__db_service:-}/restore"
 		tmp_db_tmp_dir="/tmp/main/tmp/restore/${var_load_main__db_service:-}"
 
-		tmp_default_file_to_skip='/tmp/main/setup/db.skip'
 		tmp_file_to_skip="${var_load__db_setup__verify_file_to_skip:-$tmp_default_file_to_skip}"
 
 		tmp_default_compressed_file_name="${var_load__db_main__db_name:-}.zip"
@@ -580,6 +619,33 @@ if [ "$tmp_is_db" = 'true' ]; then
 		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:${var_load_main__db_restore_type:-}"
 		export var_task__db_setup__setup_local__db_task_base_dir="$tmp_db_dest_dir"
 		export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
+	elif [ "${var_load_enable__db_setup_sync:-}" = 'true' ]; then
+		if [ -z "${var_load__db_setup_sync__dest_dir_relpath:-}" ]; then
+			tmp_errors+=("[shared] var_load__db_setup_sync__dest_dir_relpath is not defined")
+		fi
+
+		tmp_dest_dir="/var/main/data/${var_load__db_setup_sync__dest_dir_relpath:-}"
+		tmp_file_to_skip="${var_load__db_setup_sync__verify_file_to_skip:-$tmp_default_file_to_skip}"
+
+		export var_task__db_setup_sync__task__type='setup'
+		export var_task__db_setup_sync__setup_task__subtask_cmd_remote='setup:remote:default'
+		export var_task__db_setup_sync__setup_task__verify_file_to_skip="$tmp_file_to_skip"
+		export var_task__db_setup_sync__setup_task__recursive_dir="$tmp_dest_dir"
+		export var_task__db_setup_sync__setup_task__recursive_mode="${var_load__db_setup_sync__recursive_mode:-}"
+		export var_task__db_setup_sync__setup_task__recursive_mode_dir="${var_load__db_setup_sync__recursive_mode_dir:-}"
+		export var_task__db_setup_sync__setup_task__recursive_mode_file="${var_load__db_setup_sync__recursive_mode_file:-}"
+
+		export var_task__db_setup_sync__setup_verify__setup_dest_dir_to_verify="$tmp_dest_dir"
+
+		if [ -z "${var_load__s3_backup__bucket_name:-}" ]; then
+			tmp_errors+=("[shared] var_load__s3_backup__bucket_name is not defined (db_setup_sync)")
+		fi
+
+		export var_task__db_setup_sync__setup_remote__restore_use_s3='true'
+		export var_task__db_setup_sync__setup_remote__subtask_cmd_s3='s3:subtask:s3_backup'
+		export var_task__db_setup_sync__setup_remote__restore_s3_sync='true'
+		export var_task__db_setup_sync__setup_remote__restore_dest_dir="$tmp_dest_dir"
+		export var_task__db_setup_sync__setup_remote__restore_bucket_path_dir="${var_load__db_setup_sync__restore_bucket_path_dir:-}"
 	fi
 fi
 
@@ -600,7 +666,7 @@ if [ "${var_load_enable__logs_backup:-}" = 'true' ]; then
     export var_task__logs_backup__backup_task__backup_src='/var/log/main'
     export var_task__logs_backup__backup_remote__subtask_cmd_s3='s3:subtask:s3_backup'
 	export var_task__logs_backup__backup_remote__backup_ignore_path='/var/log/main/fluentd/buffer/*'
-    export var_task__logs_backup__backup_remote__backup_bucket_sync_dir="log/${var_load_main__pod_type:-}"
+    export var_task__logs_backup__backup_remote__backup_bucket_sync_dir="log/${var_load_main__pod_type:-}/${var_load_main__instance_index:-}"
 fi
 
 if [ "${var_load_enable__logs_setup:-}" = 'true' ]; then

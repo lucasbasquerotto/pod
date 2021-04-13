@@ -513,6 +513,10 @@ case "$command" in
 			"$pod_script_env_file" up s3_cli
 		fi
 
+		if [ "${var_custom__use_local_s3:-}" = 'true' ]; then
+			"$pod_script_env_file" up s3
+		fi
+
 		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
 			info "$title - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}

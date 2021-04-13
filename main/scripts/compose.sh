@@ -6,8 +6,16 @@ pod_layer_dir="$var_pod_layer_dir"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
-main_file="${ORCHESTRATION_MAIN_FILE:-docker-compose.yml}"
-run_file="${ORCHESTRATION_RUN_FILE:-docker-compose.run.yml}"
+# shellcheck disable=SC2154
+ctx_full_name="${var_run__general__ctx_full_name}"
+
+main_project="${ctx_full_name}-main"
+main_file="${var_orchestration__main_file:-docker-compose.yml}"
+
+run_project="${ctx_full_name}-run"
+run_file="${var_orchestration__run_file:-docker-compose.run.yml}"
+
+project=''
 file=''
 
 function error {
@@ -32,8 +40,8 @@ while getopts ':s:u:-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
-		main ) file="$main_file";;
-		run ) file="$run_file";;
+		main ) project="$main_project"; file="$main_file";;
+		run ) project="$run_project"; file="$run_file";;
 		s )
 			arg_signal="${2:-}"
 
@@ -78,11 +86,11 @@ shift $((OPTIND-1))
 case "$command" in
 	"up")
 		cd "$pod_layer_dir/"
-		sudo docker-compose -f "$main_file" up -d --remove-orphans "${@}"
+		sudo docker-compose --project-name "$main_project" -f "$main_file" up -d --remove-orphans "${@}"
 		;;
 	"down")
 		cd "$pod_layer_dir/"
-		sudo docker-compose -f "$main_file" down "${@}"
+		sudo docker-compose --project-name "$main_project" -f "$main_file" down "${@}"
 		;;
 	"exec"|"exec-nontty")
 		cd "$pod_layer_dir/"
@@ -137,18 +145,18 @@ case "$command" in
 		fi
 
 		cd "$pod_layer_dir/"
-		sudo docker-compose -f "${file:-$run_file}" run --rm --name="${service}_run" ${opts[@]+"${opts[@]}"} "$service" "${@}"
+		sudo docker-compose --project-name "${project:-$run_project}" -f "${file:-$run_file}" run --rm --name="${service}_run" ${opts[@]+"${opts[@]}"} "$service" "${@}"
 		;;
 	"rm")
 		cd "$pod_layer_dir/"
 
 		if [[ "${#args[@]}" -ne 0 ]]; then
-			sudo docker-compose -f "${file:-$main_file}" rm --stop -v --force "${@}"
+			sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" rm --stop -v --force "${@}"
 		else
-			sudo docker-compose -f "${file:-$main_file}" rm --stop -v --force
+			sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" rm --stop -v --force
 
 			if [ -f "$run_file" ]; then
-				sudo docker-compose -f "$run_file" rm --stop -v --force
+				sudo docker-compose --project-name "${project:-$run_project}" -f "$run_file" rm --stop -v --force
 			fi
 		fi
 		;;
@@ -156,23 +164,23 @@ case "$command" in
 		cd "$pod_layer_dir/"
 
 		if [[ "${#args[@]}" -ne 0 ]]; then
-			sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
+			sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" "$command" "${@}"
 		else
-			sudo docker-compose -f "${file:-$main_file}" "$command"
+			sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" "$command"
 
 			if [ -f "$run_file" ]; then
-				sudo docker-compose -f "$run_file" "$command"
+				sudo docker-compose --project-name "${project:-$run_project}" -f "$run_file" "$command"
 			fi
 		fi
 		;;
 	"kill")
 		cd "$pod_layer_dir/"
 
-		sudo docker-compose -f "${file:-$main_file}" kill "${args[@]}"
+		sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" kill "${args[@]}"
 		;;
 	"restart"|"logs"|"ps")
 		cd "$pod_layer_dir/"
-		sudo docker-compose -f "${file:-$main_file}" "$command" "${@}"
+		sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" "$command" "${@}"
 		;;
 	"sh"|"ash"|"zsh"|"bash")
 		service="${1:-}"
@@ -184,7 +192,7 @@ case "$command" in
 		shift;
 
 		cd "$pod_layer_dir/"
-		sudo docker-compose -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
+		sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
 		;;
 	"system:df")
 		sudo docker system df

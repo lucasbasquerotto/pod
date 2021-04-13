@@ -150,16 +150,7 @@ case "$command" in
 		>&2 info "$command - do nothing..."
 		;;
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
-
-		if [ -n "${var_orchestration__main_file:-}" ] && [ -z "${ORCHESTRATION_MAIN_FILE:-}" ]; then
-			export ORCHESTRATION_MAIN_FILE="$var_orchestration__main_file"
-		fi
-
-		if [ -n "${var_orchestration__run_file:-}" ] && [ -z "${ORCHESTRATION_RUN_FILE:-}" ]; then
-			export ORCHESTRATION_RUN_FILE="$var_orchestration__run_file"
-		fi
-
+			|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
 		"$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"local:task:"*)

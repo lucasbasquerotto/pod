@@ -249,7 +249,7 @@ case "$command" in
 
 				echo -e "$(echo "$value" | xargs)" > "${secrets_dir}/${trimmed_key}.txt"
 			fi
-		done < "$pod_layer_dir/env/secrets.sh"
+		done < "$pod_layer_dir/env/secrets.txt"
 		;;
 	"build")
 		if [ -n "${var_run__general__s3_cli:-}" ]; then
@@ -591,7 +591,10 @@ case "$command" in
 			fi
 		fi
 
-		"$pod_main_run_file" setup ${next_args[@]+"${next_args[@]}"}
+		"$pod_script_env_file" "shared:setup"
+		;;
+	"shared:setup")
+		"$pod_main_run_file" setup
 		;;
 	"shared:setup:prepare:s3")
 		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = 'true' ]; then

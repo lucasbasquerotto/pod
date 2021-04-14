@@ -5,9 +5,7 @@ FROM $IMAGE:$VERSION
 
 USER root
 
-ARG OUTPUT_PLUGIN
-
-COPY /shared/containers/fluentd/${OUTPUT_PLUGIN}.conf /fluentd/etc/fluent.conf
+COPY /env/fluentd/fluent.conf /fluentd/etc/fluent.conf
 
 RUN mkdir -p /var/log/main \
  && chown fluent /var/log/main \

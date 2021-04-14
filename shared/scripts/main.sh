@@ -280,6 +280,19 @@ case "$command" in
 			fi
 		fi
 
+		if [ "${var_custom__use_internal_fluentd:-}" = 'true' ]; then
+			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
+				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
+				dest_dir="$pod_layer_dir/env/fluentd"
+
+				if [ ! -d "$dest_dir" ]; then
+					mkdir -p "$dest_dir"
+				fi
+
+				cp "$src_file" "$dest_dir/fluent.conf"
+			fi
+		fi
+
 		if [ -n "${var_run__general__main_base_dir:-}" ] \
 				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
 				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then

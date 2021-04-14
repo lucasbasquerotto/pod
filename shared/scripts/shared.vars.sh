@@ -174,6 +174,7 @@ if [ "${var_load_general__define_s3_uploads_lifecycle:-}" = 'true' ]; then
 fi
 
 export var_shared__delete_old__days="${var_load_shared__delete_old__days:-}"
+export var_shared__fluentd_output_plugin="${var_load_shared__fluentd_output_plugin:-}"
 
 if [ "${var_load_shared__define_cron:-}" = 'true' ]; then
     export var_shared__define_cron="${var_load_shared__define_cron:-}"
@@ -189,6 +190,7 @@ export var_custom__use_main_network="${var_load_use__main_network:-}"
 export var_custom__use_secrets="${var_load_use__secrets:-}"
 export var_custom__use_logrotator="${var_load_use__logrotator:-}"
 export var_custom__use_fluentd="${var_load_use__fluentd:-}"
+export var_custom__use_internal_fluentd="${var_load_use__internal_fluentd:-}"
 export var_custom__use_s3="${var_load_use__s3:-}"
 export var_custom__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
 export var_custom__use_local_s3="${var_load_use__local_s3:-}"

@@ -125,7 +125,7 @@ start="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"ash"|"zsh"|"bash"|"system:df" \
 		|"util:"*|"run:util:"*)
 		;;
 	*)
@@ -150,7 +150,7 @@ case "$command" in
 		>&2 info "$command - do nothing..."
 		;;
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
-			|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df")
+			|"restart"|"logs"|"ps"|"ps-run"|"sh"|"ash"|"zsh"|"bash"|"system:df")
 		"$pod_script_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"local:task:"*)
@@ -1127,7 +1127,7 @@ end="$(date '+%F %T')"
 
 case "$command" in
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
-		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"bash"|"system:df" \
+		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"ash"|"zsh"|"bash"|"system:df" \
 		|"util:"*|"run:util:"*)
 		;;
 	*)

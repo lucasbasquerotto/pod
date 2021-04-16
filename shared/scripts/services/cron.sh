@@ -8,6 +8,8 @@ function error {
 	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${*}"
 }
 
+trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO"; exit $LINENO;' ERR
+
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG

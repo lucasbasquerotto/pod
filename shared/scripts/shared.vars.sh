@@ -242,8 +242,15 @@ else
 	tmp_enable_db_backup="${var_load_enable__custom_db_backup:-}"
 fi
 
+export var_run__enable__db_backup="$tmp_enable_db_backup"
+
+if [ "${var_run__enable__db_backup:-}" = 'true' ]; then
+	export var_run__enable__main_backup='true'
+fi
+
 if [ "${var_load_enable__sync_backup:-}" = 'true' ]; then
 	tmp_group_backup="$tmp_group_backup,sync_backup"
+	export var_run__enable__main_backup='true'
 fi
 
 tmp_enable_uploads_backup="${var_load_enable__uploads_backup:-}"
@@ -255,6 +262,8 @@ if [ "$tmp_enable_uploads_backup" = 'true' ]; then
 else
 	tmp_enable_uploads_backup="${var_load_enable__custom_uploads_backup:-}"
 fi
+
+export var_run__enable__uploads_backup="$tmp_enable_uploads_backup"
 
 if [ "$tmp_is_db" = 'true' ]; then
 	if [ "${var_load_enable__db_backup_sync:-}" = 'true' ]; then
@@ -272,6 +281,7 @@ fi
 
 if [ "${var_load_enable__logs_backup:-}" = 'true' ]; then
 	tmp_group_backup="$tmp_group_backup,logs_backup"
+	export var_run__enable__main_backup='true'
 fi
 
 if [ -n "$tmp_group_backup" ]; then
@@ -299,6 +309,12 @@ else
 	tmp_enable_db_setup="${var_load_enable__custom_db_setup:-}"
 fi
 
+export var_run__enable__db_setup="$tmp_enable_db_setup"
+
+if [ "${var_run__enable__db_setup:-}" = 'true' ]; then
+	export var_run__enable__main_setup='true'
+fi
+
 if [ "$tmp_enable_db_setup" = 'true' ] &&  [ "${var_load_enable__db_setup_new:-}" = 'true' ]; then
 	tmp_errors+=("[shared] db_setup and db_setup_new are both enabled")
 fi
@@ -313,12 +329,15 @@ else
 	tmp_enable_uploads_setup="${var_load_enable__custom_uploads_setup:-}"
 fi
 
+export var_run__enable__uploads_setup="$tmp_enable_uploads_setup"
+
 if [ "$tmp_enable_uploads_setup" = 'true' ] &&  [ "${var_load_use__s3_storage:-}" = 'true' ]; then
 	tmp_errors+=("[shared] uploads_setup is enabled with use_s3_storage=true")
 fi
 
 if [ "${var_load_enable__sync_setup:-}" = 'true' ]; then
 	tmp_group_setup="$tmp_group_setup,sync_setup"
+	export var_run__enable__main_setup='true'
 fi
 
 if [ "$tmp_is_web" = 'true' ]; then
@@ -341,6 +360,7 @@ fi
 
 if [ "${var_load_enable__logs_setup:-}" = 'true' ]; then
 	tmp_group_setup="$tmp_group_setup,logs_setup"
+	export var_run__enable__main_setup='true'
 fi
 
 if [ -n "$tmp_group_setup" ]; then

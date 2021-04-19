@@ -100,6 +100,25 @@ case "$command" in
 			sudo rm -rf "$data_dir/"*
 		fi
 		;;
+	"local:clear-remote")
+		if [ "${var_custom__use_s3:-}" = 'true' ]; then
+			if [ "${var_run__enable__main_backup:-}" = 'true' ]; then
+				"$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=rb
+			fi
+
+			if [ "${var_run__enable__backup_replica:-}" = 'true' ]; then
+				"$pod_script_env_file" "s3:subtask:s3_backup_replica" --s3_cmd=rb
+			fi
+
+			if [ "${var_run__enable__uploads_backup:-}" = 'true' ]; then
+				"$pod_script_env_file" "s3:subtask:s3_uploads" --s3_cmd=rb
+			fi
+
+			if [ "${var_run__enable__uploads_replica:-}" = 'true' ]; then
+				"$pod_script_env_file" "s3:subtask:s3_uploads_replica" --s3_cmd=rb
+			fi
+		fi
+		;;
 	"backup"|"local.backup")
 		"$pod_script_env_file" "shared:bg:$command" ${next_args[@]+"${next_args[@]}"}
 		;;

@@ -66,6 +66,21 @@ title=''
 [ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
 title="${title}${command}"
 
+function elasticsearch_password {
+	if [ "${arg_db_tls:-}" = 'true' ]; then
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+			pass_file="\$(printenv | grep ELASTIC_PASSWORD_FILE | cut -f 2- -d '=')"
+
+			if [ -n "\$pass_file" ]; then
+				cat "\$pass_file"
+			else
+				printenv | grep ELASTIC_PASSWORD | cut -f 2- -d '='
+			fi
+		SHELL
+	fi
+}
+
 case "$command" in
 	"db:main:connect:mysql")
 		"$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
@@ -349,12 +364,19 @@ case "$command" in
 	"db:repository:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
+		es_args=()
+
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			es_args+=( --user elastic )
+			es_args+=( --password "$(elasticsearch_password)" )
+
+			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
+				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )
+			fi
+		fi
+
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
-
-		tls_ca_cert=''
-		[ -n "${arg_db_tls_ca_cert:-}" ] \
-			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
 
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url="$url_base/$arg_repository_name?pretty"
@@ -385,13 +407,20 @@ case "$command" in
 				'
 		fi
 
+		# TODO remove
+		>&2 echo wget --content-on-error -O- \
+				--header='Content-Type:application/json' \
+				--post-data="$data" \
+				${es_args[@]+"${es_args[@]}"} \
+				"$url"
+
 		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			wget --content-on-error -qO- \
+			wget --content-on-error -O- \
 				--header='Content-Type:application/json' \
 				--post-data="$data" \
-				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
+				${es_args[@]+"${es_args[@]}"} \
 				"$url"
 		;;
 	"db:backup:elasticsearch")
@@ -400,12 +429,19 @@ case "$command" in
 		snapshot_name_path="$("$pod_script_env_file" "run:util:urlencode" \
 			--value="$arg_snapshot_name")"
 
+		es_args=()
+
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			es_args+=( --user elastic )
+			es_args+=( --password "$(elasticsearch_password)" )
+
+			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
+				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )
+			fi
+		fi
+
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
-
-		tls_ca_cert=''
-		[ -n "${arg_db_tls_ca_cert:-}" ] \
-			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
 
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url_path="$url_base/$arg_repository_name/$snapshot_name_path"
@@ -415,8 +451,8 @@ case "$command" in
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget \
-				--content-on-error -qO- --method=PUT
-				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
+				--content-on-error -O- --method=PUT
+				${es_args[@]+"${es_args[@]}"} \
 				"$url" \
 			>&2
 
@@ -429,10 +465,6 @@ case "$command" in
 
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
-
-		tls_ca_cert=''
-		[ -n "${arg_db_tls_ca_cert:-}" ] \
-			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
 
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_cat/indices"
 		url="$url_base/${arg_db_index_prefix}*?s=index&pretty"
@@ -452,23 +484,32 @@ case "$command" in
 
 			while [ "\$continue" = 'true' ] && [ \$SECONDS -lt \$end ]; do
 				current=\$((end-SECONDS))
-				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
-
 				continue='false'
 
+				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 				>&2 echo "wait for the remote database (at $arg_db_host) to be ready (\$msg)"
-				output="\$(wget --method=GET --content-on-error \
-						--no-verbose \
-						--header='Content-Type:application/json' \
-						$tls_ca_cert "$url" 2>&1 \
-					)" || continue='true'
+
+				if [ "${arg_db_tls:-}" = 'true' ]; then
+					output="\$(wget --method=GET --content-on-error --no-verbose \
+							--header='Content-Type:application/json' \
+							--user 'elastic' \
+							--password "$(elasticsearch_password)" \
+							--ca-certificate="${arg_db_tls_ca_cert:-}" \
+							"$url" \
+						)" || continue='true'
+				else
+					output="\$(wget --method=GET --content-on-error --no-verbose \
+							--header='Content-Type:application/json' \
+							"$url" \
+						)" || continue='true'
+				fi
 
 				if [ "\$continue" = 'true' ]; then
-					>&2 echo "wget error: \$output"
 					echo "wait ${arg_connection_sleep:-5} seconds..." >&2
 					sleep "${arg_connection_sleep:-5}"
 				else
 					lines="\$(echo "\$output" | wc -l)"
+					# TODO remove
 					>&2 echo "output=\$output"
 
 					if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
@@ -487,12 +528,19 @@ case "$command" in
 	"db:restore:elasticsearch")
 		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
 
+		es_args=()
+
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			es_args+=( --user elastic )
+			es_args+=( --password "$(elasticsearch_password)" )
+
+			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
+				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )
+			fi
+		fi
+
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
-
-		tls_ca_cert=''
-		[ -n "${arg_db_tls_ca_cert:-}" ] \
-			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
 
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url_path="$url_base/$arg_repository_name/$arg_snapshot_name/_restore"
@@ -507,10 +555,10 @@ case "$command" in
 		msg="restore a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			wget --content-on-error -qO- \
+			wget --content-on-error -O- \
 				--header='Content-Type:application/json' \
 				--post-data="$db_args" \
-				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
+				${es_args[@]+"${es_args[@]}"} \
 				"$url"
 		;;
 	"db:backup:prometheus")

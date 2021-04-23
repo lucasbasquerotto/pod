@@ -332,9 +332,9 @@ case "$command" in
 	"prepare")
 		data_dir="/var/main/data"
 
-		"$pod_script_env_file" up "toolbox"
+		"$pod_script_env_file" up toolbox
 
-		"$pod_script_env_file" exec-nontty "toolbox" /bin/bash <<-SHELL || error "$title"
+		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			dir="$data_dir/log/bg"

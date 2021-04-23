@@ -565,6 +565,8 @@ case "$command" in
 		param_db_port="${prefix}_db_port"
 		param_db_user="${prefix}_db_user"
 		param_db_pass="${prefix}_db_pass"
+		param_db_tls="${prefix}_db_tls"
+		param_db_tls_ca_cert="${prefix}_db_tls_ca_cert"
 		param_authentication_database="${prefix}_authentication_database"
 		param_db_connect_wait_secs="${prefix}_db_connect_wait_secs"
 		param_connection_sleep="${prefix}_connection_sleep"
@@ -589,6 +591,8 @@ case "$command" in
 		opts+=( "--db_port=${!param_db_port:-}" )
 		opts+=( "--db_user=${!param_db_user:-}" )
 		opts+=( "--db_pass=${!param_db_pass:-}" )
+		opts+=( "--db_tls=${!param_db_tls:-}" )
+		opts+=( "--db_tls_ca_cert=${!param_db_tls_ca_cert:-}" )
 		opts+=( "--authentication_database=${!param_authentication_database:-}" )
 		opts+=( "--db_connect_wait_secs=${!param_db_connect_wait_secs:-}" )
 		opts+=( "--connection_sleep=${!param_connection_sleep:-}" )

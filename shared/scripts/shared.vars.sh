@@ -218,6 +218,8 @@ if [ -n "${var_load_main__db_service:-}" ]; then
 	export var_run__migrate__db_name="${var_load__db_main__db_name:-}"
 	export var_run__migrate__db_user="${var_load__db_main__db_user:-}"
 	export var_run__migrate__db_pass="${var_load__db_main__db_pass:-}"
+	export var_run__migrate__db_tls="${var_load__db_main__db_tls:-}"
+	export var_run__migrate__db_tls_ca_cert="${var_load__db_main__db_tls_ca_cert:-}"
 	export var_run__migrate__db_root_user="${var_load__db_main__db_root_user:-}"
 	export var_run__migrate__db_root_pass="${var_load__db_main__db_root_pass:-}"
 	export var_run__migrate__db_connect_wait_secs="${var_load__db_main__db_connect_wait_secs:-300}"
@@ -525,6 +527,8 @@ if [ -n "${var_load_main__db_service:-}" ]; then
 	export var_task__db_main__db_subtask__db_name="${var_load__db_main__db_name:-}"
 	export var_task__db_main__db_subtask__db_user="${var_load__db_main__db_user:-}"
 	export var_task__db_main__db_subtask__db_pass="${var_load__db_main__db_pass:-}"
+	export var_task__db_main__db_subtask__db_tls="${var_load__db_main__db_tls:-}"
+	export var_task__db_main__db_subtask__db_tls_ca_cert="${var_load__db_main__db_tls_ca_cert:-}"
 	export var_task__db_main__db_subtask__db_connect_wait_secs="${var_load__db_main__db_connect_wait_secs:-300}"
 	export var_task__db_main__db_subtask__authentication_database="${var_load__db_main__authentication_database:-}"
 fi

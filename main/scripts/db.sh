@@ -41,6 +41,8 @@ while getopts ':-:' OPT; do
 		db_port ) arg_db_port="${OPTARG:-}" ;;
 		db_user ) arg_db_user="${OPTARG:-}" ;;
 		db_pass ) arg_db_pass="${OPTARG:-}";;
+		db_tls ) arg_db_tls="${OPTARG:-}" ;;
+		db_tls_ca_cert ) arg_db_tls_ca_cert="${OPTARG:-}" ;;
 		authentication_database ) arg_authentication_database="${OPTARG:-}";;
 		db_remote ) arg_db_remote="${OPTARG:-}";;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
@@ -347,7 +349,14 @@ case "$command" in
 	"db:repository:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
-		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		db_scheme='http'
+		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
+
+		tls_ca_cert=''
+		[ -n "${arg_db_tls_ca_cert:-}" ] \
+			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
+
+		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url="$url_base/$arg_repository_name?pretty"
 
 		if [ -z "${arg_snapshot_type:-}" ]; then
@@ -382,6 +391,7 @@ case "$command" in
 			wget --content-on-error -qO- \
 				--header='Content-Type:application/json' \
 				--post-data="$data" \
+				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
 				"$url"
 		;;
 	"db:backup:elasticsearch")
@@ -390,14 +400,24 @@ case "$command" in
 		snapshot_name_path="$("$pod_script_env_file" "run:util:urlencode" \
 			--value="$arg_snapshot_name")"
 
-		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		db_scheme='http'
+		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
+
+		tls_ca_cert=''
+		[ -n "${arg_db_tls_ca_cert:-}" ] \
+			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
+
+		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url_path="$url_base/$arg_repository_name/$snapshot_name_path"
 		url="$url_path?wait_for_completion=true&pretty"
 
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			wget --content-on-error -qO- --method=PUT "$url" \
+			wget \
+				--content-on-error -qO- --method=PUT
+				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
+				"$url" \
 			>&2
 
 		if [ "$arg_snapshot_type" = 'fs' ]; then
@@ -407,7 +427,14 @@ case "$command" in
 	"db:restore:verify:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
-		url_base="http://$arg_db_host:$arg_db_port/_cat/indices"
+		db_scheme='http'
+		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
+
+		tls_ca_cert=''
+		[ -n "${arg_db_tls_ca_cert:-}" ] \
+			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
+
+		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_cat/indices"
 		url="$url_base/${arg_db_index_prefix}*?s=index&pretty"
 
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
@@ -421,21 +448,28 @@ case "$command" in
 			}
 
 			end=\$((SECONDS+$arg_db_connect_wait_secs))
-			output="continue"
+			continue='true'
 
-			while [ "\$output" = "continue" ] && [ \$SECONDS -lt \$end ]; do
+			while [ "\$continue" = 'true' ] && [ \$SECONDS -lt \$end ]; do
 				current=\$((end-SECONDS))
 				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
 
-				>&2 echo "wait for the remote database (at $arg_db_host) to be ready (\$msg)"
-				output="\$(wget --method=GET --content-on-error -qO- \
-					--header='Content-Type:application/json' \
-					"$url" 2>&1 || echo "continue")"
+				continue='false'
 
-				if [ "\$output" = "continue" ]; then
+				>&2 echo "wait for the remote database (at $arg_db_host) to be ready (\$msg)"
+				output="\$(wget --method=GET --content-on-error \
+						--no-verbose \
+						--header='Content-Type:application/json' \
+						$tls_ca_cert "$url" 2>&1 \
+					)" || continue='true'
+
+				if [ "\$continue" = 'true' ]; then
+					>&2 echo "wget error: \$output"
+					echo "wait ${arg_connection_sleep:-5} seconds..." >&2
 					sleep "${arg_connection_sleep:-5}"
 				else
 					lines="\$(echo "\$output" | wc -l)"
+					>&2 echo "output=\$output"
 
 					if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
 						echo "true"
@@ -447,13 +481,20 @@ case "$command" in
 				fi
 			done
 
-			error "$title: Couldn't verify number if the elasticsearch database is empty - output:\n\$output"
+			error "$title: Couldn't verify if the elasticsearch database is empty - output:\n\$output"
 		SHELL
 		;;
 	"db:restore:elasticsearch")
 		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"}
 
-		url_base="http://$arg_db_host:$arg_db_port/_snapshot"
+		db_scheme='http'
+		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
+
+		tls_ca_cert=''
+		[ -n "${arg_db_tls_ca_cert:-}" ] \
+			&& tls_ca_cert="--ca-certificate=${arg_db_tls_ca_cert:-}"
+
+		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_snapshot"
 		url_path="$url_base/$arg_repository_name/$arg_snapshot_name/_restore"
 		url="$url_path?wait_for_completion=true&pretty"
 
@@ -469,6 +510,7 @@ case "$command" in
 			wget --content-on-error -qO- \
 				--header='Content-Type:application/json' \
 				--post-data="$db_args" \
+				${tls_ca_cert[@]+"${tls_ca_cert[@]}"} \
 				"$url"
 		;;
 	"db:backup:prometheus")

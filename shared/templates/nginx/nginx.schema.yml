@@ -255,6 +255,16 @@ schemas:
         description: >-
           specifies a file with trusted ca certificates in the pem format used to verify
           the certificate of the proxied https server; defaults to conf.proxy_ssl_ca_file
+      proxy_ssl_cert_file:
+        type: "str"
+        description: >-
+          specifies the file with the certificate in the pem format used for authentication to a
+          proxied https server; defaults to conf.proxy_ssl_cert_file
+      proxy_ssl_key_file:
+        type: "str"
+        description: >-
+          specifies the file with the secret key in the pem format used for authentication to a
+          proxied https server; defaults to conf.proxy_ssl_key_file
       locations:
         type: "simple_list"
         elem_schema: "location_info"

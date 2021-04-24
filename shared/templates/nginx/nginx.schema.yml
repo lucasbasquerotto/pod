@@ -73,6 +73,16 @@ schemas:
         description: >-
           specifies the default file with trusted ca certificates in the pem format used to verify
           the certificate of the proxied https server
+      proxy_ssl_cert_file:
+        type: "str"
+        description: >-
+          specifies the file with the certificate in the pem format used for authentication to a
+          proxied https server
+      proxy_ssl_key_file:
+        type: "str"
+        description: >-
+          specifies the file with the secret key in the pem format used for authentication to a
+          proxied https server
       proxy_cache_valid:
         type: "str"
         description: "used when the location doesn't specify a value when using cache; defaults to 1h"
@@ -237,9 +247,9 @@ schemas:
           when true, validates the origin of the request, when doing non-GET requests,
           blocking requests from different origins (uses the http origin header);
           defaults to private; it's disabled when conf.disable_origin_validation is true
-      use_proxy_ssl_ca:
+      use_proxy_ssl:
         type: "bool"
-        description: "when true, uses the file defined at proxy_ssl_ca_file to trust the proxy certificate"
+        description: "when true, connects to the proxy using tls"
       proxy_ssl_ca_file:
         type: "str"
         description: >-

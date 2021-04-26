@@ -63,17 +63,6 @@ title="${title}${command}"
 next_args=( --task_name"${arg_task_name:-}" --subtask_cmd="$command" )
 
 case "$command" in
-	"upgrade")
-		if [ "${var_custom__use_main_network:-}" = 'true' ]; then
-			"$pod_script_env_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
-		fi
-
-		if [ "${var_custom__use_secrets:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:create_secrets"
-		fi
-
-		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
-		;;
 	"local:ssl")
 		host="${1:-}"
 		"$ssl_local_run_file" "$pod_layer_dir/tmp/ssl" "$host"
@@ -275,6 +264,14 @@ case "$command" in
 		done < "$pod_layer_dir/env/secrets.txt"
 		;;
 	"build")
+		if [ "${var_custom__use_main_network:-}" = 'true' ]; then
+			"$pod_script_env_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
+		fi
+
+		if [ "${var_custom__use_secrets:-}" = 'true' ]; then
+			"$pod_script_env_file" "shared:create_secrets"
+		fi
+
 		if [ -n "${var_run__general__s3_cli:-}" ]; then
 			env_dir_s3_cli="$pod_layer_dir/env/$var_run__general__s3_cli"
 

@@ -513,24 +513,19 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
+			echo "accessing the url $url..." >&2
+
 			if [ "${arg_db_tls:-}" = 'true' ]; then
-				output="\$(wget --method=GET --content-on-error --no-verbose \
-						--header='Content-Type:application/json' \
-						--user 'elastic' \
-						--password "$elasticsearch_password" \
-						--ca-certificate="${arg_db_tls_ca_cert:-}" \
+				output="\$(curl --fail -sS \
+						-u "elastic:$elasticsearch_password" \
+						--cacert "${arg_db_tls_ca_cert:-}" \
 						"$url" \
 					)"
 			else
-				output="\$(wget --method=GET --content-on-error --no-verbose \
-						--header='Content-Type:application/json' \
-						"$url" \
-					)"
+				output="\$(curl --fail -sS "$url")"
 			fi
 
 			lines="\$(echo "\$output" | wc -l)"
-			# TODO remove
-			>&2 echo "output=\$output"
 
 			if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
 				echo "true"

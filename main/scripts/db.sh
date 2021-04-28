@@ -479,8 +479,9 @@ case "$command" in
 				msg="\$timeout seconds - \$current second(s) remaining"
 				>&2 echo "wait for elasticsearch to be ready (\$msg)"
 
-				if wget --header="Host: localhost" --ca-certificate="/etc/ssl/fullchain.pem" \
-						--user elastic --password "$elasticsearch_password" \
+
+				if curl --fail -sS -u "elastic:$elasticsearch_password" \
+						--cacert "${arg_db_tls_ca_cert:-}" \
 						"$url" >&2; then
 					success=true
 					echo '' >&2

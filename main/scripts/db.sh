@@ -66,21 +66,6 @@ title=''
 [ -n "${arg_task_info:-}" ] && title="${arg_task_info:-} > "
 title="${title}${command}"
 
-function elasticsearch_password {
-	if [ "${arg_db_tls:-}" = 'true' ]; then
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-			pass_file="\$(printenv | grep ELASTIC_PASSWORD_FILE | cut -f 2- -d '=')"
-
-			if [ -n "\$pass_file" ]; then
-				cat "\$pass_file"
-			else
-				printenv | grep ELASTIC_PASSWORD | cut -f 2- -d '='
-			fi
-		SHELL
-	fi
-}
-
 case "$command" in
 	"db:main:connect:mysql")
 		"$pod_script_env_file" "run:db:main:tables:count:mysql" ${args[@]+"${args[@]}"} > /dev/null
@@ -367,8 +352,10 @@ case "$command" in
 		es_args=()
 
 		if [ "${arg_db_tls:-}" = 'true' ]; then
+			elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
+
 			es_args+=( --user elastic )
-			es_args+=( --password "$(elasticsearch_password)" )
+			es_args+=( --password "$elasticsearch_password" )
 
 			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
 				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )
@@ -407,13 +394,6 @@ case "$command" in
 				'
 		fi
 
-		# TODO remove
-		>&2 echo wget --content-on-error -O- \
-				--header='Content-Type:application/json' \
-				--post-data="$data" \
-				${es_args[@]+"${es_args[@]}"} \
-				"$url"
-
 		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
@@ -426,6 +406,8 @@ case "$command" in
 	"db:backup:elasticsearch")
 		"$pod_script_env_file" "run:db:repository:elasticsearch" ${args[@]+"${args[@]}"} >&2
 
+		elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
+
 		snapshot_name_path="$("$pod_script_env_file" "run:util:urlencode" \
 			--value="$arg_snapshot_name")"
 
@@ -433,7 +415,7 @@ case "$command" in
 
 		if [ "${arg_db_tls:-}" = 'true' ]; then
 			es_args+=( --user elastic )
-			es_args+=( --password "$(elasticsearch_password)" )
+			es_args+=( --password "$elasticsearch_password" )
 
 			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
 				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )
@@ -460,8 +442,63 @@ case "$command" in
 			echo "$arg_db_task_base_dir"
 		fi
 		;;
+	"db:pass:elasticsearch")
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+				set -eou pipefail
+				pass_file="\$(printenv | grep ELASTIC_PASSWORD_FILE | cut -f 2- -d '=' ||:)"
+
+				if [ -n "\$pass_file" ]; then
+					cat "\$pass_file"
+				else
+					printenv | grep ELASTIC_PASSWORD | cut -f 2- -d '=' ||:
+				fi
+			SHELL
+		fi
+		;;
+	"db:ready:elasticsearch")
+		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service" > /dev/null
+
+		db_scheme='http'
+		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
+
+		url_base="${db_scheme}://$arg_db_host:$arg_db_port"
+		url="$url_base/_cluster/health?wait_for_status=yellow"
+
+		elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
+
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			timeout="${arg_db_connect_wait_secs:-150}"
+			end=\$((SECONDS+\$timeout))
+			success=false
+
+			while [ \$SECONDS -lt \$end ]; do
+				current=\$((end-SECONDS))
+				msg="\$timeout seconds - \$current second(s) remaining"
+				>&2 echo "wait for elasticsearch to be ready (\$msg)"
+
+				if wget --header="Host: localhost" --ca-certificate="/etc/ssl/fullchain.pem" \
+						--user elastic --password "$elasticsearch_password" \
+						"$url" >&2; then
+					success=true
+					echo '' >&2
+					echo "> elasticsearch is ready" >&2
+					break
+				fi
+
+				sleep 5
+			done
+
+			if [ "\$success" != 'true' ]; then
+				echo "timeout while waiting for elasticsearch" >&2
+				exit 2
+			fi
+		SHELL
+		;;
 	"db:restore:verify:elasticsearch")
-		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
+		"$pod_script_env_file" "run:db:ready:elasticsearch" ${args[@]+"${args[@]}"}
 
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
@@ -469,60 +506,37 @@ case "$command" in
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_cat/indices"
 		url="$url_base/${arg_db_index_prefix}*?s=index&pretty"
 
+		elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
+
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
 		info "$title: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+			if [ "${arg_db_tls:-}" = 'true' ]; then
+				output="\$(wget --method=GET --content-on-error --no-verbose \
+						--header='Content-Type:application/json' \
+						--user 'elastic' \
+						--password "$elasticsearch_password" \
+						--ca-certificate="${arg_db_tls_ca_cert:-}" \
+						"$url" \
+					)"
+			else
+				output="\$(wget --method=GET --content-on-error --no-verbose \
+						--header='Content-Type:application/json' \
+						"$url" \
+					)"
+			fi
 
-			end=\$((SECONDS+$arg_db_connect_wait_secs))
-			continue='true'
+			lines="\$(echo "\$output" | wc -l)"
+			# TODO remove
+			>&2 echo "output=\$output"
 
-			while [ "\$continue" = 'true' ] && [ \$SECONDS -lt \$end ]; do
-				current=\$((end-SECONDS))
-				continue='false'
-
-				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
-				>&2 echo "wait for the remote database (at $arg_db_host) to be ready (\$msg)"
-
-				if [ "${arg_db_tls:-}" = 'true' ]; then
-					output="\$(wget --method=GET --content-on-error --no-verbose \
-							--header='Content-Type:application/json' \
-							--user 'elastic' \
-							--password "$(elasticsearch_password)" \
-							--ca-certificate="${arg_db_tls_ca_cert:-}" \
-							"$url" \
-						)" || continue='true'
-				else
-					output="\$(wget --method=GET --content-on-error --no-verbose \
-							--header='Content-Type:application/json' \
-							"$url" \
-						)" || continue='true'
-				fi
-
-				if [ "\$continue" = 'true' ]; then
-					echo "wait ${arg_connection_sleep:-5} seconds..." >&2
-					sleep "${arg_connection_sleep:-5}"
-				else
-					lines="\$(echo "\$output" | wc -l)"
-					# TODO remove
-					>&2 echo "output=\$output"
-
-					if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
-						echo "true"
-					else
-						echo "false"
-					fi
-
-					exit
-				fi
-			done
-
-			error "$title: Couldn't verify if the elasticsearch database is empty - output:\n\$output"
+			if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
+				echo "true"
+			else
+				echo "false"
+			fi
 		SHELL
 		;;
 	"db:restore:elasticsearch")
@@ -531,8 +545,10 @@ case "$command" in
 		es_args=()
 
 		if [ "${arg_db_tls:-}" = 'true' ]; then
+			elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
+
 			es_args+=( --user elastic )
-			es_args+=( --password "$(elasticsearch_password)" )
+			es_args+=( --password "$elasticsearch_password" )
 
 			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
 				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )

@@ -334,6 +334,12 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
+			dir="$data_dir/sync"
+
+			if [ ! -d "\$dir" ]; then
+				mkdir -p "\$dir"
+			fi
+
 			dir="$data_dir/log/bg"
 
 			if [ ! -d "\$dir" ]; then

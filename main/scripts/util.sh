@@ -74,7 +74,7 @@ case "$command" in
 	"util:error")
 		if [ "${arg_no_error:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_error:-}"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${RED}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${RED}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		exit 2
@@ -82,35 +82,35 @@ case "$command" in
 	"util:warn")
 		if [ "${arg_no_warn:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_warn:-}"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${YELLOW}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${YELLOW}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info")
 		if [ "${arg_no_info:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_info:-}"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${GRAY}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${GRAY}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:start")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_title:-} - start"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:end")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_title:-} - end"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${CYAN}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:summary")
 		if [ "${arg_no_summary:-}" != "true" ]; then
 			msg="[summary] ${arg_title:-}: ${arg_start:-} - ${arg_end:-}"
-			[ "${arg_no_colors:-}" = "true" ] && msg="$msg" || msg="${PURPLE}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] &&  msg="${PURPLE}${msg}${NC}"
 			>&2 echo -e "$msg"
 		fi
 		;;

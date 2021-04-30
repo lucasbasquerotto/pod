@@ -87,7 +87,7 @@ case "$command" in
 
 		if [ "$arg_task_kind" = "dir" ]; then
 			msg="$arg_src_dir to $arg_dest_file (inside toolbox)"
-			info "$title - compress directory - $msg"
+			info "$command - compress directory - $msg"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 				set -eou pipefail
 
@@ -106,11 +106,11 @@ case "$command" in
 
 			if [ "$arg_src_file" != "$arg_dest_file" ]; then
 				if [ "${arg_src_file##*.}" = "$expected_extension" ]; then
-					info "$title - move file - $msg"
+					info "$command - move file - $msg"
 					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 						mv "$arg_src_file" "$arg_dest_file"
 				else
-					info "$title - compress file - $msg"
+					info "$command - compress file - $msg"
 					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 						zip -j ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" "$arg_src_file"
 				fi
@@ -150,7 +150,7 @@ case "$command" in
 		SHELL
 
 		msg="$arg_src_file to $arg_dest_dir (inside toolbox)"
-		info "$title - uncompress file - $msg"
+		info "$command - uncompress file - $msg"
 		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			unzip -o ${zip_opts[@]+"${zip_opts[@]}"} "$arg_src_file" -d "$arg_dest_dir"
 		;;

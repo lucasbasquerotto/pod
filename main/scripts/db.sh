@@ -188,7 +188,7 @@ case "$command" in
 
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
-		info "$title: $arg_db_service - backup to file $backup_file (inside service)"
+		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
@@ -279,7 +279,7 @@ case "$command" in
 
 		msg="backup database ($arg_db_name)"
 		msg="$msg to directory $arg_db_task_base_dir/$arg_db_name (inside service)"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 			rm -rf "$arg_db_task_base_dir/$arg_db_name"
@@ -299,7 +299,7 @@ case "$command" in
 	"db:restore:mongo:dir")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		info "$title: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
+		info "$command: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 			mongorestore \
@@ -396,7 +396,7 @@ case "$command" in
 		fi
 
 		msg="create a repository for snapshots ($arg_repository_name - $arg_snapshot_type)"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget --content-on-error -O- \
 				--header='Content-Type:application/json' \
@@ -431,7 +431,7 @@ case "$command" in
 		url="$url_path?wait_for_completion=true&pretty"
 
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget \
 				--content-on-error -O- --method=PUT
@@ -511,7 +511,7 @@ case "$command" in
 		elasticsearch_password="$("$pod_script_env_file" "run:db:pass:elasticsearch" ${args[@]+"${args[@]}"})"
 
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
@@ -566,7 +566,7 @@ case "$command" in
 		fi
 
 		msg="restore a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget --content-on-error -O- \
 				--header='Content-Type:application/json' \
@@ -578,7 +578,7 @@ case "$command" in
 		url="http://$arg_db_host:$arg_db_port/api/v1/admin/tsdb/snapshot"
 
 		msg="create a snapshot of the prometheus data"
-		info "$title: $arg_db_service - $msg"
+		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget --content-on-error -qO- --method=POST "$url"
 

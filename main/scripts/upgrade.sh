@@ -90,20 +90,20 @@ title="${title}${command}"
 
 case "$command" in
 	"upgrade"|"fast-upgrade")
-		info "$title - start"
+		info "$command - start"
 
 		if [ "$command" != "fast-upgrade" ]; then
-			info "$title - build..."
+			info "$command - build..."
 			"$pod_script_env_file" build
 		fi
 
-		info "$title - prepare..."
+		info "$command - prepare..."
 		"$pod_script_env_file" prepare
 
-		info "$title - setup..."
+		info "$command - setup..."
 		"$pod_script_env_file" setup ${args[@]+"${args[@]}"}
 
-		info "$title - ended"
+		info "$command - ended"
 		;;
 	"setup")
 		if [ -n "${arg_setup_task_name:-}" ]; then
@@ -111,15 +111,15 @@ case "$command" in
 		fi
 
 		if [ "$command" = "setup" ]; then
-			info "$title - migrate..."
+			info "$command - migrate..."
 			"$pod_script_env_file" migrate
 
-			info "$title - up..."
+			info "$command - up..."
 			"$pod_script_env_file" up
 		fi
 		;;
 	"setup:default")
-		info "$title - start needed services"
+		info "$command - start needed services"
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
 		skip="$("$pod_script_same_file" "inner:verify" "${args[@]}")"
@@ -137,7 +137,7 @@ case "$command" in
 					if [ "${arg_local:-}" = "true" ]; then
 						error "$title - restore - remote cmd with local flag"
 					else
-						info "$title - restore - remote"
+						info "$command - restore - remote"
 						"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
 							--task_info="$title" \
 							--task_name="$arg_task_name" \
@@ -146,7 +146,7 @@ case "$command" in
 				fi
 
 				if [ "${arg_is_compressed_file:-}" = "true" ]; then
-					info "$title - restore - uncompress"
+					info "$command - restore - uncompress"
 					"$pod_script_env_file" "run:uncompress:$arg_compress_type"\
 						--task_info="$title" \
 						--toolbox_service="$arg_toolbox_service" \
@@ -159,7 +159,7 @@ case "$command" in
 					--inner_move_dest="${arg_move_dest:-}" "${args[@]}"
 
 				if [ -n "${arg_subtask_cmd_local:-}" ]; then
-					info "$title - restore - local"
+					info "$command - restore - local"
 					"$pod_script_env_file" "${arg_subtask_cmd_local}" \
 						--task_info="$title" \
 						--task_name="$arg_task_name" \
@@ -172,7 +172,7 @@ case "$command" in
 		;;
 	"setup:verify")
 		msg="verify if the directory ${arg_setup_dest_dir_to_verify:-} is empty"
-		info "$title - $msg"
+		info "$command - $msg"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
@@ -210,7 +210,7 @@ case "$command" in
 		status=0
 
 		if [ -z "${arg_backup_task_name:-}" ] ; then
-			info "$title: no backup task defined..."
+			info "$command: no backup task defined..."
 		else
 			"$pod_script_env_file" "main:task:$arg_backup_task_name" \
 				--local="${arg_local:-}" && status=$? || status=$?
@@ -225,20 +225,20 @@ case "$command" in
 		fi
 		;;
 	"backup:default")
-		info "$title - started"
+		info "$command - started"
 
 		skip="$("$pod_script_same_file" "inner:verify" "${args[@]}")"
 
 		if [ "$skip" = "true" ]; then
 			echo "$(date '+%F %T') - $command ($arg_subtask_cmd) - skipping..."
 		else
-			info "$title - start the needed services"
+			info "$command - start the needed services"
 			"$pod_script_env_file" up "$arg_toolbox_service"
 
 			backup_src="${arg_backup_src:-}"
 
 			if [ -n "${arg_subtask_cmd_local:-}" ]; then
-				info "$title - backup - local"
+				info "$command - backup - local"
 				backup_src_local="$("$pod_script_env_file" "${arg_subtask_cmd_local}" \
 					--task_info="$title" \
 					--task_name="$arg_task_name" \
@@ -304,7 +304,7 @@ case "$command" in
 					--datetime_format="${arg_backup_datetime_format:-}")" \
 					|| error "$title: replace_placeholders (dest_file)"
 
-				info "$title - backup - compress"
+				info "$command - backup - compress"
 				"$pod_script_env_file" "run:compress:$arg_compress_type" \
 					--task_info="$title" \
 					--toolbox_service="$arg_toolbox_service" \
@@ -325,7 +325,7 @@ case "$command" in
 				if [ "${arg_local:-}" = "true" ]; then
 					echo "$title - backup - remote - skipping (local)..."
 				else
-					info "$title - backup - remote"
+					info "$command - backup - remote"
 					"$pod_script_env_file" "${arg_subtask_cmd_remote}" \
 						--task_info="$title" \
 						--task_name="$arg_task_name" \
@@ -343,7 +343,7 @@ case "$command" in
 		skip_file=''
 
 		if [ -n "${arg_subtask_cmd_verify:-}" ]; then
-			info "$title - verify if the task should be done"
+			info "$command - verify if the task should be done"
 			skip="$("$pod_script_env_file" "${arg_subtask_cmd_verify}" \
 				--task_info="$title" \
 				--task_name="$arg_task_name" \

@@ -319,7 +319,7 @@ case "$command" in
 		bucket_exists="$("$pod_script_env_file" "run:s3:main:awscli:bucket_exists" ${args[@]+"${args[@]}"})"
 
 		if [ "$bucket_exists" = 'false' ]; then
-			info "$title - create bucket"
+			info "$command - create bucket"
 			inner_cmd=( aws --profile="$arg_s3_alias" )
 			inner_cmd+=( s3api --endpoint="$arg_s3_endpoint" )
 			inner_cmd+=( create-bucket --bucket "$arg_s3_bucket_name" )

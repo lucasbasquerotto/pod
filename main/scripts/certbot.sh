@@ -68,7 +68,7 @@ case "$command" in
 		if [ "${arg_dev:-}" = "true" ]; then
 			dummy_certificate_days="10000"
 
-			info "$title: Preparing the development certificate environment ..."
+			info "$command: Preparing the development certificate environment ..."
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 				set -eou pipefail
 
@@ -85,7 +85,7 @@ case "$command" in
 				test -f "$data_file_done" && echo "true" || echo "false")"
 
 			if [ "$has_file" != "false" ]; then
-				info "$title: Certificate already generated (delete the file $data_file_done to generate again)"
+				info "$command: Certificate already generated (delete the file $data_file_done to generate again)"
 				exit
 			fi
 		fi
@@ -94,12 +94,12 @@ case "$command" in
 			error "$title: [Error] Specify an email to generate a TLS certificate"
 		fi
 
-		info "$title: Preparing the directory $arg_main_domain ..."
+		info "$command: Preparing the directory $arg_main_domain ..."
 
 		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			mkdir -p "$data_path/live/$arg_main_domain"
 
-		info "$title: Creating dummy certificate for $arg_main_domain ..."
+		info "$command: Creating dummy certificate for $arg_main_domain ..."
 
 		inner_path="$inner_path_base/live/$arg_main_domain"
 		>&2 "$pod_script_env_file" run --entrypoint "\
@@ -108,7 +108,7 @@ case "$command" in
 				-out '$inner_path/fullchain.pem' \
 				-subj '/CN=localhost'" "$arg_certbot_service"
 
-		info "$title: Creating dummy concatenated certificate for $arg_main_domain ..."
+		info "$command: Creating dummy concatenated certificate for $arg_main_domain ..."
 		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
@@ -121,18 +121,18 @@ case "$command" in
 			fi
 		SHELL
 
-		info "$title: Starting $arg_webservice_service ..."
+		info "$command: Starting $arg_webservice_service ..."
 		>&2 "$pod_script_env_file" "run:certbot:ws:start" \
 			--webservice_service="$arg_webservice_service"
 
 		if [ "${arg_dev:-}" != "true" ]; then
-			info "$title: Deleting dummy certificate for $arg_main_domain ..."
+			info "$command: Deleting dummy certificate for $arg_main_domain ..."
 			>&2 "$pod_script_env_file" run --entrypoint "\
 				rm -Rf $inner_path_base/live/$arg_main_domain && \
 				rm -Rf $inner_path_base/archive/$arg_main_domain && \
 				rm -Rf $inner_path_base/renewal/$arg_main_domain.conf" "$arg_certbot_service"
 
-			info "$title: Requesting Let's Encrypt certificate for $arg_main_domain ..."
+			info "$command: Requesting Let's Encrypt certificate for $arg_main_domain ..."
 			# Join each domain to -d args
 			IFS=' ' read -r -a domains_array <<< "$arg_domains"
 			domain_args=""
@@ -175,7 +175,7 @@ case "$command" in
 		SHELL
 
 		if [ "${arg_dev:-}" != "true" ]; then
-			info "$title: Reloading $arg_webservice_service ..."
+			info "$command: Reloading $arg_webservice_service ..."
 			>&2 "$pod_script_env_file" "run:certbot:ws:reload" \
 				--webservice_service="$arg_webservice_service"
 		fi
@@ -184,12 +184,12 @@ case "$command" in
 		data_dir_done="$arg_data_base_path/tmp/$arg_main_domain"
 		data_file_done="$data_dir_done/done.txt"
 
-		info "$title: Renewing the certificate for $arg_main_domain ..."
+		info "$command: Renewing the certificate for $arg_main_domain ..."
 		>&2 "$pod_script_env_file" run \
 			--entrypoint "certbot renew --cert-name '$arg_main_domain' --force-renewal" \
 			"$arg_certbot_service"
 
-		info "$title: Reloading $arg_webservice_service ..."
+		info "$command: Reloading $arg_webservice_service ..."
 		>&2 "$pod_script_env_file" "run:certbot:ws:reload" \
 			--webservice_service="$arg_webservice_service"
 		;;

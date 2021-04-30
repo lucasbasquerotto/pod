@@ -178,7 +178,7 @@ case "$command" in
 		"$pod_main_run_file" "action:subtask" "${opts[@]}"
 		;;
 	"shared:create_actions")
-		info "$title - create the following actions: ${args[*]}"
+		info "$command - create the following actions: ${args[*]}"
 		for action in "${args[@]}"; do
 			echo "touch '/var/main/data/action/$action'"
 		done | "$pod_script_env_file" exec-nontty toolbox /bin/bash
@@ -556,7 +556,7 @@ case "$command" in
 		fi
 
 		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
-			info "$title - run certbot if needed..."
+			info "$command - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
 		fi
 
@@ -576,7 +576,7 @@ case "$command" in
 			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo
 
-				info "$title - init the mongo database if needed"
+				info "$command - init the mongo database if needed"
 				"$pod_script_env_file" run mongo_init /bin/bash <<-SHELL || error "$title"
 					set -eou pipefail
 
@@ -624,13 +624,13 @@ case "$command" in
 	"shared:setup:prepare:s3")
 		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = 'true' ]; then
 			cmd="s3:subtask:s3_backup"
-			info "$title - $cmd - define the backup bucket lifecycle policy"
+			info "$command - $cmd - define the backup bucket lifecycle policy"
 			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
 		fi
 
 		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = 'true' ]; then
 			cmd="s3:subtask:s3_uploads"
-			info "$title - $cmd - define the uploads bucket lifecycle policy"
+			info "$command - $cmd - define the uploads bucket lifecycle policy"
 			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
 		fi
 		;;
@@ -638,12 +638,12 @@ case "$command" in
 		if [ "${var_custom__use_varnish:-}" = 'true' ]; then
 			"$pod_script_env_file" up varnish
 
-			info "$title - clear varnish cache..."
+			info "$command - clear varnish cache..."
 			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_custom__use_nextcloud:-}" = 'true' ]; then
-			info "$title - prepare nextcloud..."
+			info "$command - prepare nextcloud..."
 			"$pod_script_env_file" "shared:service:nextcloud:setup" \
 				${next_args[@]+"${next_args[@]}"}
 		fi
@@ -815,7 +815,7 @@ case "$command" in
 		fi
 		;;
 	"delete:old")
-		info "$title - clear old files"
+		info "$command - clear old files"
 		>&2 "$pod_script_env_file" up toolbox
 
 		dirs=( "/var/log/main/" "/tmp/main/tmp/" )
@@ -828,7 +828,7 @@ case "$command" in
 			error "$title: $msg (value=$delete_old_days)"
 		fi
 
-		info "$title - create the backup base directory and clear old files"
+		info "$command - create the backup base directory and clear old files"
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 

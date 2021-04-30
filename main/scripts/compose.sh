@@ -89,7 +89,8 @@ shift $((OPTIND-1))
 case "$command" in
 	"up")
 		cd "$pod_layer_dir/"
-		sudo docker-compose --project-name "$main_project" -f "$main_file" up -d --remove-orphans "${@}"
+		sudo docker-compose --project-name "$main_project" -f "$main_file" up -d --remove-orphans "${@}" \
+			2> >(grep -v up-to-date)
 		;;
 	"down")
 		cd "$pod_layer_dir/"

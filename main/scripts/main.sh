@@ -1070,7 +1070,7 @@ case "$command" in
 		cmd="unique:cmd"
 		[ "$command" = "unique:all:force" ] && cmd="unique:cmd:force"
 
-		info "$title - run the following actions: ${args[*]}"
+		info "$command - run the following actions: ${args[*]}"
 
 		for action in "${args[@]}"; do
 			"$pod_script_env_file" "$cmd" "$pod_script_env_file" "unique:action:$action" \
@@ -1086,11 +1086,11 @@ case "$command" in
 		"$pod_script_env_file" "$cmd" "$pod_script_env_file" "action:exec:$task_name"
 		;;
 	"unique:cmd")
-		info "$title: run-one ${args[*]}"
+		info "$command: run-one ${args[*]}"
 		run-one "${args[@]}" || error "$title"
 		;;
 	"unique:cmd:force")
-		info "$title: run-this-one ${args[*]}"
+		info "$command: run-this-one ${args[*]}"
 		run-this-one "${args[@]}" || error "$title"
 		;;
 	"run:container:image:"*)

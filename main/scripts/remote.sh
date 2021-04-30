@@ -65,9 +65,9 @@ title="${title}${command}"
 
 case "$command" in
 	"backup")
-		info "$title - started"
+		info "$command - started"
 
-		info "$title - start needed services"
+		info "$command - start needed services"
 		>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
 		if [ -z "${arg_subtask_cmd_s3:-}" ]; then
@@ -121,7 +121,7 @@ case "$command" in
 
 			msg="sync local backup file with bucket"
 			bucket_path="${backup_bucket_sync_dir:-}/${backup_bucket_file}"
-			info "$title - $msg - $arg_backup_src_file to $bucket_path (s3)"
+			info "$command - $msg - $arg_backup_src_file to $bucket_path (s3)"
 		else
 			if [ "$src_type" != 'dir' ]; then
 				msg="backup source (${arg_backup_src_dir:-}) is not a directory ($src_type)"
@@ -131,10 +131,10 @@ case "$command" in
 			backup_src_dir="$arg_backup_src_dir"
 			backup_bucket_file=""
 			msg="sync local backup directory with bucket"
-			info "$title - $msg - $arg_backup_src_dir to /${backup_bucket_sync_dir:-} (s3)"
+			info "$command - $msg - $arg_backup_src_dir to /${backup_bucket_sync_dir:-} (s3)"
 		fi
 
-		info "$title - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
+		info "$command - $arg_toolbox_service - $arg_subtask_cmd_s3 - create bucket"
 		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=create_bucket --task_info="$title"
 
 		>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
@@ -148,7 +148,7 @@ case "$command" in
 			--subtask_cmd="$arg_subtask_cmd"
 		;;
 	"restore")
-		info "$title - restore"
+		info "$command - restore"
 		>&2 "$pod_script_env_file" up "$arg_toolbox_service"
 
 		if [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" = "true" ]; then
@@ -167,7 +167,7 @@ case "$command" in
 				restore_bucket_file="$(basename "$arg_restore_dest_file")"
 
 				msg="create the destination directory for the file"
-				info "$title - $msg (${arg_restore_dest_file:-})"
+				info "$command - $msg (${arg_restore_dest_file:-})"
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					mkdir -p "$restore_dest_dir"
 			else
@@ -175,13 +175,13 @@ case "$command" in
 				restore_bucket_file=""
 
 				msg="create the destination directory"
-				info "$title - $msg (${restore_dest_dir:-})"
+				info "$command - $msg (${restore_dest_dir:-})"
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					mkdir -p "$restore_dest_dir"
 			fi
 
 			msg="/${arg_restore_bucket_path_dir:-} (s3) to ${restore_dest_dir:-}"
-			info "$title - restore from remote bucket directly to local directory - $msg"
+			info "$command - restore from remote bucket directly to local directory - $msg"
 			>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=sync \
 				--s3_src_rel="${arg_restore_bucket_path_dir:-}" \
 				--s3_remote_src="true" \
@@ -196,13 +196,13 @@ case "$command" in
 			fi
 
 			msg="create the destination directory for the file"
-			info "$title - $msg (${arg_restore_dest_file:-})"
+			info "$command - $msg (${arg_restore_dest_file:-})"
 			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 				mkdir -p "$(dirname "$arg_restore_dest_file")"
 
 			if [ -n "${arg_restore_remote_file:-}" ]; then
 				msg="${arg_restore_remote_file:-} to ${arg_restore_dest_file:-}"
-				info "$title - restore from remote file ($msg)"
+				info "$command - restore from remote file ($msg)"
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					curl -L -o "$arg_restore_dest_file" -k "$arg_restore_remote_file"
 			elif [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" != "true" ]; then
@@ -213,7 +213,7 @@ case "$command" in
 				fi
 
 				msg="${arg_restore_bucket_path_file:-} (s3) -> ${arg_restore_dest_file:-}"
-				info "$title - ${arg_subtask_cmd_s3:-} - restore a file from a remote bucket [$msg]"
+				info "$command - ${arg_subtask_cmd_s3:-} - restore a file from a remote bucket [$msg]"
 				>&2 "$pod_script_env_file" "$arg_subtask_cmd_s3" --s3_cmd=cp \
 					--s3_src_rel="$arg_restore_bucket_path_file" \
 					--s3_dest="$arg_restore_dest_file" \

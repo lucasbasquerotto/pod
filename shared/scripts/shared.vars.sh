@@ -150,6 +150,7 @@ export var_run__general__s3_cli="${var_load_general__s3_cli:-}"
 export var_run__general__define_s3_backup_lifecycle="${var_load_general__define_s3_backup_lifecycle:-}"
 export var_run__general__define_s3_uploads_lifecycle="${var_load_general__define_s3_uploads_lifecycle:-}"
 
+export var_run__meta__no_stacktrace="${var_load_meta__no_stacktrace:-}"
 export var_run__meta__no_info="${var_load_meta__no_info:-}"
 export var_run__meta__no_warn="${var_load_meta__no_warn:-}"
 export var_run__meta__no_error="${var_load_meta__no_error:-}"

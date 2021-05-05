@@ -282,7 +282,7 @@ case "$command" in
 
 		if [ -n "${arg_s3_file:-}" ]; then
 			[[ "$s3_src" = */ ]] && s3_src="${s3_src}${arg_s3_file}" || s3_src="$s3_src/$arg_s3_file"
-			[[ "$s3_dest" = */ ]] && s3_dest="$s3_dest" || s3_dest="$s3_dest/"
+			[[ "$s3_dest" != */ ]] && s3_dest="$s3_dest/"
 		elif [ -n "${arg_s3_ignore_path:-}" ]; then
 			exclude="${arg_s3_ignore_path:-}"
 
@@ -428,7 +428,13 @@ case "$command" in
 
 		inner_cmd=( aws --profile="$arg_s3_alias" )
 		inner_cmd+=( s3 --endpoint="$arg_s3_endpoint" )
-		inner_cmd+=( "$cmd" "$s3_src" "$s3_dest" )
+		inner_cmd+=( "$cmd" )
+
+		if [ "$cmd" = 'sync' ]; then
+			inner_cmd+=( --no-follow-symlink )
+		fi
+
+		inner_cmd+=( "$s3_src" "$s3_dest" )
 
 		if [ -n "${arg_s3_file:-}" ]; then
 			inner_cmd+=( --exclude "*" --include "$arg_s3_file" )

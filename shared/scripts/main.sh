@@ -661,6 +661,20 @@ case "$command" in
 	"cron:custom")
 		"$pod_script_cron_file" "${args[@]}"
 		;;
+	"shared:service:cloudflare:ips")
+		service='nginx'
+		service_sync_base_dir="/var/main/data/sync/$service"
+
+		if [ "${var_custom__use_nginx:-}" != 'true' ]; then
+			error "$command: expected nginx service not defined"
+		fi
+
+		"$pod_script_env_file" "service:cloudflare:ips" \
+			--task_info="$title" \
+			--toolbox_service='toolbox' \
+			--webservice="$service" \
+			--output_file="$service_sync_base_dir/auto/ips-proxy.conf"
+		;;
 	"shared:service:nextcloud:setup")
 		"$pod_script_env_file" "service:nextcloud:setup" \
 			--task_info="$title >> nextcloud" \

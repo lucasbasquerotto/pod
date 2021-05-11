@@ -68,6 +68,14 @@ schemas:
         description: >-
           disables the origin validation done for the services, when doing non-GET requests,
           blocking requests from different origins (uses the http origin header)
+      use_outer_proxy:
+        type: "bool"
+        description: "when true, services can receive requests from an external proxy (ex: cloudflare)"
+      outer_proxy_ip_header:
+        type: "str"
+        description: >-
+          specifies the header that has the client ip when receiving request from an external proxy;
+          defaults to 'CF-Connecting-IP'
       proxy_ssl_ca_file:
         type: "str"
         description: >-
@@ -265,6 +273,9 @@ schemas:
         description: >-
           specifies the file with the secret key in the pem format used for authentication to a
           proxied https server; defaults to conf.proxy_ssl_key_file
+      use_outer_proxy:
+        type: "bool"
+        description: "when true, expects to receive requests from an external proxy (ex: cloudflare)"
       locations:
         type: "simple_list"
         elem_schema: "location_info"

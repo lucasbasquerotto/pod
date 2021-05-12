@@ -704,7 +704,7 @@ case "$command" in
 			SHELL
 
 			if [ -n "$service_param" ]; then
-				"$pod_script_env_file" "service:${arg_webservice:-}:reload"
+				"$pod_script_env_file" "service:$service_param:reload"
 			fi
 		else
 			"$pod_script_env_file" "service:${var_custom__outer_proxy_type:-}:ips" \

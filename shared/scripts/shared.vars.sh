@@ -201,9 +201,14 @@ if [ "$tmp_is_web" = 'true' ]; then
 	export var_custom__use_haproxy="${var_load_use__haproxy:-}"
 	export var_custom__use_theia="${var_load_use__theia:-}"
 	export var_custom__use_varnish="${var_load_use__varnish:-}"
+	export var_custom__use_outer_proxy="${var_load_use__outer_proxy:-}"
 
 	if [ "${var_load_use__ssl:-}" = 'true' ]; then
 		export var_custom__use_certbot="${var_load_use__certbot:-}"
+	fi
+
+	if [ "${var_load_use__outer_proxy:-}" = 'true' ]; then
+		export var_custom__outer_proxy_type="${var_load_shared__outer_proxy_type:-}"
 	fi
 fi
 

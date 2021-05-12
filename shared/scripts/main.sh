@@ -36,6 +36,10 @@ while getopts ':-:' OPT; do
 	fi
 	case "$OPT" in
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
+		only_if_needed )
+			arg_only_if_needed="${OPTARG:-}";
+			[ -z "${OPTARG:-}" ] && arg_only_if_needed='true'
+			;;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 		??* ) ;; ## ignore
 		\? )  ;; ## ignore
@@ -46,6 +50,7 @@ shift $((OPTIND-1))
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
 log_run_file="$pod_layer_dir/shared/scripts/log.sh"
 test_run_file="$pod_layer_dir/shared/scripts/test.sh"
+cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 pod_script_cron_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
 mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
@@ -555,6 +560,11 @@ case "$command" in
 			"$pod_script_env_file" up s3
 		fi
 
+		if [ "${var_custom__use_outer_proxy:-}" = 'true' ]; then
+			"$pod_script_env_file" "shared:outer_proxy" \
+				--only_if_needed
+		fi
+
 		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
 			info "$command - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
@@ -661,19 +671,22 @@ case "$command" in
 	"cron:custom")
 		"$pod_script_cron_file" "${args[@]}"
 		;;
-	"shared:service:cloudflare:ips")
+	"shared:outer_proxy")
 		service='nginx'
-		service_sync_base_dir="/var/main/data/sync/$service"
+		result_file_relpath="sync/$service/auto/ips-proxy.conf"
 
 		if [ "${var_custom__use_nginx:-}" != 'true' ]; then
 			error "$command: expected nginx service not defined"
 		fi
 
-		"$pod_script_env_file" "service:cloudflare:ips" \
+		service_param="$service"
+		[ "${arg_only_if_needed:-}" = 'true' ] && service_param=''
+
+		"$pod_script_env_file" "service:${var_custom__outer_proxy_type:-}:ips" \
 			--task_info="$title" \
-			--toolbox_service='toolbox' \
-			--webservice="$service" \
-			--output_file="$service_sync_base_dir/auto/ips-proxy.conf"
+			--webservice="$service_param" \
+			--only_if_needed="${arg_only_if_needed:-}" \
+			--output_file_relpath="$result_file_relpath"
 		;;
 	"shared:service:nextcloud:setup")
 		"$pod_script_env_file" "service:nextcloud:setup" \
@@ -788,10 +801,9 @@ case "$command" in
 
 		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
 		;;
-	"service:nginx:"*)
-		"$nginx_run_file" "$command" \
+	"service:cloudflare:"*)
+		"$cloudflare_run_file" "$command" \
 			--toolbox_service="toolbox" \
-			--nginx_service="nginx" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:haproxy:"*)
@@ -800,15 +812,21 @@ case "$command" in
 			--haproxy_service="haproxy" \
 			${args[@]+"${args[@]}"}
 		;;
+	"service:mysql:"*)
+		"$mysql_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			${args[@]+"${args[@]}"}
+		;;
 	"service:nextcloud:"*)
 		"$nextcloud_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--nextcloud_service="nextcloud" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:mysql:"*)
-		"$mysql_run_file" "$command" \
+	"service:nginx:"*)
+		"$nginx_run_file" "$command" \
 			--toolbox_service="toolbox" \
+			--nginx_service="nginx" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:redis:"*)

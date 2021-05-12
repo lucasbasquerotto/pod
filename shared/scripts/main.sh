@@ -561,8 +561,9 @@ case "$command" in
 		fi
 
 		if [ "${var_custom__use_outer_proxy:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:outer_proxy" \
-				--only_if_needed
+			cmd="shared:outer_proxy"
+			[ "${var_custom__local:-}" = 'true' ] && cmd="local:shared:outer_proxy"
+			"$pod_script_env_file" "$cmd" --only_if_needed
 		fi
 
 		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
@@ -572,10 +573,12 @@ case "$command" in
 
 		if [ "${var_custom__use_nginx:-}" = 'true' ]; then
 			"$pod_script_env_file" up nginx
+			"$pod_script_env_file" "service:nginx:reload"
 		fi
 
 		if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
 			"$pod_script_env_file" up haproxy
+			"$pod_script_env_file" "service:haproxy:reload"
 		fi
 
 		if [ "${var_custom__local:-}" = 'false' ]; then
@@ -671,22 +674,46 @@ case "$command" in
 	"cron:custom")
 		"$pod_script_cron_file" "${args[@]}"
 		;;
-	"shared:outer_proxy")
-		service='nginx'
-		result_file_relpath="sync/$service/auto/ips-proxy.conf"
-
-		if [ "${var_custom__use_nginx:-}" != 'true' ]; then
+	"shared:outer_proxy"|"local:shared:outer_proxy")
+		if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
+			service='haproxy'
+			result_file_relpath="sync/$service/auto/ips-proxy.lst"
+		elif [ "${var_custom__use_nginx:-}" = 'true' ]; then
+			service='nginx'
+			result_file_relpath="sync/$service/auto/ips-proxy.conf"
+		else
 			error "$command: expected nginx service not defined"
 		fi
 
+		output_file_format="$service"
 		service_param="$service"
 		[ "${arg_only_if_needed:-}" = 'true' ] && service_param=''
 
-		"$pod_script_env_file" "service:${var_custom__outer_proxy_type:-}:ips" \
-			--task_info="$title" \
-			--webservice="$service_param" \
-			--only_if_needed="${arg_only_if_needed:-}" \
-			--output_file_relpath="$result_file_relpath"
+		if [ "$command" = "local:shared:outer_proxy" ]; then
+			output=''
+
+			if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
+				output='0.0.0.0/0'
+			elif [ "${var_custom__use_nginx:-}" = 'true' ]; then
+				output='0.0.0.0/0 1;'
+			fi
+
+			"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
+				set -eou pipefail
+				echo "$output" > "/var/main/data/$result_file_relpath"
+			SHELL
+
+			if [ -n "$service_param" ]; then
+				"$pod_script_env_file" "service:${arg_webservice:-}:reload"
+			fi
+		else
+			"$pod_script_env_file" "service:${var_custom__outer_proxy_type:-}:ips" \
+				--task_info="$title" \
+				--output_file_format="$output_file_format" \
+				--webservice="$service_param" \
+				--only_if_needed="${arg_only_if_needed:-}" \
+				--output_file_relpath="$result_file_relpath"
+		fi
 		;;
 	"shared:service:nextcloud:setup")
 		"$pod_script_env_file" "service:nextcloud:setup" \

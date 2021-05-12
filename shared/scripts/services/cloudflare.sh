@@ -36,6 +36,7 @@ while getopts ':-:' OPT; do
 		task_info ) arg_task_info="${OPTARG:-}";;
 		toolbox_service ) arg_toolbox_service="${OPTARG:-}";;
 		webservice ) arg_webservice="${OPTARG:-}";;
+		output_file_format ) arg_output_file_format="${OPTARG:-}";;
 		output_file_relpath ) arg_output_file_relpath="${OPTARG:-}";;
 		only_if_needed )
 			arg_only_if_needed="${OPTARG:-}";
@@ -64,6 +65,12 @@ case "$command" in
 			error "$command: output_file_relpath not defined"
 		fi
 
+		if [ -z "${arg_output_file_format:-}" ]; then
+			error "$command: output_file_format not defined"
+		elif [ "${arg_output_file_format:-}" != 'nginx' ] && [ "${arg_output_file_format:-}" != 'haproxy' ]; then
+			error "$command: output_file_format invalid"
+		fi
+
 		if [ ! -f "$output_file_outer" ] || [ "${arg_only_if_needed:-}" != 'true' ]; then
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 					/bin/bash <<-SHELL || error "$command"
@@ -75,7 +82,12 @@ case "$command" in
 				cat "$tmp_dir_inner"/ips-v4.txt "$tmp_dir_inner"/ips-v6.txt > "$tmp_dir_inner"/ips.txt
 
 				echo "ip rules..." >&2
-				sed 's/$/ 1;/' "$tmp_dir_inner"/ips.txt > "$tmp_dir_inner"/ips-rules.txt
+
+				if [ "${arg_output_file_format:-}" = 'nginx' ]; then
+					sed 's/$/ 1;/' "$tmp_dir_inner"/ips.txt > "$tmp_dir_inner"/ips-rules.txt
+				elif [ "${arg_output_file_format:-}" = 'haproxy' ]; then
+					cp "$tmp_dir_inner"/ips.txt "$tmp_dir_inner"/ips-rules.txt
+				fi
 
 				touch "$output_file_inner"
 

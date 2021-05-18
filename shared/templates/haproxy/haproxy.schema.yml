@@ -75,6 +75,17 @@ schemas:
       no_rate_limits:
         type: "bool"
         description: "the default rate limit statements for the front-ends are not included"
+      outer_proxy_ips_path:
+        type: "str"
+        description: >-
+          path to the file with ips to be allowed from an external proxy for services that expect
+          requests from it (block requests from other ips); defaults to 'haproxy/auto/ips-proxy.lst'
+          in the 'sync' data directory ('/var/main/data/sync/haproxy/auto/ips-proxy.lst')
+      outer_proxy_ip_header:
+        type: "str"
+        description: >-
+          specifies the header that has the client ip when receiving request from an external proxy;
+          defaults to 'CF-Connecting-IP'
       cli_stats:
         type: "bool"
         description: "the default stats statements in the global section (for cli access) are included"
@@ -197,6 +208,9 @@ schemas:
         type: "str"
         description: >-
           same as basic_auth_data, but instead is a name of a pod content (that will be the basic auth content)
+      use_outer_proxy:
+        type: "bool"
+        description: "when true, expects to receive requests from an external proxy (ex: cloudflare)"
       locations:
         type: "simple_list"
         elem_schema: "location_info"

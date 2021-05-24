@@ -323,7 +323,7 @@ case "$command" in
 			--filename_prefix="$task_name"
 		;;
 	"shared:log:register")
-		log="$("$pod_script_env_file" "$arg_cmd")" || error "$command: $arg_cmd"
+		log="$("$pod_script_env_file" "$arg_cmd" || error "$command: $arg_cmd")"
 
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail

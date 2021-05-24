@@ -61,11 +61,11 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
 
-			>&2 token="\$(curl -s -H "Content-Type: application/json" -X POST \
+			>&2 token="\$(curl -sS -H "Content-Type: application/json" -X POST \
 				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
 				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
 
-			>&2 exists="\$(curl -s -H "Authorization: JWT \${token}" \
+			>&2 exists="\$(curl -sS -H "Authorization: JWT \${token}" \
 				"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000" | \
 				jq -r "[.results | .[] | .name == \"${arg_version}\"] | any")"
 

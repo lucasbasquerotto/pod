@@ -71,7 +71,15 @@ if [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then
 	case "${var_load_main__db_service:-}" in
 		'mysql')
 			if [ -z "${var_load__db_main__db_name:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_name is not defined")
+			fi
 
+			if [ -z "${var_load__db_main__db_user:-}" ]; then
+				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_user is not defined")
+			fi
+			;;
+		'postgres')
+			if [ -z "${var_load__db_main__db_name:-}" ]; then
 				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_name is not defined")
 			fi
 
@@ -214,6 +222,7 @@ fi
 
 if [ "$tmp_is_db" = 'true' ]; then
 	export var_custom__use_mysql="${var_load_use__mysql:-}"
+	export var_custom__use_postgres="${var_load_use__postgres:-}"
 	export var_custom__use_mongo="${var_load_use__mongo:-}"
 fi
 

@@ -3,4 +3,4 @@ ARG VERSION
 
 FROM $IMAGE:$VERSION
 
-COPY --chown=postgres:postgres /env/mysql/init.sql /docker-entrypoint-initdb.d/
+COPY --chown=postgres:postgres /env/postgres/init.sql /docker-entrypoint-initdb.d/

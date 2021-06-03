@@ -314,11 +314,15 @@ case "$command" in
 				"$arg_db_task_base_dir"
 		SHELL
 		;;
-	"db:connection:pg")
+	"db:main:connect_main:postgres")
 		cmd_args=( "exec-nontty" )
 
 		if [ "${arg_db_cmd:-}" = "run" ]; then
 			cmd_args=( "run" )
+		fi
+
+		if [ "${arg_db_cmd:-}" != "run" ]; then
+			"$pod_script_env_file" up "$arg_db_service"
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
@@ -332,20 +336,141 @@ case "$command" in
 			end=\$((SECONDS+$arg_db_connect_wait_secs))
 
 			while [ \$SECONDS -lt \$end ]; do
-				if pg_isready \
-					--dbname="$arg_db_name" \
-					--host="$arg_db_host" \
-					--port="$arg_db_port" \
-					--username="$arg_db_user"
-				then
-					exit
+				current=\$((end-SECONDS))
+				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
+				>&2 echo "wait for the database $arg_db_name to be ready (\$msg)"
+
+				if [ "${arg_db_remote:-}" = "true" ]; then
+					if pg_isready \
+						--dbname="$arg_db_name" \
+						--host="$arg_db_host" \
+						--port="$arg_db_port" \
+						--username="$arg_db_user"
+					then
+						exit
+					fi
+				else
+					if pg_isready --dbname="$arg_db_name"; then
+						exit
+					fi
 				fi
 
 				sleep "${arg_connection_sleep:-5}"
 			done
 
-			error "can't connect to database (dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port, username=$arg_db_user)"
+			msg="dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port"
+			error "can't connect to the database (\$msg)"
 		SHELL
+		;;
+	"db:main:connect:postgres")
+		end_after="$((SECONDS+10))"
+		"$pod_script_env_file" "run:db:main:connect_main:postgres" ${args[@]+"${args[@]}"} >&2 ||:
+
+		if [ "$SECONDS" -lt "$end_after" ]; then
+			echo "waiting because of fast first error..." >&2
+			sleep 5
+			"$pod_script_env_file" "run:db:main:connect_main:postgres" ${args[@]+"${args[@]}"} >&2
+		fi
+		;;
+	"db:main:tables:count:postgres")
+		if [ "${arg_db_cmd:-}" != "run" ]; then
+			"$pod_script_env_file" up "$arg_db_service"
+		fi
+
+		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
+		re_number='^[0-9]+$'
+		cmd_args=( 'exec-nontty' )
+
+		if [ "${arg_db_cmd:-}" = "run" ]; then
+			cmd_args=( 'run' )
+		fi
+
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			function error {
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
+				exit 2
+			}
+
+			if [ "${arg_db_remote:-}" = "true" ]; then
+				sql_output="\$(psql \
+					--host="$arg_db_host" \
+					--port="$arg_db_port" \ \
+					--username="$arg_db_user"
+					-t -c "$sql_tables" 2>&1)" ||:
+			else
+				sql_output="\$(psql -t -c "$sql_tables" 2>&1)" ||:
+			fi
+
+			tables=""
+
+			if [ -n "\$sql_output" ]; then
+				tables="\$(echo "\$sql_output" | tail -n 1 | awk '{\$1=\$1;print}')"
+			fi
+
+			if ! [[ \$tables =~ $re_number ]] ; then
+				tables=""
+			fi
+
+			if [ -z "\$tables" ]; then
+				error "$title: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
+			fi
+
+			echo "\$tables"
+
+		SHELL
+		;;
+	"db:restore:verify:postgres")
+		"$pod_script_env_file" "run:db:main:connect:postgres" ${args[@]+"${args[@]}"} >&2
+
+		tables="$("$pod_script_env_file" "run:db:main:tables:count:postgres" ${args[@]+"${args[@]}"})"
+
+		>&2 echo "$tables tables found"
+
+		if [ "$tables" != "0" ]; then
+			echo "true"
+		else
+			echo "false"
+		fi
+		;;
+	"db:restore:file:postgres")
+		if [ -z "$arg_db_task_base_dir" ]; then
+			error "$title: arg_db_task_base_dir not specified"
+		fi
+
+		if [ -z "$arg_db_file_name" ]; then
+			error "$title: arg_db_file_name not specified"
+		fi
+
+		db_file="$arg_db_task_base_dir/$arg_db_file_name"
+
+		"$pod_script_env_file" up "$arg_db_service"
+
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+
+			function error {
+				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
+				exit 2
+			}
+
+			pg_restore --verbose -Fc -j 8 --dbname="$arg_db_name" "$db_file"
+		SHELL
+		;;
+	"db:backup:file:postgres")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
+
+		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
+			set -eou pipefail
+			mkdir -p "$(dirname -- "$backup_file")"
+			pg_dump -Fc -Z 0 --file="$backup_file" "$arg_db_name"
+		SHELL
+
+		echo "$backup_file"
 		;;
 	"db:repository:elasticsearch")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"

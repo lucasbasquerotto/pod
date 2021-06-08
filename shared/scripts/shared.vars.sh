@@ -495,9 +495,9 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_backup" = 'true' ]; then
 		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_base_dir"
 
 		if [ "${var_load_main__db_backup_is_file:-}" = 'true' ]; then
-			tmp_default_extension='.sql'
+			tmp_default_extension='sql'
 			tmp_default_extension="${var_load_main__db_backup_extension:-$tmp_default_extension}"
-			tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
+			tmp_default_file_name="${var_load__db_main__db_name:-}.${tmp_default_extension}"
 
 			export var_task__db_backup__backup_local__db_file_name="${tmp_default_file_name:-}"
 		fi
@@ -569,9 +569,9 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 		tmp_compressed_file_name="${var_load__db_setup__compressed_file_name:-$tmp_default_compressed_file_name}"
 		tmp_compressed_file_path="$tmp_db_tmp_dir/$tmp_compressed_file_name"
 
-		tmp_default_extension='.sql'
+		tmp_default_extension='sql'
 		tmp_default_extension="${var_load_main__db_backup_extension:-$tmp_default_extension}"
-		tmp_default_file_name="${var_load__db_main__db_name:-}${tmp_default_extension}"
+		tmp_default_file_name="${var_load__db_main__db_name:-}.${tmp_default_extension}"
 		tmp_db_file_name="${var_load__db_setup__db_file_name:-$tmp_default_file_name}"
 		tmp_file_path="$tmp_db_dest_dir/$tmp_db_file_name"
 		tmp_db_backup_is_file="${var_load_main__db_backup_is_file:-}"

@@ -36,7 +36,7 @@ shift;
 args=("$@")
 
 # shellcheck disable=SC2214
-while getopts ':s:u:-:' OPT; do
+while getopts ':its:u:-:' OPT; do
 	if [ "$OPT" = "-" ]; then     # long option: reformulate OPT and OPTARG
 		OPT="${OPTARG%%=*}"       # extract long option name
 		OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
@@ -67,6 +67,8 @@ while getopts ':s:u:-:' OPT; do
 				shift;
 			fi
 			;;
+		i|interactive ) arg_interactive='true';;
+		t|tty ) arg_tty='true';;
 		entrypoint )
 			arg_entrypoint="${OPTARG:-}"
 
@@ -116,8 +118,12 @@ case "$command" in
 
 		opts=()
 
-		if [ "$command" = "exec-nontty" ]; then
+		if [ "$command" = "exec-nontty" ] || [ "${arg_interactive:-}" = 'true' ]; then
 			opts+=( "-i" )
+		fi
+
+		if [ "${arg_tty:-}" = 'true' ]; then
+			opts+=( "-t" )
 		fi
 
 		if [ -n "${arg_user:-}" ]; then

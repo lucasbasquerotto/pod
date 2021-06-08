@@ -377,7 +377,7 @@ case "$command" in
 			"$pod_script_env_file" up "$arg_db_service"
 		fi
 
-		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
+		sql_tables="select count(*) from information_schema.tables where table_schema = 'public'"
 		re_number='^[0-9]+$'
 		cmd_args=( 'exec-nontty' )
 
@@ -397,10 +397,11 @@ case "$command" in
 				sql_output="\$(psql \
 					--host="$arg_db_host" \
 					--port="$arg_db_port" \ \
-					--username="$arg_db_user"
-					-t -c "$sql_tables" 2>&1)" ||:
+					--username="$arg_db_user" \
+					--dbname="$arg_db_name" \
+					--tuples-only --command "$sql_tables" 2>&1)" ||:
 			else
-				sql_output="\$(psql -t -c "$sql_tables" 2>&1)" ||:
+				sql_output="\$(psql -d "$arg_db_name" -t -c "$sql_tables" 2>&1)" ||:
 			fi
 
 			tables=""

@@ -19,12 +19,21 @@ EXCEPTION
         RAISE NOTICE 'not creating role viewer -- it already exists';
 END$$;
 
--- Assign permission to this read only user
-GRANT CONNECT ON DATABASE {{ params.db_name }} TO viewer;
+-- Assign permission to this read only user to the database postgres
+GRANT CONNECT ON DATABASE postgres TO viewer;
+\connect postgres;
 GRANT USAGE ON SCHEMA public TO viewer;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO viewer;
 GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO viewer;
+-- Assign permissions to read all newly tables created in the future
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO viewer;
 
+-- Assign permission to this read only user to the database {{ params.db_name }}
+GRANT CONNECT ON DATABASE {{ params.db_name }} TO viewer;
+\connect  {{ params.db_name }};
+GRANT USAGE ON SCHEMA public TO viewer;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO viewer;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO viewer;
 -- Assign permissions to read all newly tables created in the future
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO viewer;
 
@@ -37,11 +46,11 @@ EXCEPTION
         RAISE NOTICE 'not creating role {{ params.db_user }} -- it already exists';
 END$$;
 
--- Assign permission to the {{ params.db_user }} user
+-- Assign permission to the {{ params.db_user }} user to the database {{ params.db_name }}
 GRANT CONNECT ON DATABASE {{ params.db_name }} TO {{ params.db_user }};
+\connect  {{ params.db_name }};
 GRANT USAGE ON SCHEMA public TO {{ params.db_user }};
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {{ params.db_user }};
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {{ params.db_user }};
-
 -- Assign permissions to read all newly tables created in the future
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO {{ params.db_user }};

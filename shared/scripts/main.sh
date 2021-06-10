@@ -320,6 +320,10 @@ case "$command" in
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"prepare")
+		data_dir="/var/main/data"
+
+		"$pod_script_env_file" up toolbox
+
 		use_wale=''
 
 		if [ "${var_main__use_wale:-}" = 'true' ] || [ "${var_main__use_wale_restore:-}" = 'true' ]; then
@@ -327,23 +331,39 @@ case "$command" in
 		fi
 
 		if [ "$use_wale" = 'true' ]; then
+			"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
+				set -eou pipefail
+
+				if [ "$use_wale" = 'true' ]; then
+					dir="$data_dir/tmp/wale/env"
+
+					if [ ! -d "\$dir" ]; then
+						mkdir -p "\$dir"
+					fi
+
+					chmod 777 "\$dir"
+				fi
+			SHELL
+
 			"$pod_script_env_file" "util:values_to_files" \
 				--task_info="$title" \
 				--src_file="$pod_layer_dir/env/postgres/wale.conf" \
-				--dest_dir="$pod_data_dir/wale" \
+				--dest_dir="$pod_data_dir/tmp/wale/env" \
 				--file_extension="" \
 				--remove_empty_values='true'
 		fi
-
-		data_dir="/var/main/data"
-
-		"$pod_script_env_file" up toolbox
 
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
 
 			if [ "$use_wale" = 'true' ]; then
 				dir="$data_dir/wale"
+
+				if [ ! -d "\$dir" ]; then
+					mkdir -p "\$dir"
+				fi
+
+				cp -r "$data_dir/tmp/wale/env/." "\$dir/"
 				chown -R 70:70 "\$dir"
 			fi
 

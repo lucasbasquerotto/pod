@@ -253,15 +253,15 @@ case "$command" in
 		service="${command#shared:log:}"
 		service="${service%:verify}"
 
-		case "$var_custom__pod_type" in
+		case "$var_main__pod_type" in
 			"app"|"web")
 				;;
 			*)
-				error "$command: pod_type ($var_custom__pod_type) not supported"
+				error "$command: pod_type ($var_main__pod_type) not supported"
 				;;
 		esac
 
-		if [ "${var_custom__use_fluentd:-}" != "true" ]; then
+		if [ "${var_main__use_fluentd:-}" != "true" ]; then
 			error "$command: fluentd must be used to verify $service logs"
 		fi
 		;;

@@ -25,7 +25,7 @@ shift;
 
 case "$command" in
 	"shared:test:s3:delete_old")
-		if [ "${var_custom__local:-}" = 'true' ]; then
+		if [ "${var_main__local:-}" = 'true' ]; then
 			"$pod_script_env_file" "s3:subtask:s3_backup" \
 				--s3_cmd='delete_old' \
 				--s3_path="log" \

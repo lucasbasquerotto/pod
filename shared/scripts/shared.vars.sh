@@ -191,40 +191,41 @@ if [ "${var_load_shared__define_cron:-}" = 'true' ]; then
     export var_shared__cron__dest="${var_load_shared__cron__dest:-}"
 fi
 
-export var_custom__pod_type="${var_load_main__pod_type:-}"
+export var_main__pod_type="${var_load_main__pod_type:-}"
 export var_load_main__instance_index="${var_load_main__instance_index:-}"
-export var_custom__local="${var_load_main__local:-}"
+export var_main__local="${var_load_main__local:-}"
 
-export var_custom__use_main_network="${var_load_use__main_network:-}"
-export var_custom__use_secrets="${var_load_use__secrets:-}"
-export var_custom__use_logrotator="${var_load_use__logrotator:-}"
-export var_custom__use_fluentd="${var_load_use__fluentd:-}"
-export var_custom__use_internal_fluentd="${var_load_use__internal_fluentd:-}"
-export var_custom__use_s3="${var_load_use__s3:-}"
-export var_custom__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
-export var_custom__use_local_s3="${var_load_use__local_s3:-}"
+export var_main__use_main_network="${var_load_use__main_network:-}"
+export var_main__use_secrets="${var_load_use__secrets:-}"
+export var_main__use_logrotator="${var_load_use__logrotator:-}"
+export var_main__use_fluentd="${var_load_use__fluentd:-}"
+export var_main__use_internal_fluentd="${var_load_use__internal_fluentd:-}"
+export var_main__use_s3="${var_load_use__s3:-}"
+export var_main__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
+export var_main__use_local_s3="${var_load_use__local_s3:-}"
+export var_main__use_wale="${var_load_use__wale:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
-	export var_custom__use_nginx="${var_load_use__nginx:-}"
-	export var_custom__use_haproxy="${var_load_use__haproxy:-}"
-	export var_custom__use_theia="${var_load_use__theia:-}"
-	export var_custom__use_varnish="${var_load_use__varnish:-}"
-	export var_custom__use_pgadmin="${var_load_use__pgadmin:-}"
-	export var_custom__use_outer_proxy="${var_load_use__outer_proxy:-}"
+	export var_main__use_nginx="${var_load_use__nginx:-}"
+	export var_main__use_haproxy="${var_load_use__haproxy:-}"
+	export var_main__use_theia="${var_load_use__theia:-}"
+	export var_main__use_varnish="${var_load_use__varnish:-}"
+	export var_main__use_pgadmin="${var_load_use__pgadmin:-}"
+	export var_main__use_outer_proxy="${var_load_use__outer_proxy:-}"
 
 	if [ "${var_load_use__ssl:-}" = 'true' ]; then
-		export var_custom__use_certbot="${var_load_use__certbot:-}"
+		export var_main__use_certbot="${var_load_use__certbot:-}"
 	fi
 
 	if [ "${var_load_use__outer_proxy:-}" = 'true' ]; then
-		export var_custom__outer_proxy_type="${var_load_shared__outer_proxy_type:-}"
+		export var_main__outer_proxy_type="${var_load_shared__outer_proxy_type:-}"
 	fi
 fi
 
 if [ "$tmp_is_db" = 'true' ]; then
-	export var_custom__use_mysql="${var_load_use__mysql:-}"
-	export var_custom__use_postgres="${var_load_use__postgres:-}"
-	export var_custom__use_mongo="${var_load_use__mongo:-}"
+	export var_main__use_mysql="${var_load_use__mysql:-}"
+	export var_main__use_postgres="${var_load_use__postgres:-}"
+	export var_main__use_mongo="${var_load_use__mongo:-}"
 fi
 
 if [ -n "${var_load_main__db_service:-}" ]; then
@@ -440,13 +441,13 @@ if [ "$tmp_is_web" = 'true' ]; then
 			export var_task__certbot__certbot_subtask__webservice_type=''
 		fi
 
-		export var_task__certbot__certbot_subtask__dev="${var_load__certbot__dev:-$var_custom__local}"
+		export var_task__certbot__certbot_subtask__dev="${var_load__certbot__dev:-$var_main__local}"
 		export var_task__certbot__certbot_subtask__domains="${var_load__certbot__domains:-}"
 		export var_task__certbot__certbot_subtask__email="${var_load__certbot__email:-}"
 		export var_task__certbot__certbot_subtask__force="${var_load__certbot__force:-}"
 		export var_task__certbot__certbot_subtask__main_domain="${var_load__certbot__main_domain:-}"
 		export var_task__certbot__certbot_subtask__rsa_key_size="${var_load__certbot__rsa_key_size:-4096}"
-		export var_task__certbot__certbot_subtask__staging="${var_load__certbot__staging:-$var_custom__local}"
+		export var_task__certbot__certbot_subtask__staging="${var_load__certbot__staging:-$var_main__local}"
 	fi
 fi
 
@@ -692,10 +693,10 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 fi
 
 if [ "${var_load__log_summary__disabled:-}" = 'false' ]; then
-    export var_custom__log_summary__days_ago="${var_load__log_summary__days_ago:-1}"
-    export var_custom__log_summary__max_amount="${var_load__log_summary__max_amount:-100}"
-    export var_custom__log_summary__verify_size_docker_dir="${var_load__log_summary__verify_size_docker_dir:-}"
-    export var_custom__log_summary__verify_size_containers="${var_load__log_summary__verify_size_containers:-true}"
+    export var_log__summary__days_ago="${var_load__log_summary__days_ago:-1}"
+    export var_log__summary__max_amount="${var_load__log_summary__max_amount:-100}"
+    export var_log__summary__verify_size_docker_dir="${var_load__log_summary__verify_size_docker_dir:-}"
+    export var_log__summary__verify_size_containers="${var_load__log_summary__verify_size_containers:-true}"
 fi
 
 if [ "${var_load_enable__logs_backup:-}" = 'true' ]; then

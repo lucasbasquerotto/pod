@@ -56,6 +56,7 @@ while getopts ':-:' OPT; do
 		bucket_name ) arg_bucket_name="${OPTARG:-}" ;;
 		bucket_path ) arg_bucket_path="${OPTARG:-}" ;;
 		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}" ;;
+		db_backup_pit ) arg_db_backup_pit="${OPTARG:-}" ;;
 		db_args ) arg_db_args="${OPTARG:-}" ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -450,13 +451,15 @@ case "$command" in
 
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
 			set -eou pipefail
-
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
-
 			pg_restore --verbose -Fc -j 8 --dbname="$arg_db_name" "$db_file"
+		SHELL
+		;;
+	"db:restore:wale:postgres")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
+			set -eou pipefail
+			/usr/bin/envdir /etc/wal-e.d/env /usr/bin/wal-e backup-fetch /var/lib/postgresql/data "${arg_db_backup_pit:-LATEST}"
 		SHELL
 		;;
 	"db:backup:file:postgres")
@@ -469,6 +472,17 @@ case "$command" in
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
 			pg_dump -Fc -Z 0 --file="$backup_file" "$arg_db_name"
+		SHELL
+
+		echo "$backup_file"
+		;;
+	"db:backup:wale:postgres")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		info "$command: $arg_db_service - backup using wal-e"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
+			set -eou pipefail
+			/usr/bin/envdir /etc/wal-e.d/env /usr/bin/wal-e backup-push /var/lib/postgresql/data
 		SHELL
 
 		echo "$backup_file"

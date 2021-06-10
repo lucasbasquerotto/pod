@@ -94,7 +94,7 @@ case "$command" in
 		fi
 		;;
 	"local:clear-remote")
-		if [ "${var_custom__use_s3:-}" = 'true' ]; then
+		if [ "${var_main__use_s3:-}" = 'true' ]; then
 			if [ "${var_run__enable__main_backup:-}" = 'true' ]; then
 				"$pod_script_env_file" "s3:subtask:s3_backup" --s3_cmd=rb
 			fi
@@ -118,7 +118,7 @@ case "$command" in
 	"action:exec:backup"|"action:exec:local.backup")
 		task_name="${command#action:exec:}"
 
-		if [ "${var_custom__use_logrotator:-}" = 'true' ]; then
+		if [ "${var_main__use_logrotator:-}" = 'true' ]; then
 			"$pod_script_env_file" "unique:action:logrotate" ${next_args[@]+"${next_args[@]}"} ||:
 		fi
 
@@ -268,11 +268,11 @@ case "$command" in
 		done < "$pod_layer_dir/env/secrets.txt"
 		;;
 	"build")
-		if [ "${var_custom__use_main_network:-}" = 'true' ]; then
+		if [ "${var_main__use_main_network:-}" = 'true' ]; then
 			"$pod_script_env_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_custom__use_secrets:-}" = 'true' ]; then
+		if [ "${var_main__use_secrets:-}" = 'true' ]; then
 			"$pod_script_env_file" "shared:create_secrets"
 		fi
 
@@ -286,8 +286,8 @@ case "$command" in
 			fi
 		fi
 
-		if [ "${var_custom__use_nginx:-}" = 'true' ]; then
-			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+		if [ "${var_main__use_nginx:-}" = 'true' ]; then
+			if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "web" ]; then
 				env_dir_nginx="$pod_layer_dir/env/nginx"
 
 				dir="${env_dir_nginx}/auth"
@@ -304,7 +304,7 @@ case "$command" in
 			fi
 		fi
 
-		if [ "${var_custom__use_internal_fluentd:-}" = 'true' ]; then
+		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
 			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
 				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
 				dest_dir="$pod_layer_dir/env/fluentd"
@@ -351,8 +351,8 @@ case "$command" in
 				chmod 777 "\$dir"
 			fi
 
-			if [ "${var_custom__use_nginx:-}" = 'true' ]; then
-				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+			if [ "${var_main__use_nginx:-}" = 'true' ]; then
+				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "web" ]; then
 					dir_nginx="$data_dir/sync/nginx"
 
 					dir="\${dir_nginx}/auto"
@@ -424,8 +424,8 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
-				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "web" ]; then
+			if [ "${var_main__use_haproxy:-}" = 'true' ]; then
+				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "web" ]; then
 					dir_haproxy="$data_dir/sync/haproxy"
 
 					dir="\${dir_haproxy}/auto"
@@ -496,8 +496,8 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_mysql:-}" = 'true' ]; then
-				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
+			if [ "${var_main__use_mysql:-}" = 'true' ]; then
+				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "db" ]; then
 					dir="$data_dir/mysql"
 
 					if [ ! -d "\$dir" ]; then
@@ -521,8 +521,8 @@ case "$command" in
 				fi
 			fi
 
-			if [ "${var_custom__use_mongo:-}" = 'true' ]; then
-				if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
+			if [ "${var_main__use_mongo:-}" = 'true' ]; then
+				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "db" ]; then
 					dir="$data_dir/mongo/db"
 
 					if [ ! -d "\$dir" ]; then
@@ -541,52 +541,52 @@ case "$command" in
 		SHELL
 		;;
 	"setup")
-		if [ "${var_custom__local:-}" = 'true' ]; then
+		if [ "${var_main__local:-}" = 'true' ]; then
 			"$pod_script_env_file" "action:exec:setup" ${next_args[@]+"${next_args[@]}"}
 		else
 			"$pod_script_env_file" "shared:bg:setup" ${next_args[@]+"${next_args[@]}"}
 		fi
 		;;
 	"action:exec:setup")
-		if [ "${var_custom__use_theia:-}" = 'true' ]; then
+		if [ "${var_main__use_theia:-}" = 'true' ]; then
 			"$pod_script_env_file" up theia
 		fi
 
-		if [ "${var_custom__use_s3_cli_main:-}" = 'true' ]; then
+		if [ "${var_main__use_s3_cli_main:-}" = 'true' ]; then
 			"$pod_script_env_file" up s3_cli
 		fi
 
-		if [ "${var_custom__use_local_s3:-}" = 'true' ]; then
+		if [ "${var_main__use_local_s3:-}" = 'true' ]; then
 			"$pod_script_env_file" up s3
 		fi
 
-		if [ "${var_custom__use_outer_proxy:-}" = 'true' ]; then
+		if [ "${var_main__use_outer_proxy:-}" = 'true' ]; then
 			cmd="shared:outer_proxy"
-			[ "${var_custom__local:-}" = 'true' ] && cmd="local:shared:outer_proxy"
+			[ "${var_main__local:-}" = 'true' ] && cmd="local:shared:outer_proxy"
 			"$pod_script_env_file" "$cmd" --only_if_needed
 		fi
 
-		if [ "${var_custom__use_certbot:-}" = 'true' ]; then
+		if [ "${var_main__use_certbot:-}" = 'true' ]; then
 			info "$command - run certbot if needed..."
 			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_custom__use_nginx:-}" = 'true' ]; then
+		if [ "${var_main__use_nginx:-}" = 'true' ]; then
 			"$pod_script_env_file" up nginx
 			"$pod_script_env_file" "service:nginx:reload"
 		fi
 
-		if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
+		if [ "${var_main__use_haproxy:-}" = 'true' ]; then
 			"$pod_script_env_file" up haproxy
 			"$pod_script_env_file" "service:haproxy:reload"
 		fi
 
-		if [ "${var_custom__local:-}" = 'false' ]; then
+		if [ "${var_main__local:-}" = 'false' ]; then
 			"$pod_script_env_file" "shared:setup:prepare:s3" --task_info="$title"
 		fi
 
-		if [ "${var_custom__use_mongo:-}" = 'true' ]; then
-			if [ "$var_custom__pod_type" = "app" ] || [ "$var_custom__pod_type" = "db" ]; then
+		if [ "${var_main__use_mongo:-}" = 'true' ]; then
+			if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "db" ]; then
 				"$pod_script_env_file" up mongo
 
 				info "$command - init the mongo database if needed"
@@ -648,20 +648,20 @@ case "$command" in
 		fi
 		;;
 	"migrate")
-		if [ "${var_custom__use_varnish:-}" = 'true' ]; then
+		if [ "${var_main__use_varnish:-}" = 'true' ]; then
 			"$pod_script_env_file" up varnish
 
 			info "$command - clear varnish cache..."
 			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_custom__use_nextcloud:-}" = 'true' ]; then
+		if [ "${var_main__use_nextcloud:-}" = 'true' ]; then
 			info "$command - prepare nextcloud..."
 			"$pod_script_env_file" "shared:service:nextcloud:setup" \
 				${next_args[@]+"${next_args[@]}"}
 		fi
 
-		if [ "${var_shared__define_cron:-}" = 'true' ] && [ "${var_custom__local:-}" = 'false' ]; then
+		if [ "${var_shared__define_cron:-}" = 'true' ] && [ "${var_main__local:-}" = 'false' ]; then
 			"$pod_script_env_file" cron --task_info="$title"
 		fi
 		;;
@@ -675,10 +675,10 @@ case "$command" in
 		"$pod_script_cron_file" "${args[@]}"
 		;;
 	"shared:outer_proxy"|"local:shared:outer_proxy")
-		if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
+		if [ "${var_main__use_haproxy:-}" = 'true' ]; then
 			service='haproxy'
 			result_file_relpath="sync/$service/auto/ips-proxy.lst"
-		elif [ "${var_custom__use_nginx:-}" = 'true' ]; then
+		elif [ "${var_main__use_nginx:-}" = 'true' ]; then
 			service='nginx'
 			result_file_relpath="sync/$service/auto/ips-proxy.conf"
 		else
@@ -692,9 +692,9 @@ case "$command" in
 		if [ "$command" = "local:shared:outer_proxy" ]; then
 			output=''
 
-			if [ "${var_custom__use_haproxy:-}" = 'true' ]; then
+			if [ "${var_main__use_haproxy:-}" = 'true' ]; then
 				output='0.0.0.0/0'
-			elif [ "${var_custom__use_nginx:-}" = 'true' ]; then
+			elif [ "${var_main__use_nginx:-}" = 'true' ]; then
 				output='0.0.0.0/0 1;'
 			fi
 
@@ -707,7 +707,7 @@ case "$command" in
 				"$pod_script_env_file" "service:$service_param:reload"
 			fi
 		else
-			"$pod_script_env_file" "service:${var_custom__outer_proxy_type:-}:ips" \
+			"$pod_script_env_file" "service:${var_main__outer_proxy_type:-}:ips" \
 				--task_info="$title" \
 				--output_file_format="$output_file_format" \
 				--webservice="$service_param" \

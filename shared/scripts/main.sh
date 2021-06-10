@@ -249,23 +249,12 @@ case "$command" in
 			--amount_hour="$var_shared__block_ips__action_exec__amount_hour"
 		;;
 	"shared:create_secrets")
-		secrets_dir="$pod_data_dir/secrets"
-
-		if [ ! -d "$secrets_dir" ]; then
-			mkdir -p "$secrets_dir"
-		fi
-
-		while IFS='=' read -r key value; do
-			trimmed_key="$(echo "$key" | xargs)"
-
-			if [[ ! "$trimmed_key" == \#* ]]; then
-				if [[ "$trimmed_key" = */* ]]; then
-					error "$title: invalid file name (secret): $trimmed_key"
-				fi
-
-				echo -e "$(echo "$value" | xargs)" > "${secrets_dir}/${trimmed_key}.txt"
-			fi
-		done < "$pod_layer_dir/env/secrets.txt"
+		"$pod_script_env_file" "util:values_to_files" \
+			--task_info="$title" \
+			--src_file="$pod_layer_dir/env/secrets.txt" \
+			--dest_dir="$pod_data_dir/secrets" \
+			--file_extension=".txt" \
+			--remove_empty_values=''
 		;;
 	"build")
 		if [ "${var_main__use_main_network:-}" = 'true' ]; then
@@ -331,12 +320,32 @@ case "$command" in
 		"$pod_main_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"prepare")
+		use_wale=''
+
+		if [ "${var_main__use_wale:-}" = 'true' ] || [ "${var_main__use_wale_restore:-}" = 'true' ]; then
+			use_wale='true'
+		fi
+
+		if [ "$use_wale" = 'true' ]; then
+			"$pod_script_env_file" "util:values_to_files" \
+				--task_info="$title" \
+				--src_file="$pod_layer_dir/env/postgres/wale.conf" \
+				--dest_dir="$pod_data_dir/wale" \
+				--file_extension="" \
+				--remove_empty_values='true'
+		fi
+
 		data_dir="/var/main/data"
 
 		"$pod_script_env_file" up toolbox
 
 		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
 			set -eou pipefail
+
+			if [ "$use_wale" = 'true' ]; then
+				dir="$data_dir/wale"
+				chown -R 70:70 "\$dir"
+			fi
 
 			dir="$data_dir/sync"
 

@@ -60,6 +60,12 @@ while getopts ':-:' OPT; do
 		date_format ) arg_date_format="${OPTARG:-}";;
 		time_format ) arg_time_format="${OPTARG:-}";;
 		datetime_format ) arg_datetime_format="${OPTARG:-}";;
+
+		src_file ) arg_src_file="${OPTARG:-}";;
+		dest_dir ) arg_dest_dir="${OPTARG:-}";;
+		file_extension ) arg_file_extension="${OPTARG:-}";;
+		remove_empty_values ) arg_remove_empty_values="${OPTARG:-}";;
+
 		??* ) ;;	# bad long option
 		\? )	exit 2 ;;	# bad short option (error reported via getopts)
 	esac
@@ -117,6 +123,44 @@ case "$command" in
 	"util:urlencode")
 		# shellcheck disable=SC2016
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" jq -nr --arg v "${arg_value:-}" '$v|@uri'
+		;;
+	"util:values_to_files")
+		if [ -z "${arg_src_file:-}" ]; then
+			error "$title: src_file not specified"
+		fi
+
+		if [ -z "${arg_dest_dir:-}" ]; then
+			error "$title: dest_dir not specified"
+		fi
+
+		if [ ! -f "${arg_src_file:-}" ]; then
+			error "$title: src file not found (${arg_src_file:-})"
+		fi
+
+		if [ ! -d "$arg_dest_dir" ]; then
+			mkdir -p "$arg_dest_dir"
+		fi
+
+		while IFS='=' read -r key value; do
+			trimmed_key="$(echo "$key" | xargs)"
+
+			if [[ ! "$trimmed_key" == \#* ]]; then
+				if [[ "$trimmed_key" = */* ]]; then
+					error "$title: invalid file name (key): $trimmed_key"
+				fi
+
+				dest_file="${arg_dest_dir}/${trimmed_key}${arg_file_extension:-}"
+
+				if [ -z "$(echo "$value" | xargs)" ] && [ "${arg_remove_empty_values:-}" = 'true' ]; then
+					if [ -f "${dest_file:-}" ]; then
+						rm "${dest_file:-}"
+					fi
+				else
+					umask u=rwx,g=,o=
+					echo -e "$(echo "$value" | xargs)" > "${dest_file:-}"
+				fi
+			fi
+		done < "$arg_src_file"
 		;;
 	"util:file:type")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"

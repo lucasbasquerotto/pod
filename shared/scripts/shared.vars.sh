@@ -204,6 +204,7 @@ export var_main__use_s3="${var_load_use__s3:-}"
 export var_main__use_s3_cli_main="${var_load_use__s3_cli_main:-}"
 export var_main__use_local_s3="${var_load_use__local_s3:-}"
 export var_main__use_wale="${var_load_use__wale:-}"
+export var_main__use_wale_restore="${var_load_use__wale_restore:-}"
 
 if [ "$tmp_is_web" = 'true' ]; then
 	export var_main__use_nginx="${var_load_use__nginx:-}"

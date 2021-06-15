@@ -136,9 +136,15 @@ if [ "${var_load_main__pod_type:-}" = 'app' ] || [ "${var_load_main__pod_type:-}
 	tmp_is_db='true'
 fi
 
+tmp_db_backup_task_default="db:main:${var_load_main__db_service:-}:backup"
+tmp_db_backup_task="${var_load_main__db_backup_task:-$tmp_db_backup_task_default}"
+
+tmp_db_restore_task_default="db:main:${var_load_main__db_service:-}:restore"
+tmp_db_restore_task="${var_load_main__db_restore_task:-$tmp_db_restore_task_default}"
+
 if [ -n "${var_load_main__db_service:-}" ]; then
-	export var_load_main__db_backup_type="${var_load_main__db_backup_type:-$var_load_main__db_service}"
-	export var_load_main__db_restore_type="${var_load_main__db_restore_type:-$var_load_main__db_service}"
+	export var_load_main__db_backup_task="$tmp_db_backup_task"
+	export var_load_main__db_restore_task="$tmp_db_restore_task"
 fi
 
 # General
@@ -494,7 +500,7 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_backup" = 'true' ]; then
 		export var_task__db_backup__backup_task__dir_to_clear="${var_load__db_backup__dir_to_clear:-}"
 
 		export var_task__db_backup__backup_local__task_name="db_main"
-		export var_task__db_backup__backup_local__db_subtask_cmd="db:backup:${var_load_main__db_backup_type:-}"
+		export var_task__db_backup__backup_local__db_subtask_cmd="$tmp_db_backup_task"
 		export var_task__db_backup__backup_local__db_task_base_dir="$tmp_db_src_base_dir"
 
 		if [ "${var_load_main__db_backup_is_file:-}" = 'true' ]; then
@@ -602,7 +608,7 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 		export var_task__db_setup__setup_task__dir_to_clear="${var_load__db_setup__dir_to_clear:-}"
 
 		export var_task__db_setup__setup_verify__task_name='db_main'
-		export var_task__db_setup__setup_verify__db_subtask_cmd="db:restore:verify:${var_load_main__db_service:-}"
+		export var_task__db_setup__setup_verify__db_subtask_cmd="db:main:${var_load_main__db_service:-}:restore:verify"
 
 		export var_task__db_setup__setup_remote__restore_use_s3="${var_load__db_setup__restore_use_s3:-}"
 
@@ -660,7 +666,7 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 		fi
 
 		export var_task__db_setup__setup_local__task_name='db_main'
-		export var_task__db_setup__setup_local__db_subtask_cmd="db:restore:${var_load_main__db_restore_type:-}"
+		export var_task__db_setup__setup_local__db_subtask_cmd="$tmp_db_restore_task"
 		export var_task__db_setup__setup_local__db_task_base_dir="$tmp_db_dest_dir"
 		export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
 	elif [ "${var_load_enable__db_setup_sync:-}" = 'true' ]; then

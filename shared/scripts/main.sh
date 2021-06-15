@@ -6,6 +6,8 @@ pod_layer_dir="$var_pod_layer_dir"
 pod_script_env_file="$var_pod_script"
 pod_data_dir="$var_pod_data_dir"
 
+pod_script_db_file="$pod_layer_dir/shared/scripts/db.sh"
+
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
 }
@@ -35,6 +37,7 @@ while getopts ':-:' OPT; do
 		OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
 	fi
 	case "$OPT" in
+		task_name ) arg_task_name="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		only_if_needed )
 			arg_only_if_needed="${OPTARG:-}";
@@ -48,6 +51,7 @@ done
 shift $((OPTIND-1))
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
+pod_script_container_file="$pod_layer_dir/main/scripts/container.sh"
 log_run_file="$pod_layer_dir/shared/scripts/log.sh"
 test_run_file="$pod_layer_dir/shared/scripts/test.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
@@ -258,7 +262,7 @@ case "$command" in
 		;;
 	"build")
 		if [ "${var_main__use_main_network:-}" = 'true' ]; then
-			"$pod_script_env_file" "setup:main:network" ${next_args[@]+"${next_args[@]}"}
+			"$pod_script_env_file" "shared:setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ "${var_main__use_secrets:-}" = 'true' ]; then
@@ -663,6 +667,16 @@ case "$command" in
 	"shared:setup")
 		"$pod_main_run_file" setup
 		;;
+	"shared:setup:main:network")
+		default_name="${var_run__general__ctx_full_name}-network"
+		network_name="${var_run__general__shared_network:-$default_name}"
+		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
+
+		if [ -z "$network_result" ]; then
+			>&2 info "$command - creating the network $network_name..."
+			"$pod_script_container_file" network create -d bridge "$network_name"
+		fi
+		;;
 	"shared:setup:prepare:s3")
 		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = 'true' ]; then
 			cmd="s3:subtask:s3_backup"
@@ -675,6 +689,55 @@ case "$command" in
 			info "$command - $cmd - define the uploads bucket lifecycle policy"
 			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
 		fi
+		;;
+	"setup:verify:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_verify"
+		;;
+	"setup:local:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_local"
+		;;
+	"setup:remote:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_remote"
+		;;
+	"setup:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="setup_db"
+		;;
+	"backup:local:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_local"
+		;;
+	"backup:remote:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_remote"
+		;;
+	"backup:db")
+		"$pod_script_env_file" "db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="backup_db"
+		;;
+	"db:common"|"db:task:"*|"db:subtask:"*|"db:subtask"|"db:main:"*)
+		"$pod_script_db_file" "$command" ${args[@]+"${args[@]}"}
+		;;
+	"run:db:"*)
+		run_cmd="${command#run:}"
+		"$pod_script_db_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
 	"migrate")
 		if [ "${var_main__use_varnish:-}" = 'true' ]; then

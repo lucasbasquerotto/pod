@@ -44,6 +44,20 @@ db_common_param_names+=( "bucket_path" )
 db_common_param_names+=( "db_args" )
 db_common_param_names+=( "db_index_prefix" )
 
+db_subtask_param_names=()
+db_subtask_param_names+=( "db_service" )
+db_subtask_param_names+=( "db_cmd" )
+db_subtask_param_names+=( "db_name" )
+db_subtask_param_names+=( "db_host" )
+db_subtask_param_names+=( "db_port" )
+db_subtask_param_names+=( "db_user" )
+db_subtask_param_names+=( "db_pass" )
+db_subtask_param_names+=( "db_tls" )
+db_subtask_param_names+=( "db_tls_ca_cert" )
+db_subtask_param_names+=( "authentication_database" )
+db_subtask_param_names+=( "db_connect_wait_secs" )
+db_subtask_param_names+=( "connection_sleep" )
+
 db_common_args=()
 
 # shellcheck disable=SC2214
@@ -142,7 +156,7 @@ case "$command" in
 
 		opts+=( "${db_common_args[@]}" )
 
-		"$pod_script_env_file" "db:subtask" "${opts[@]}" ${db_common_args[@]+"${db_common_args[@]}"}
+		"$pod_script_env_file" "db:subtask" "${opts[@]}"
 		;;
 	"db:subtask")
 		prefix="var_task__${arg_task_name}__db_subtask_"
@@ -155,19 +169,7 @@ case "$command" in
 		opts+=( "--toolbox_service=$toolbox_service" )
 		opts+=( "${db_common_args[@]}" )
 
-		param_names=()
-		param_names+=( "db_service" )
-		param_names+=( "db_cmd" )
-		param_names+=( "db_name" )
-		param_names+=( "db_host" )
-		param_names+=( "db_port" )
-		param_names+=( "db_user" )
-		param_names+=( "db_pass" )
-		param_names+=( "db_tls" )
-		param_names+=( "db_tls_ca_cert" )
-		param_names+=( "authentication_database" )
-		param_names+=( "db_connect_wait_secs" )
-		param_names+=( "connection_sleep" )
+		param_names=( "${db_subtask_param_names[@]}" )
 
 		for param_name in "${param_names[@]}"; do
 			arg_var_param_name="${prefix}_${param_name}"

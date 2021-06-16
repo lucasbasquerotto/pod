@@ -668,7 +668,10 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 		export var_task__db_setup__setup_local__task_name='db_main'
 		export var_task__db_setup__setup_local__db_subtask_cmd="$tmp_db_restore_task"
 		export var_task__db_setup__setup_local__db_task_base_dir="$tmp_db_dest_dir"
-		export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
+
+		if [ "${var_load_main__db_restore_is_file:-}" = 'true' ]; then
+			export var_task__db_setup__setup_local__db_file_name="$tmp_db_file_name"
+		fi
 	elif [ "${var_load_enable__db_setup_sync:-}" = 'true' ]; then
 		if [ -z "${var_load__db_setup_sync__dest_dir_relpath:-}" ]; then
 			tmp_errors+=("[shared] var_load__db_setup_sync__dest_dir_relpath is not defined")

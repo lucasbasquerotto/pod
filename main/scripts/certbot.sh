@@ -81,10 +81,18 @@ case "$command" in
 		fi
 
 		if [ "${arg_force:-}" != "true" ]; then
-			has_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				test -f "$data_file_done" && echo "true" || echo "false")"
+			has_file="$(\
+				"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
+					test -f "$data_file_done" >&2 && echo "true" || echo "false"
+				SHELL
+			)"
 
 			if [ "$has_file" != "false" ]; then
+				if [ "$has_file" != "true" ]; then
+					msg_aux="existence of file $data_file_done is not known"
+					error "$title: couldn't determine if certificate was already generated or not ($msg_aux)"
+				fi
+
 				info "$command: Certificate already generated (delete the file $data_file_done to generate again)"
 				exit
 			fi

@@ -148,17 +148,7 @@ case "$command" in
 
 		opts+=( "--task_name=$task_name" )
 		opts+=( "--subtask_cmd=$command" )
-
-		param_names=()
-		param_names+=( "db_subtask_cmd" )
-
-		for param_name in "${param_names[@]}"; do
-			arg_param_name="arg_$param_name"
-
-			if [ -n "${!arg_param_name:-}" ]; then
-				opts+=( "--${param_name}=${!arg_param_name:-}" )
-			fi
-		done
+		opts+=( "--db_subtask_cmd=${arg_db_subtask_cmd:-}" )
 
 		opts+=( "${db_common_args[@]}" )
 

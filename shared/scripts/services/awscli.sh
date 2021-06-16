@@ -46,8 +46,10 @@ while getopts ':-:' OPT; do
 		s3_lifecycle_file ) arg_s3_lifecycle_file="${OPTARG:-}";;
 		s3_acl ) arg_s3_acl="${OPTARG:-}";;
 		s3_remote_src ) arg_s3_remote_src="${OPTARG:-}" ;;
+		s3_src_alias ) ;;
 		s3_src ) arg_s3_src="${OPTARG:-}" ;;
 		s3_remote_dest ) arg_s3_remote_dest="${OPTARG:-}" ;;
+		s3_dest_alias ) ;;
 		s3_dest ) arg_s3_dest="${OPTARG:-}";;
 		s3_path ) arg_s3_path="${OPTARG:-}";;
 		s3_file ) arg_s3_file="${OPTARG:-}";;

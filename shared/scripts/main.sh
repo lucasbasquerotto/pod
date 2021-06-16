@@ -47,6 +47,7 @@ pod_script_container_file="$pod_layer_dir/main/scripts/container.sh"
 
 pod_script_db_file="$pod_layer_dir/shared/scripts/db.sh"
 log_run_file="$pod_layer_dir/shared/scripts/log.sh"
+pod_script_s3_file="$pod_layer_dir/shared/scripts/s3.sh"
 pod_script_services_file="$pod_layer_dir/shared/scripts/services.sh"
 test_run_file="$pod_layer_dir/shared/scripts/test.sh"
 
@@ -225,131 +226,6 @@ case "$command" in
 	"action:exec:block_ips")
 		"$pod_script_services_file" block_ips ${args[@]+"${args[@]}"}
 		;;
-	"shared:create_secrets")
-		"$pod_script_env_file" "util:values_to_files" \
-			--task_info="$title" \
-			--src_file="$pod_layer_dir/env/secrets.txt" \
-			--dest_dir="$pod_data_dir/secrets" \
-			--file_extension=".txt" \
-			--remove_empty_values=''
-		;;
-	"shared:setup:main:network")
-		default_name="${var_run__general__ctx_full_name}-network"
-		network_name="${var_run__general__shared_network:-$default_name}"
-		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
-
-		if [ -z "$network_result" ]; then
-			>&2 info "$command - creating the network $network_name..."
-			"$pod_script_container_file" network create -d bridge "$network_name"
-		fi
-		;;
-	"shared:setup:prepare:s3")
-		if [ "${var_run__general__define_s3_backup_lifecycle:-}" = 'true' ]; then
-			cmd="s3:subtask:s3_backup"
-			info "$command - $cmd - define the backup bucket lifecycle policy"
-			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
-		fi
-
-		if [ "${var_run__general__define_s3_uploads_lifecycle:-}" = 'true' ]; then
-			cmd="s3:subtask:s3_uploads"
-			info "$command - $cmd - define the uploads bucket lifecycle policy"
-			>&2 "$pod_script_env_file" "$cmd" --s3_cmd=lifecycle --task_info="$title"
-		fi
-		;;
-	"setup:verify:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="setup_verify"
-		;;
-	"setup:local:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="setup_local"
-		;;
-	"setup:remote:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="setup_remote"
-		;;
-	"setup:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="setup_db"
-		;;
-	"backup:local:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="backup_local"
-		;;
-	"backup:remote:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="backup_remote"
-		;;
-	"backup:db")
-		"$pod_script_env_file" "db:common" \
-			--task_info="$title" \
-			--task_name="$arg_task_name" \
-			--db_common_prefix="backup_db"
-		;;
-	"db:common"|"db:task:"*|"db:subtask:"*|"db:subtask"|"db:main:"*)
-		"$pod_script_db_file" "$command" ${args[@]+"${args[@]}"}
-		;;
-	"shared:outer_proxy"|"local:shared:outer_proxy")
-		"$pod_script_services_file" outer_proxy ${args[@]+"${args[@]}"}
-		;;
-	"shared:s3:replicate:backup")
-		task_name='s3_backup_replica'
-
-		opts=()
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--s3_cmd=sync" )
-
-		opts+=( "--s3_src_alias=backup" )
-		opts+=( "--s3_remote_src=true" )
-		opts+=( "--s3_bucket_src_name=$var_task__s3_backup__s3_subtask__bucket_name" )
-		opts+=( "--s3_bucket_src_path=${var_task__s3_backup__s3_subtask__bucket_path:-}" )
-
-		opts+=( "--s3_dest_alias=backup_replica" )
-		opts+=( "--s3_remote_dest=true" )
-		opts+=( "--s3_bucket_dest_name=$var_task__s3_backup_replica__s3_subtask__bucket_name" )
-		opts+=( "--s3_bucket_dest_path=${var_task__s3_backup_replica__s3_subtask__bucket_path:-}" )
-
-		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
-		;;
-	"shared:s3:replicate:uploads")
-		task_name='s3_uploads_replica'
-
-		opts=()
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-		opts+=( "--s3_cmd=sync" )
-
-		opts+=( "--s3_src_alias=uploads" )
-		opts+=( "--s3_remote_src=true" )
-		opts+=( "--s3_bucket_src_name=$var_task__s3_uploads__s3_subtask__bucket_name" )
-		opts+=( "--s3_bucket_src_path=${var_task__s3_uploads__s3_subtask__bucket_path:-}" )
-
-		opts+=( "--s3_dest_alias=uploads_replica" )
-		opts+=( "--s3_remote_dest=true" )
-		opts+=( "--s3_bucket_dest_name=$var_task__s3_uploads_replica__s3_subtask__bucket_name" )
-		opts+=( "--s3_bucket_dest_path=${var_task__s3_uploads_replica__s3_subtask__bucket_path:-}" )
-
-		"$pod_script_env_file" "s3:subtask" "${opts[@]}"
-		;;
 	"delete:old")
 		info "$command - clear old files"
 		>&2 "$pod_script_env_file" up toolbox
@@ -378,6 +254,33 @@ case "$command" in
 				fi
 			done
 		SHELL
+		;;
+	"shared:create_secrets")
+		"$pod_script_env_file" "util:values_to_files" \
+			--task_info="$title" \
+			--src_file="$pod_layer_dir/env/secrets.txt" \
+			--dest_dir="$pod_data_dir/secrets" \
+			--file_extension=".txt" \
+			--remove_empty_values=''
+		;;
+	"shared:setup:main:network")
+		default_name="${var_run__general__ctx_full_name}-network"
+		network_name="${var_run__general__shared_network:-$default_name}"
+		network_result="$("$pod_script_container_file" network ls --format "{{.Name}}" | grep "^${network_name}$" ||:)"
+
+		if [ -z "$network_result" ]; then
+			>&2 info "$command - creating the network $network_name..."
+			"$pod_script_container_file" network create -d bridge "$network_name"
+		fi
+		;;
+	"shared:db:"*|"db:main:"*|"db:task:"*|"db:subtask:"*|"db:subtask")
+		"$pod_script_db_file" "$command" ${args[@]+"${args[@]}"}
+		;;
+	"shared:s3:"*|"s3:main:"*|"s3:task:"*|"s3:subtask:"*|"s3:subtask")
+		"$pod_script_s3_file" "$command" ${args[@]+"${args[@]}"}
+		;;
+	"shared:outer_proxy"|"local:shared:outer_proxy")
+		"$pod_script_services_file" outer_proxy ${args[@]+"${args[@]}"}
 		;;
 	"service:"*|"shared:service:"*)
 		"$pod_script_services_file" "$command" ${args[@]+"${args[@]}"}

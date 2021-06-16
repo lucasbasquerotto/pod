@@ -468,7 +468,7 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_backup" = 'true' ]; then
 		tmp_db_tmp_dir="/tmp/main/tmp/backup/${var_load_main__db_service:-}"
 
 		export var_task__db_backup__task__type='backup'
-		export var_task__db_backup__backup_task__subtask_cmd_local='backup:local:db'
+		export var_task__db_backup__backup_task__subtask_cmd_local='shared:db:task:backup_local'
 		export var_task__db_backup__backup_task__subtask_cmd_remote='backup:remote:default'
 		export var_task__db_backup__backup_task__is_compressed_file="${var_load__db_backup__is_compressed_file:-}"
 
@@ -588,9 +588,9 @@ if [ "$tmp_is_db" = 'true' ] && [ "$tmp_enable_db_setup" = 'true' ]; then
 
 		export var_task__db_setup__task__type='setup'
 		export var_task__db_setup__setup_task__verify_file_to_skip="$tmp_file_to_skip"
-		export var_task__db_setup__setup_task__subtask_cmd_verify='setup:verify:db'
+		export var_task__db_setup__setup_task__subtask_cmd_verify='shared:db:task:setup_verify'
 		export var_task__db_setup__setup_task__subtask_cmd_remote='setup:remote:default'
-		export var_task__db_setup__setup_task__subtask_cmd_local='setup:local:db'
+		export var_task__db_setup__setup_task__subtask_cmd_local='shared:db:task:setup_local'
 		export var_task__db_setup__setup_task__is_compressed_file="${var_load__db_setup__is_compressed_file:-}"
 
 		if [ "${var_task__db_setup__setup_task__is_compressed_file:-}" = 'true' ]; then
@@ -754,6 +754,7 @@ if [ -n "${var_load__s3_backup__bucket_name:-}" ]; then
 	export var_task__s3_backup__s3_subtask__bucket_path="${var_load__s3_backup__bucket_path:-}"
 	export var_task__s3_backup__s3_subtask__cli="${var_load__s3_backup__cli:-awscli}"
 	export var_task__s3_backup__s3_subtask__endpoint="${var_load__s3_backup__endpoint:-}"
+	export var_task__s3_backup__s3_subtask__lifecycle_dir="${var_load__s3_backup__lifecycle_dir:-}"
 	export var_task__s3_backup__s3_subtask__lifecycle_file="${var_load__s3_backup__lifecycle_file:-}"
 	export var_task__s3_backup__s3_subtask__acl="${var_load__s3_backup__acl:-private}"
 fi
@@ -781,6 +782,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 		export var_task__s3_uploads__s3_subtask__bucket_path="${var_load__s3_uploads__bucket_path:-}"
 		export var_task__s3_uploads__s3_subtask__cli="${var_load__s3_uploads__cli:-awscli}"
 		export var_task__s3_uploads__s3_subtask__endpoint="${var_load__s3_uploads__endpoint:-}"
+		export var_task__s3_uploads__s3_subtask__lifecycle_dir="${var_load__s3_uploads__lifecycle_dir:-}"
 		export var_task__s3_uploads__s3_subtask__lifecycle_file="${var_load__s3_uploads__lifecycle_file:-}"
 		export var_task__s3_uploads__s3_subtask__acl="${var_load__s3_uploads__acl:-public-read}"
 	fi

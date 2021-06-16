@@ -6,7 +6,6 @@ pod_layer_dir="$var_pod_layer_dir"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
-pod_script_db_file="$pod_layer_dir/shared/scripts/db.sh"
 pod_script_mysql_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
 pod_script_mongo_file="$pod_layer_dir/shared/scripts/services/mongo.sh"
 pod_script_postgres_file="$pod_layer_dir/shared/scripts/services/postgres.sh"
@@ -89,7 +88,14 @@ title=''
 title="${title}${command}"
 
 case "$command" in
-	"db:common")
+	"shared:db:task:"*)
+		subtask_name="${command#shared:db:task:}"
+		"$pod_script_env_file" "shared:db:common" \
+			--task_info="$title" \
+			--task_name="$arg_task_name" \
+			--db_common_prefix="$subtask_name"
+		;;
+	"shared:db:common")
 		prefix="var_task__${arg_task_name}__${arg_db_common_prefix}_"
 
 		param_task_name="${prefix}_task_name"
@@ -179,7 +185,7 @@ case "$command" in
 			fi
 		done
 
-		"$pod_script_db_file" "$arg_db_subtask_cmd" "${opts[@]}"
+		"$pod_script_env_file" "$arg_db_subtask_cmd" "${opts[@]}"
 		;;
 	"db:main:mysql:"*)
 		"$pod_script_mysql_file" "$command" ${args[@]+"${args[@]}"}

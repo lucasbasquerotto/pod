@@ -405,7 +405,7 @@ case "$command" in
 		fi
 
 		if [ "${var_main__local:-}" = 'false' ]; then
-			"$pod_script_env_file" "shared:setup:prepare:s3" --task_info="$title"
+			"$pod_script_env_file" "shared:s3:setup:prepare" --task_info="$title"
 		fi
 
 		if [ "${var_main__use_mongo:-}" = 'true' ]; then

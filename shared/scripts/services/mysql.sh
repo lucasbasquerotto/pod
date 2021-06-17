@@ -68,6 +68,15 @@ case "$command" in
 	"db:main:mysql:restore:verify")
 		tables="$("$pod_script_env_file" "db:main:mysql:tables:count" ${args[@]+"${args[@]}"})"
 
+		re_number='^[0-9]+$'
+		error_msg='number of tables in the database could not be determined'
+
+		if  [ -z "$tables" ]; then
+			error "$command: $error_msg (empty response)"
+		elif ! [[ $tables =~ $re_number ]]; then
+			error "$command: $error_msg (invalid: $tables)"
+		fi
+
 		>&2 echo "$tables tables found"
 
 		if [ "$tables" != "0" ]; then
@@ -81,8 +90,8 @@ case "$command" in
 			"$pod_script_env_file" up "$arg_db_service"
 		fi
 
-		sql_tables="select count(*) from information_schema.tables where table_schema = '$arg_db_name'"
-		re_number='^[0-9]+$'
+		sql_tables="select count(*) from information_schema.tables where table_schema = '${arg_db_name:-}'"
+		db_connect_wait_secs="${arg_db_connect_wait_secs:-30}"
 		cmd_args=( 'exec-nontty' )
 
 		if [ "${arg_db_cmd:-}" = "run" ]; then
@@ -97,31 +106,33 @@ case "$command" in
 				exit 2
 			}
 
-			end=\$((SECONDS+$arg_db_connect_wait_secs))
+			end=\$((SECONDS+$db_connect_wait_secs))
 			tables=""
 
 			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
 				current=\$((end-SECONDS))
-				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
+				msg="$db_connect_wait_secs seconds - \$current second(s) remaining"
 
 				if [ "${arg_db_remote:-}" = "true" ]; then
-					>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
+					>&2 echo "wait for the remote database ${arg_db_name:-} (at ${arg_db_host:-}) to be ready (\$msg)"
 					sql_output="\$(mysql \
-						--host="$arg_db_host" \
-						--port="$arg_db_port" \
-						--user="$arg_db_user" \
-						--password="$arg_db_pass" \
-						-N -e "$sql_tables" 2>&1)" ||:
+						--host="${arg_db_host:-}" \
+						--port="${arg_db_port:-}" \
+						--user="${arg_db_user:-}" \
+						--password="${arg_db_pass:-}" \
+						-N -e "$sql_tables" ||:)"
 				else
-					>&2 echo "wait for the local database $arg_db_name to be ready (\$msg)"
-					sql_output="\$(mysql -u "$arg_db_user" -p"$arg_db_pass" -N -e "$sql_tables" 2>&1)" ||:
+					>&2 echo "wait for the local database ${arg_db_name:-} to be ready (\$msg)"
+					sql_output="\$(mysql -u "${arg_db_user:-}" -p"${arg_db_pass:-}" -N -e "$sql_tables" ||:)"
 				fi
 
 				if [ -n "\$sql_output" ]; then
 					tables="\$(echo "\$sql_output" | tail -n 1)"
 				fi
 
-				if ! [[ \$tables =~ $re_number ]] ; then
+				re_number='^[0-9]+$'
+
+				if ! [[ \$tables =~ \$re_number ]] ; then
 					tables=""
 				fi
 
@@ -133,7 +144,7 @@ case "$command" in
 				fi
 			done
 
-			error "$title: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
+			error "$title: couldn't verify number of tables in the database ${arg_db_name:-} - output:\n\$sql_output"
 		SHELL
 		;;
 	"db:main:mysql:restore:file")
@@ -186,7 +197,7 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
 			set -eou pipefail
 			mkdir -p "$(dirname -- "$backup_file")"
-			mysqldump -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name" > "$backup_file"
+			mysqldump -u "${arg_db_user:-}" -p"${arg_db_pass:-}" "${arg_db_name:-}" > "$backup_file"
 		SHELL
 
 		echo "$backup_file"

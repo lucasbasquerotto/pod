@@ -113,17 +113,20 @@ case "$command" in
 				current=\$((end-SECONDS))
 				msg="$db_connect_wait_secs seconds - \$current second(s) remaining"
 
+				pass_arg=()
+				[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password="${arg_db_pass:-}" )
+
 				if [ "${arg_db_remote:-}" = "true" ]; then
 					>&2 echo "wait for the remote database ${arg_db_name:-} (at ${arg_db_host:-}) to be ready (\$msg)"
 					sql_output="\$(mysql \
 						--host="${arg_db_host:-}" \
 						--port="${arg_db_port:-}" \
 						--user="${arg_db_user:-}" \
-						--password="${arg_db_pass:-}" \
+						\${pass_arg[@]+"\${pass_arg[@]}"} \
 						-N -e "$sql_tables" ||:)"
 				else
 					>&2 echo "wait for the local database ${arg_db_name:-} to be ready (\$msg)"
-					sql_output="\$(mysql -u "${arg_db_user:-}" -p"${arg_db_pass:-}" -N -e "$sql_tables" ||:)"
+					sql_output="\$(mysql -u "${arg_db_user:-}" \${pass_arg[@]+"\${pass_arg[@]}"} -N -e "$sql_tables" ||:)"
 				fi
 
 				if [ -n "\$sql_output" ]; then

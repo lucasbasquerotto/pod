@@ -104,9 +104,6 @@ case "$command" in
 esac
 
 case "$command" in
-	"inner:test")
-		echo "this is a test command"
-		;;
 	"env")
 		"$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
 		;;

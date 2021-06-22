@@ -204,7 +204,7 @@ case "$command" in
 				msg="${arg_restore_remote_file:-} to ${arg_restore_dest_file:-}"
 				info "$command - restore from remote file ($msg)"
 				>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-					curl -L -o "$arg_restore_dest_file" -k "$arg_restore_remote_file"
+					curl --fail --silent --show-error -L -o "$arg_restore_dest_file" -k "$arg_restore_remote_file"
 			elif [ "$arg_restore_use_s3" = "true" ] && [ "$arg_restore_s3_sync" != "true" ]; then
 				if [ -z "${arg_restore_bucket_path_file:-}" ]; then
 					error "$title: restore_bucket_path_file parameter is empty"

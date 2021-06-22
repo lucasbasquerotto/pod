@@ -69,7 +69,7 @@ case "$command" in
 		>&2 "$pod_script_env_file" exec-nontty "$arg_nginx_service" nginx -s reload
 		;;
 	"service:nginx:basic_status")
-		"$pod_script_env_file" exec-nontty toolbox curl -sSL "http://nginx:9081/nginx/basic_status"
+		"$pod_script_env_file" exec-nontty toolbox curl --fail --silent --show-error -L "http://nginx:9081/nginx/basic_status"
 		;;
 	"service:nginx:block_ips")
 		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"

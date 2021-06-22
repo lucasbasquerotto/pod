@@ -2,6 +2,7 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
+inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_layer_dir="$var_pod_layer_dir"
 # shellcheck disable=SC2154
@@ -580,57 +581,57 @@ case "$command" in
 		fi
 		;;
 	"action:verify:"*)
-		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" \
+			"$inner_run_file" "inner:action:verify:$arg_task_name" ${args[@]+"${args[@]}"}
+		;;
+	"inner:action:verify:"*)
+		dir="$arg_action_dir"
+		file="${dir}/$arg_task_name"
+		new_file="${dir}/$arg_task_name.running"
 
-			dir="$arg_action_dir"
-			file="\${dir}/$arg_task_name"
-			new_file="\${dir}/$arg_task_name.running"
+		if [ ! -d "$arg_action_dir" ]; then
+			mkdir -p "$arg_action_dir"
+		fi
 
-			if [ ! -d "$arg_action_dir" ]; then
-				mkdir -p "$arg_action_dir"
+		if [ -f "$new_file" ]; then
+			echo "false"
+		elif [ "${arg_action_skip_check:-}" = "true" ] || [ -f "$file" ]; then
+			echo "$$" >> "$new_file"
+
+			if [ "${arg_action_skip_check:-}" != "true" ]; then
+				>&2 rm -f "$file"
 			fi
 
-			if [ -f "\$new_file" ]; then
-				echo "false"
-			elif [ "${arg_action_skip_check:-}" = "true" ] || [ -f "\$file" ]; then
-				echo "$$" >> "\$new_file"
+			pid="$(head -n 1 "$new_file")"
 
-				if [ "${arg_action_skip_check:-}" != "true" ]; then
-					>&2 rm -f "\$file"
-				fi
-
-				pid="\$(head -n 1 "\$new_file")"
-
-				if [ "\$pid" = "$$" ]; then
-					echo "true"
-				else
-					echo "false"
-				fi
+			if [ "$pid" = "$$" ]; then
+				echo "true"
 			else
 				echo "false"
 			fi
-		SHELL
+		else
+			echo "false"
+		fi
 		;;
 	"action:remove:"*)
-		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" \
+			"$inner_run_file" "inner:action:remove:$arg_task_name" ${args[@]+"${args[@]}"}
+		;;
+	"inner:action:remove:"*)
+		dir="$arg_action_dir"
+		file="${dir}/$arg_task_name.running"
+		error_file="${dir}/$arg_task_name.error"
+		done_file="${dir}/$arg_task_name.done"
+		result_file="$done_file"
 
-			dir="$arg_action_dir"
-			file="\${dir}/$arg_task_name.running"
-			error_file="\${dir}/$arg_task_name.error"
-			done_file="\${dir}/$arg_task_name.done"
-			result_file="\$done_file"
-
-			if [ -f "\$file" ]; then
-				if [ "${arg_status:-}" != "0" ]; then
-					result_file="\$error_file"
-				fi
-
-				echo "\$(date '+%F %T')" > "\$result_file"
-				rm -f "\$file"
+		if [ -f "$file" ]; then
+			if [ "${arg_status:-}" != "0" ]; then
+				result_file="$error_file"
 			fi
-		SHELL
+
+			date '+%F %T' > "$result_file"
+			rm -f "$file"
+		fi
 
 		if [ "${arg_status:-}" != "0" ]; then
 			error "$command exited with status ${arg_status:-}"
@@ -663,7 +664,7 @@ case "$command" in
 		info "$command: run-this-one ${args[*]}"
 		run-this-one "${args[@]}" || error "$title"
 		;;
-	"run:container:image:"*)
+	"run:container:image:"*|"inner:container:image:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
@@ -685,7 +686,7 @@ case "$command" in
 			--no_colors="${var_run__meta__no_colors:-}" \
 			${args[@]+"${args[@]}"}
 		;;
-	"util:"*|"run:util:"*)
+	"util:"*|"run:util:"*|"inner:util:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_util_file" "$run_cmd" \
 			--toolbox_service="$var_run__general__toolbox_service" \

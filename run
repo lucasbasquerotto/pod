@@ -124,7 +124,7 @@ else
 fi
 
 if [ "${var_load_main__inner:-}" != 'true' ]; then
-	bash "${var_pod_script}" "util:info:start" --title="[end] $command"
+	bash "${var_pod_script}" "util:info:end" --title="[end] $command"
 
 	end="$(date '+%F %T')"
 	bash "${var_pod_script}" "util:info:summary" --title="[main] $command" --start="$start" --end="$end"

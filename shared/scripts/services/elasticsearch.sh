@@ -194,7 +194,7 @@ case "$command" in
 				>&2 echo "wait for elasticsearch to be ready (\$msg)"
 
 
-				if curl --fail -sS -u "elastic:$elasticsearch_password" \
+				if curl --fail --silent --show-error -u "elastic:$elasticsearch_password" \
 						--cacert "${arg_db_tls_ca_cert:-}" \
 						"$url" >&2; then
 					success=true
@@ -231,13 +231,13 @@ case "$command" in
 			echo "accessing the url $url..." >&2
 
 			if [ "${arg_db_tls:-}" = 'true' ]; then
-				output="\$(curl --fail -sS \
+				output="\$(curl --fail --silent --show-error \
 						-u "elastic:$elasticsearch_password" \
 						--cacert "${arg_db_tls_ca_cert:-}" \
 						"$url" \
 					)"
 			else
-				output="\$(curl --fail -sS "$url")"
+				output="\$(curl --fail --silent --show-error "$url")"
 			fi
 
 			lines="\$(echo "\$output" | wc -l)"

@@ -2,6 +2,7 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
+inner_run_file="/var/main/scripts/run"
 pod_layer_dir="$var_pod_layer_dir"
 pod_script_env_file="$var_pod_script"
 pod_data_dir="$var_pod_data_dir"
@@ -230,6 +231,10 @@ case "$command" in
 		info "$command - clear old files"
 		>&2 "$pod_script_env_file" up toolbox
 
+		"$pod_script_env_file" exec-nontty toolbox "$inner_run_file" "inner:delete:old"
+		;;
+	"inner:delete:old")
+		info "$command - clear old files"
 		dirs=( "/var/log/main/" "/tmp/main/tmp/" )
 
 		re_number='^[0-9]+$'
@@ -241,19 +246,16 @@ case "$command" in
 		fi
 
 		info "$command - create the backup base directory and clear old files"
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
-			set -eou pipefail
 
-			for dir in "${dirs[@]}"; do
-				if [ -d "\$dir" ]; then
-					# remove old files and directories
-					find "\$dir" -mindepth 1 -ctime +$delete_old_days -delete -print;
+		for dir in "${dirs[@]}"; do
+			if [ -d "$dir" ]; then
+				info "$command - remove old files and directories inside $dir"
+				find "$dir" -mindepth 1 -ctime "+$delete_old_days" -delete -print;
 
-					# remove old and empty directories
-					find "\$dir" -mindepth 1 -type d -ctime +$delete_old_days -empty -delete -print;
-				fi
-			done
-		SHELL
+				info "$command - remove old and empty directories inside $dir"
+				find "$dir" -mindepth 1 -type d -ctime "+$delete_old_days" -empty -delete -print;
+			fi
+		done
 		;;
 	"shared:create_secrets")
 		"$pod_script_env_file" "util:values_to_files" \

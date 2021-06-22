@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
+inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
@@ -22,6 +23,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -58,23 +61,26 @@ title="${title}${command}"
 
 case "$command" in
 	"container:image:tag:exists")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:container:image:tag:exists" ${args[@]+"${args[@]}"}
+		;;
+	"inner:container:image:tag:exists")
+		result="$(curl --fail --silent --show-error -H "Content-Type: application/json" -X POST \
+			-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
+			"${arg_registry_api_base_url}/users/login/")"
 
-			>&2 token="\$(curl -sS -H "Content-Type: application/json" -X POST \
-				-d '{"username": "'"${arg_username}"'", "password": "'"${arg_userpass}"'"}' \
-				"${arg_registry_api_base_url}/users/login/" | jq -r .token)"
+		token="$(echo "$result" | jq -r .token)"
 
-			>&2 exists="\$(curl -sS -H "Authorization: JWT \${token}" \
-				"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000" | \
-				jq -r "[.results | .[] | .name == \"${arg_version}\"] | any")"
+		result="$(curl --fail --silent --show-error -H "Authorization: JWT ${token}" \
+			"${arg_registry_api_base_url}/repositories/${arg_repository}/tags/?page_size=10000")"
 
-			if [ "\$exists" = "true" ]; then
-				echo "true"
-			else
-				echo "false"
-			fi
-		SHELL
+		exists="$(echo "$result" | jq -r "[.results | .[] | .name == \"${arg_version}\"] | any")"
+
+		if [ "$exists" = "true" ]; then
+			echo "true"
+		else
+			echo "false"
+		fi
 		;;
 	"container:image:push")
 		registry="${arg_registry_host:-}"

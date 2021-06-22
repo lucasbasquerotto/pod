@@ -76,7 +76,7 @@ case "$command" in
 			echo -e "HAProxy Sessions"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-			curl --silent "http://haproxy:9081/stats;csv" \
+			curl --fail --silent --show-error "http://haproxy:9081/stats;csv" \
 				| grep -e pxname -e FRONTEND -e BACKEND \
 				| cut -d "," -f 1,2,5-8,34,35 \
 				| column -s, -t
@@ -85,7 +85,7 @@ case "$command" in
 			echo -e "HAProxy - Requests"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-			curl --silent "http://haproxy:9081/stats;csv" \
+			curl --fail --silent --show-error "http://haproxy:9081/stats;csv" \
 				| grep -e pxname -e FRONTEND -e BACKEND \
 				| cut -d "," -f 1,2,11,47,48,78,79 \
 				| column -s, -t
@@ -94,7 +94,7 @@ case "$command" in
 			echo -e "HAProxy - IO & Status"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-			curl --silent "http://haproxy:9081/stats;csv" \
+			curl --fail --silent --show-error "http://haproxy:9081/stats;csv" \
 				| grep -e pxname -e FRONTEND -e BACKEND \
 				| cut -d "," -f 1,2,9,10,41-44 \
 				| column -s, -t

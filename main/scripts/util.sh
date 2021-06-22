@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
+inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
@@ -29,6 +30,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -163,68 +166,68 @@ case "$command" in
 		done < "$arg_src_file"
 		;;
 	"util:file:type")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			if [ -f "${arg_path:-}" ]; then
-				echo "file"
-			elif [ -d "${arg_path:-}" ]; then
-				echo "dir"
-			else
-				echo "path (${arg_path:-}) not found" >&2
-				exit 2
-			fi
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:util:file:type" ${args[@]+"${args[@]}"}
+		;;
+	"inner:util:file:type")
+		if [ -f "${arg_path:-}" ]; then
+			echo "file"
+		elif [ -d "${arg_path:-}" ]; then
+			echo "dir"
+		else
+			echo "path (${arg_path:-}) not found" >&2
+			exit 2
+		fi
 		;;
 	"util:replace_placeholders")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:util:replace_placeholders" ${args[@]+"${args[@]}"}
+		;;
+	"inner:util:replace_placeholders")
+		inner_str="${arg_value:-}"
 
-			inner_str="${arg_value:-}"
+		regex_empty="\[\[[ ]*\]\]"
 
-			regex_empty="\[\[[ ]*\]\]"
+		if [[ "$inner_str" =~ $regex_empty ]]; then
+			empty=''
+			shopt -s extglob && inner_str="${inner_str//[[][[]*( )[]][]]/$empty}"
+		fi
 
-			if [[ "\$inner_str" =~ \$regex_empty ]]; then
-				empty=''
-				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )[]][]]/\$empty}"
-			fi
+		regex_random="\[\[[ ]*random[ ]*\]\]"
 
-			regex_random="\[\[[ ]*random[ ]*\]\]"
+		if [[ "$inner_str" =~ $regex_random ]]; then
+			random=$((RANDOM * RANDOM))
+			shopt -s extglob && inner_str="${inner_str//[[][[]*( )random*( )[]][]]/$random}"
+		fi
 
-			if [[ "\$inner_str" =~ \$regex_random ]]; then
-				random=\$((RANDOM * RANDOM))
-				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )random*( )[]][]]/\$random}"
-			fi
+		regex_date="\[\[[ ]*date[ ]*\]\]"
+		date_format="${arg_date_format:-}"
 
-			regex_date="\[\[[ ]*date[ ]*\]\]"
-			date_format="${arg_date_format:-}"
+		if [[ $inner_str =~ $regex_date ]]; then
+			default_date_format='%Y%m%d'
+			date="$(date "+${date_format:-$default_date_format}")"
+			shopt -s extglob && inner_str="${inner_str//[[][[]*( )date*( )[]][]]/$date}"
+		fi
 
-			if [[ \$inner_str =~ \$regex_date ]]; then
-				default_date_format='%Y%m%d'
-				date="\$(date "+\${date_format:-\$default_date_format}")"
-				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )date*( )[]][]]/\$date}"
-			fi
+		regex_time="\[\[[ ]*time[ ]*\]\]"
+		time_format="${arg_time_format:-}"
 
-			regex_time="\[\[[ ]*time[ ]*\]\]"
-			time_format="${arg_time_format:-}"
+		if [[ $inner_str =~ $regex_time ]]; then
+			default_time_format='%H%M%S'
+			time="$(date "+${time_format:-$default_time_format}")"
+			shopt -s extglob && inner_str="${inner_str//[[][[]*( )time*( )[]][]]/$time}"
+		fi
 
-			if [[ \$inner_str =~ \$regex_time ]]; then
-				default_time_format='%H%M%S'
-				time="\$(date "+\${time_format:-\$default_time_format}")"
-				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )time*( )[]][]]/\$time}"
-			fi
+		regex_datetime="\[\[[ ]*datetime[ ]*\]\]"
+		datetime_format="${arg_datetime_format:-}"
 
-			regex_datetime="\[\[[ ]*datetime[ ]*\]\]"
-			datetime_format="${arg_datetime_format:-}"
+		if [[ $inner_str =~ $regex_datetime ]]; then
+			default_datetime_format='%Y%m%d.%H%M%S'
+			datetime="$(date "+${datetime_format:-$default_datetime_format}")"
+			shopt -s extglob && inner_str="${inner_str//[[][[]*( )datetime*( )[]][]]/$datetime}"
+		fi
 
-			if [[ \$inner_str =~ \$regex_datetime ]]; then
-				default_datetime_format='%Y%m%d.%H%M%S'
-				datetime="\$(date "+\${datetime_format:-\$default_datetime_format}")"
-				shopt -s extglob && inner_str="\${inner_str//[[][[]*( )datetime*( )[]][]]/\$datetime}"
-			fi
-
-			echo "\$inner_str"
-		SHELL
+		echo "$inner_str"
 		;;
 	*)
 		error "$command: invalid command"

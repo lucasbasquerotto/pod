@@ -2,10 +2,10 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
-inner_run_file="/var/main/scripts/run"
 pod_layer_dir="$var_pod_layer_dir"
 pod_script_env_file="$var_pod_script"
 pod_data_dir="$var_pod_data_dir"
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"

@@ -2,11 +2,12 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
-inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_layer_dir="$var_pod_layer_dir"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
 pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestration.sh"

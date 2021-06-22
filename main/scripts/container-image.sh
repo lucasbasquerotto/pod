@@ -1,9 +1,10 @@
 #!/bin/bash
 set -eou pipefail
 
-inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"

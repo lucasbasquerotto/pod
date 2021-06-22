@@ -118,6 +118,10 @@ case "$command" in
 		fi
 		;;
 	"uncompress:zip")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:uncompress:zip" ${args[@]+"${args[@]}"}
+		;;
+	"inner:uncompress:zip")
 		if [ -z "${arg_src_file:-}" ]; then
 			error "$title: src_file parameter not specified"
 		fi
@@ -139,18 +143,13 @@ case "$command" in
 			zip_opts=( "-P" "$arg_compress_pass" )
 		fi
 
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		if [ ! -d "$arg_dest_dir" ]; then
+			mkdir -p "$arg_dest_dir"
+		fi
 
-			if [ ! -d "$arg_dest_dir" ]; then
-				mkdir -p "$arg_dest_dir"
-			fi
-		SHELL
-
-		msg="$arg_src_file to $arg_dest_dir (inside toolbox)"
+		msg="$arg_src_file to $arg_dest_dir"
 		info "$command - uncompress file - $msg"
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			unzip -o ${zip_opts[@]+"${zip_opts[@]}"} "$arg_src_file" -d "$arg_dest_dir"
+		unzip -o ${zip_opts[@]+"${zip_opts[@]}"} "$arg_src_file" -d "$arg_dest_dir"
 		;;
 	*)
 		error "$title: invalid command"

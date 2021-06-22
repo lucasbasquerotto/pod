@@ -171,6 +171,42 @@ case "$command" in
 			--dest_dir="/tmp/main/test/newdest/pass" \
 			--compress_pass="123456"
 		;;
+	"inner:shared:test:unzip")
+		rm -rf /tmp/main/test/newdest/
+
+		mkdir -p /tmp/main/test/newdest/file
+		mkdir -p /tmp/main/test/newdest/dir
+		mkdir -p /tmp/main/test/newdest/flat
+		mkdir -p /tmp/main/test/newdest/pass
+
+		"$pod_script_env_file" "inner:uncompress:zip" \
+			--task_info="test-2.1 - $command" \
+			--toolbox_service="toolbox" \
+			--src_file="/tmp/main/test/dest/file.zip" \
+			--dest_dir="/tmp/main/test/newdest/file" \
+			--compress_pass=""
+
+		"$pod_script_env_file" "inner:uncompress:zip" \
+			--task_info="test-2.2 - $command" \
+			--toolbox_service="toolbox" \
+			--src_file="/tmp/main/test/dest/dir.zip" \
+			--dest_dir="/tmp/main/test/newdest/dir" \
+			--compress_pass=""
+
+		"$pod_script_env_file" "inner:uncompress:zip" \
+			--task_info="test-2.3 - $command" \
+			--toolbox_service="toolbox" \
+			--src_file="/tmp/main/test/dest/flat.zip" \
+			--dest_dir="/tmp/main/test/newdest/flat" \
+			--compress_pass=""
+
+		"$pod_script_env_file" "inner:uncompress:zip" \
+			--task_info="test-2.4 - $command" \
+			--toolbox_service="toolbox" \
+			--src_file="/tmp/main/test/dest/pass.zip" \
+			--dest_dir="/tmp/main/test/newdest/pass" \
+			--compress_pass="123456"
+		;;
 	*)
 		error "$command: invalid command"
 		;;

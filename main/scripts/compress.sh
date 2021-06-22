@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 
+inner_run_file="/var/main/scripts/run"
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
 
@@ -22,6 +23,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -52,6 +55,10 @@ title="${title}${command}"
 
 case "$command" in
 	"compress:zip")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:compress:zip" ${args[@]+"${args[@]}"}
+		;;
+	"inner:compress:zip")
 		if [ -z "${arg_dest_file:-}" ]; then
 			error "$title: dest_file parameter not specified"
 		fi
@@ -75,44 +82,35 @@ case "$command" in
 			zip_opts=( "--password" "$arg_compress_pass" )
 		fi
 
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		dest_file_base_dir="$(dirname "$arg_dest_file")"
 
-			dest_file_base_dir="\$(dirname "$arg_dest_file")"
-
-			if [ ! -d "\$dest_file_base_dir" ]; then
-				mkdir -p "\$dest_file_base_dir"
-			fi
-		SHELL
+		if [ ! -d "$dest_file_base_dir" ]; then
+			mkdir -p "$dest_file_base_dir"
+		fi
 
 		if [ "$arg_task_kind" = "dir" ]; then
-			msg="$arg_src_dir to $arg_dest_file (inside toolbox)"
+			msg="$arg_src_dir to $arg_dest_file"
 			info "$command - compress directory - $msg"
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-				set -eou pipefail
 
-				if [ "${arg_flat:-}" = "true" ]; then
-					cd "$arg_src_dir"
-					zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./
-				else
-					base_dir="\$(dirname "$arg_src_dir")"
-					main_dir="\$(basename "$arg_src_dir")"
-					cd "\$base_dir"
-					zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./"\$main_dir"
-				fi
-			SHELL
+			if [ "${arg_flat:-}" = "true" ]; then
+				cd "$arg_src_dir"
+				zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./
+			else
+				base_dir="$(dirname "$arg_src_dir")"
+				main_dir="$(basename "$arg_src_dir")"
+				cd "$base_dir"
+				zip -r ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" ./"$main_dir"
+			fi
 		elif [ "$arg_task_kind" = "file" ]; then
-			msg="$arg_src_file to $arg_dest_file (inside toolbox)"
+			msg="$arg_src_file to $arg_dest_file"
 
 			if [ "$arg_src_file" != "$arg_dest_file" ]; then
 				if [ "${arg_src_file##*.}" = "$expected_extension" ]; then
 					info "$command - move file - $msg"
-					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-						mv "$arg_src_file" "$arg_dest_file"
+					mv "$arg_src_file" "$arg_dest_file"
 				else
 					info "$command - compress file - $msg"
-					>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-						zip -j ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" "$arg_src_file"
+					zip -j ${zip_opts[@]+"${zip_opts[@]}"} "$arg_dest_file" "$arg_src_file"
 				fi
 			fi
 		else

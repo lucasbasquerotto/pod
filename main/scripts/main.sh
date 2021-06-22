@@ -96,7 +96,7 @@ start="$(date '+%F %T')"
 case "$command" in
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"ash"|"zsh"|"bash"|"system:df" \
-		|"util:"*|"run:util:"*)
+		|"util:"*|"run:util:"*|"summary:"*)
 		;;
 	*)
 		"$pod_script_env_file" "util:info:start" --title="$title"
@@ -667,7 +667,7 @@ case "$command" in
 		run_cmd="${command#run:}"
 		"$pod_script_container_image_file" "$run_cmd" ${args[@]+"${args[@]}"}
 		;;
-	"run:compress:"*|"run:uncompress:"*)
+	"run:compress:"*|"inner:compress:"*|"run:uncompress:"*|"inner:uncompress:"*)
 		run_cmd="${command#run:}"
 		"$pod_script_compress_file" "$run_cmd" \
 			--toolbox_service="$var_run__general__toolbox_service" \
@@ -691,6 +691,17 @@ case "$command" in
 			--toolbox_service="$var_run__general__toolbox_service" \
 			${args[@]+"${args[@]}"}
 		;;
+	"summary:"*)
+		run_cmd="${command#summary:}"
+		"$pod_script_env_file" "util:info:start" --title="$title"
+
+		"$pod_script_env_file" "$run_cmd"
+
+		"$pod_script_env_file" "util:info:end" --title="$title"
+
+		end_cmd="$(date '+%F %T')"
+		"$pod_script_env_file" "util:info:summary" --title="$title" --start="$start" --end="$end_cmd"
+		;;
 	*)
 		error "$command: invalid command"
 		;;
@@ -701,7 +712,7 @@ end="$(date '+%F %T')"
 case "$command" in
 	"up"|"down"|"rm"|"exec-nontty"|"build"|"run-main"|"run"|"stop"|"exec"|"kill" \
 		|"restart"|"logs"|"ps"|"ps-run"|"sh"|"ash"|"zsh"|"bash"|"system:df" \
-		|"util:"*|"run:util:"*)
+		|"util:"*|"run:util:"*|"summary:"*)
 		;;
 	*)
 		"$pod_script_env_file" "util:info:end" --title="$title"

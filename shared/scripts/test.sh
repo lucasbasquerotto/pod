@@ -85,6 +85,49 @@ case "$command" in
 			--dest_file="/tmp/main/test/dest/pass.zip" \
 			--compress_pass="123456"
 		;;
+	"inner:shared:test:zip")
+		rm -rf /tmp/main/test/src/
+		rm -rf /tmp/main/test/dest/
+		mkdir -p /tmp/main/test/src/dir/
+		mkdir -p /tmp/main/test/dest
+
+		echo "\$(date '+%F %X') - test 1 ($$)" > /tmp/main/test/src/file1.txt
+		echo "\$(date '+%F %X') - test 2 ($$)" > /tmp/main/test/src/dir/file2.txt
+		echo "\$(date '+%F %X') - test 3 ($$)" > /tmp/main/test/src/dir/file3.txt
+		echo "\$(date '+%F %X') - test 4 ($$)" > /tmp/main/test/src/dir/file4.txt
+
+		mkdir -p /tmp/main/test/dest/
+
+		"$pod_script_env_file" "inner:compress:zip" \
+			--task_info="test-1.1 - $command" \
+			--toolbox_service="toolbox" \
+			--task_kind="file" \
+			--src_file="/tmp/main/test/src/file1.txt" \
+			--dest_file="/tmp/main/test/dest/file.zip"
+
+		"$pod_script_env_file" "inner:compress:zip" \
+			--task_info="test-1.2 - $command" \
+			--toolbox_service="toolbox" \
+			--task_kind="dir" \
+			--src_dir="/tmp/main/test/src/dir" \
+			--dest_file="/tmp/main/test/dest/dir.zip"
+
+		"$pod_script_env_file" "inner:compress:zip" \
+			--task_info="test-1.3 - $command" \
+			--toolbox_service="toolbox" \
+			--task_kind="dir" \
+			--src_dir="/tmp/main/test/src/dir" \
+			--dest_file="/tmp/main/test/dest/flat.zip" \
+			--flat="true"
+
+		"$pod_script_env_file" "inner:compress:zip" \
+			--task_info="test-1.4 - $command" \
+			--toolbox_service="toolbox" \
+			--task_kind="file" \
+			--src_file="/tmp/main/test/src/dir/file2.txt" \
+			--dest_file="/tmp/main/test/dest/pass.zip" \
+			--compress_pass="123456"
+		;;
 	"shared:test:unzip")
 		"$pod_script_env_file" up "toolbox"
 

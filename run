@@ -3,16 +3,15 @@ set -eou pipefail
 
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-command="${1:-}"
-
 function error {
-	msg="$(date '+%F %T') - ${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${command}: ${*}"
-	>&2 echo -e "${RED}${msg}${NC}"
+	echo -e "[error] $(date '+%F %T') - ${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${command}: ${*}" >&2
 	exit 2
 }
+
+[ "${var_run__meta__no_stacktrace:-}" != 'true' ] \
+	&& trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO"; exit $LINENO;' ERR
+
+start="$(date '+%F %T')"
 
 if [ -z "$pod_layer_dir" ]; then
 	error "[error] enter the vars directory parameter"
@@ -26,6 +25,8 @@ export var_pod_layer_dir="$pod_layer_dir"
 
 # shellcheck disable=SC1090
 . "${pod_layer_dir}/vars.sh"
+
+command="${1:-}"
 
 tmp_load_file="$pod_layer_dir/vars.sh file"
 
@@ -59,6 +60,10 @@ if [ -z "${var_pod_data_dir:-}" ]; then
 	error "[error] var_pod_data_dir was not loaded from the file $tmp_load_file"
 fi
 
+if [ "${var_load_main__inner:-}" != 'true' ]; then
+	bash "${var_pod_script}" "util:info:start" --title="[begin] $command"
+fi
+
 if [ "$command" = '__skip__' ]; then
 	echo "skipping..."
 elif [ -n "${data_dir:-}" ]; then
@@ -82,8 +87,10 @@ elif [ -n "${data_dir:-}" ]; then
 	log_file_tmp="${script_log_file_dir}/tmp.run.$(date '+%Y-%m-%d.%H-%M-%S').$$.log"
 
 	{
-		echo "#######################################################################"
-		echo "$(date '+%F %T') [base-run] [$command] [log] start ($pod_layer_dir)"
+		if [ "${var_load_main__inner:-}" != 'true' ]; then
+			echo "#######################################################################"
+			echo "$(date '+%F %T') [main: $command] [log] start ($pod_layer_dir)"
+		fi
 
 		bash "${var_pod_script}" "${@}" && status=$? || status=$?
 
@@ -91,8 +98,10 @@ elif [ -n "${data_dir:-}" ]; then
 			error "$command - exited with status $status"
 		fi
 
-		echo "$(date '+%F %T') [base-run] [$command] [log] end ($pod_layer_dir)"
-		echo "#######################################################################"
+		if [ "${var_load_main__inner:-}" != 'true' ]; then
+			echo "$(date '+%F %T') [main: $command] [log] end ($pod_layer_dir)"
+			echo "#######################################################################"
+		fi
 	} 2>&1 | "${teecmd[@]}" --append "$log_file_tmp"
 
 	log_file="${script_log_file_dir}/run.$(date '+%Y-%m-%d').log"
@@ -112,4 +121,11 @@ else
 	if [[ $status -ne 0 ]]; then
 		error "$command - exited with status $status"
 	fi
+fi
+
+if [ "${var_load_main__inner:-}" != 'true' ]; then
+	bash "${var_pod_script}" "util:info:start" --title="[end] $command"
+
+	end="$(date '+%F %T')"
+	bash "${var_pod_script}" "util:info:summary" --title="[main] $command" --start="$start" --end="$end"
 fi

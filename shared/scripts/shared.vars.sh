@@ -21,10 +21,6 @@ if [ -z "${var_load_general__script_env_file:-}" ]; then
 	tmp_errors+=("[shared] var_load_general__script_env_file is not defined")
 fi
 
-if [ -z "${var_load_general__main_base_dir:-}" ]; then
-	tmp_errors+=("[shared] var_load_general__main_base_dir is not defined")
-fi
-
 if [ -z "${var_load_main__data_dir:-}" ]; then
 	tmp_errors+=("[shared] var_load_main__data_dir is not defined")
 fi
@@ -65,7 +61,7 @@ fi
 
 # Database
 
-if [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then
+if [ "${var_load_main__db_service:-}" != '' ] && [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then
 	tmp_info="db: ${var_load_main__allow_custom_db_service:-}"
 
 	case "${var_load_main__db_service:-}" in
@@ -113,8 +109,6 @@ if [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then
 			if [ -z "${var_load__db_main__db_host:-}" ]; then
 				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_host is not defined")
 			fi
-			;;
-		'')
 			;;
 		*)
 			tmp_errors+=("[shared] var_load_main__db_service value is unsupported (${var_load_main__db_service:-})")

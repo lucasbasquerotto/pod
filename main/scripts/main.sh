@@ -104,6 +104,9 @@ case "$command" in
 esac
 
 case "$command" in
+	"inner:test")
+		echo "this is a test command"
+		;;
 	"env")
 		"$pod_script_env_file" "$inner_cmd" ${args[@]+"${args[@]}"}
 		;;
@@ -128,6 +131,23 @@ case "$command" in
 		"$pod_script_env_file" "main:task:$task_name" \
 			--task_info="$title" \
 			--local="true"
+		;;
+	"main:inner:vars")
+		{
+			# shellcheck disable=SC1090,SC1091
+			. "${pod_layer_dir}/vars.sh"
+			echo "var_load_main__inner=true";
+			echo "var_load_main__data_dir=${var_load_main__data_dir:-}";
+			echo "var_load_main__instance_index=${var_load_main__instance_index:-}";
+			echo "var_load_main__local=${var_load_main__local:-}";
+			echo "var_load_main__pod_type=${var_load_main__pod_type:-}";
+			echo "var_load_meta__no_colors=${var_load_meta__no_colors:-}";
+			echo "var_load_meta__no_info=${var_load_meta__no_info:-}";
+			echo "var_load_meta__no_info_wrap=${var_load_meta__no_info_wrap:-}";
+			echo "var_load_meta__no_stacktrace=${var_load_meta__no_stacktrace:-}";
+			echo "var_load_meta__no_summary=${var_load_meta__no_summary:-}";
+			echo "var_load_script_path=${var_load_script_path:-}";
+		} > "$pod_layer_dir/env/vars.inner.sh"
 		;;
 	"main:task:"*)
 		task_name="${command#main:task:}"

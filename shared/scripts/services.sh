@@ -59,13 +59,15 @@ title=''
 title="${title}${command}"
 
 case "$command" in
-	"build")
-		if [ "${var_main__use_main_network:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:setup:main:network" ${next_args[@]+"${next_args[@]}"}
-		fi
+	"before:upgrade")
+		"$pod_script_env_file" "main:inner:vars"
 
 		if [ "${var_main__use_secrets:-}" = 'true' ]; then
 			"$pod_script_env_file" "shared:create_secrets"
+		fi
+
+		if [ "${var_main__use_main_network:-}" = 'true' ]; then
+			"$pod_script_env_file" "shared:setup:main:network" ${next_args[@]+"${next_args[@]}"}
 		fi
 
 		if [ -n "${var_run__general__s3_cli:-}" ]; then

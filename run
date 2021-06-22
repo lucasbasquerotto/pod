@@ -23,17 +23,18 @@ fi
 
 export var_pod_layer_dir="$pod_layer_dir"
 
+tmp_load_file="$pod_layer_dir/vars.sh"
+
 # shellcheck disable=SC1090
-. "${pod_layer_dir}/vars.sh"
+. "$tmp_load_file"
 
 command="${1:-}"
 
-tmp_load_file="$pod_layer_dir/vars.sh file"
-
 if [ -n "${var_load_script_path:-}" ]; then
-	# shellcheck disable=SC1090
-	. "${pod_layer_dir}/${var_load_script_path}"
 	tmp_load_file="${pod_layer_dir}/${var_load_script_path}"
+
+	# shellcheck disable=SC1090
+	. "$tmp_load_file"
 fi
 
 if [ -z "${var_pod_vars_dir:-}" ]; then
@@ -58,6 +59,10 @@ fi
 
 if [ -z "${var_pod_data_dir:-}" ]; then
 	error "[error] var_pod_data_dir was not loaded from the file $tmp_load_file"
+fi
+
+if [ -z "${var_inner_scripts_dir:-}" ]; then
+	error "[error] var_inner_scripts_dir was not loaded from the file $tmp_load_file"
 fi
 
 if [ "${var_load_main__inner:-}" != 'true' ]; then

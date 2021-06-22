@@ -59,6 +59,8 @@ if [ -z "${data_dir:-}" ] && [ -n "${var_data_dir_rel:-}" ]; then
 	export var_pod_data_dir="$tmp_pod_layer_dir/$var_data_dir_rel"
 fi
 
+export var_inner_scripts_dir="${var_load_main__inner_scripts_dir:-/var/main/scripts}"
+
 # Database
 
 if [ "${var_load_main__db_service:-}" != '' ] && [ "${var_load_main__allow_custom_db_service:-}" != 'true' ]; then

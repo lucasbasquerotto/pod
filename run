@@ -3,8 +3,6 @@ set -eou pipefail
 
 pod_layer_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
@@ -23,10 +21,6 @@ fi
 if [ ! -f "$pod_layer_dir/vars.sh" ]; then
 	error "[error] there is no such file $pod_layer_dir/vars.sh"
 fi
-
-start="$(date '+%F %T')"
-msg="[base-run] [$command] start ($pod_layer_dir)"
-echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
 
 export var_pod_layer_dir="$pod_layer_dir"
 
@@ -119,9 +113,3 @@ else
 		error "$command - exited with status $status"
 	fi
 fi
-
-end="$(date '+%F %T')"
-msg="[base-run] [$command] end ($pod_layer_dir)"
-echo -e "${CYAN}$(date '+%F %T') ${msg}${NC}"
-
-echo -e "${GREEN}[base-run] [$command] summary - $start to $end ${NC}"

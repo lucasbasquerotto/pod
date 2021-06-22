@@ -288,7 +288,7 @@ case "$command" in
 	"shared:log:"*)
 		"$log_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
-	"shared:test:"*)
+	"shared:test:"*|"inner:shared:test"|"inner:shared:test:"*)
 		"$test_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	*)

@@ -405,21 +405,6 @@ case "$command" in
 
 		"$pod_script_remote_file" backup "${opts[@]}"
 		;;
-	"certbot:task:"*)
-		task_name="${command#certbot:task:}"
-		prefix="var_task__${task_name}__certbot_task_"
-
-		param_certbot_cmd="${prefix}_certbot_cmd"
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--certbot_cmd=${!param_certbot_cmd}" )
-
-		"$pod_script_env_file" "certbot:subtask" "${opts[@]}"
-		;;
 	"verify")
 		"$pod_script_env_file" "main:task:$var_run__tasks__verify" \
 			--task_info="$title"

@@ -10,6 +10,7 @@ inner_run_file="$var_inner_scripts_dir/run"
 awscli_run_file="$pod_layer_dir/shared/scripts/services/awscli.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
+elasticsearch_run_file="$pod_layer_dir/shared/scripts/services/elasticsearch.sh"
 haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
 mc_run_file="$pod_layer_dir/shared/scripts/services/mc.sh"
 mongo_run_file="$pod_layer_dir/shared/scripts/services/mongo.sh"
@@ -597,6 +598,16 @@ case "$command" in
 				--secret="$var_shared__nextcloud__s3_uploads__secret_key"
 		fi
 		;;
+	"service:awscli:"*|"inner:service:awscli:"*)
+		"$awscli_run_file" "$command" \
+			--s3_service="s3_cli" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:cloudflare:"*|"inner:service:cloudflare:"*)
+		"$cloudflare_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			${args[@]+"${args[@]}"}
+		;;
 	"service:cron")
 		"$cron_run_file" \
 			--cron_src="$pod_layer_dir/${var_shared__cron__src:-}" \
@@ -606,14 +617,10 @@ case "$command" in
 	"service:cron:custom")
 		"$cron_run_file" "${args[@]}"
 		;;
-	"service:awscli:"*|"inner:service:awscli:"*)
-		"$awscli_run_file" "$command" \
-			--s3_service="s3_cli" \
-			${args[@]+"${args[@]}"}
-		;;
-	"service:cloudflare:"*|"inner:service:cloudflare:"*)
-		"$cloudflare_run_file" "$command" \
+	"service:elasticsearch:"*|"inner:service:elasticsearch:"*)
+		"$elasticsearch_run_file" "$command" \
 			--toolbox_service="toolbox" \
+			--db_service="elasticsearch" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:haproxy:"*|"inner:service:haproxy:"*)

@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -98,65 +100,61 @@ case "$command" in
 	"db:main:mongo:collections:count")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		re_number='^[0-9]+$'
 		cmd_args=( "exec-nontty" )
 
 		if [ "${arg_db_cmd:-}" = "run" ]; then
 			cmd_args=( "run" )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
+			"$inner_run_file" "inner:service:mongo:collections:count" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:mongo:collections:count")
+		re_number='^[0-9]+$'
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') (inside) - \${*}"
-				exit 2
-			}
+		end=$((SECONDS+arg_db_connect_wait_secs))
+		tables=""
 
-			end=\$((SECONDS+$arg_db_connect_wait_secs))
-			tables=""
+		while [ -z "$tables" ] && [ $SECONDS -lt $end ]; do
+			current=$((end-SECONDS))
+			msg="$arg_db_connect_wait_secs seconds - $current second(s) remaining"
 
-			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
-				current=\$((end-SECONDS))
-				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
+			if [ "${arg_db_remote:-}" = "true" ]; then
+				>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready ($msg)"
+				output="$(mongo "mongo/$arg_db_name" \
+					--host="$arg_db_host" \
+					--port="$arg_db_port" \
+					--username="$arg_db_user" \
+					--password="$arg_db_pass" \
+					--authenticationDatabase="$arg_authentication_database" \
+					--eval "db.stats().collections" 2>&1)" ||:
+			else
+				>&2 echo "wait for the local database $arg_db_name to be ready ($msg)"
+				output="$(mongo "mongo/$arg_db_name" \
+					--username="$arg_db_user" \
+					--password="$arg_db_pass" \
+					--authenticationDatabase="$arg_authentication_database" \
+					--eval "db.stats().collections" 2>&1)" ||:
+			fi
 
-				if [ "${arg_db_remote:-}" = "true" ]; then
-					>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready (\$msg)"
-					output="\$(mongo "mongo/$arg_db_name" \
-						--host="$arg_db_host" \
-						--port="$arg_db_port" \
-						--username="$arg_db_user" \
-						--password="$arg_db_pass" \
-						--authenticationDatabase="$arg_authentication_database" \
-						--eval "db.stats().collections" 2>&1)" ||:
-				else
-					>&2 echo "wait for the local database $arg_db_name to be ready (\$msg)"
-					output="\$(mongo "mongo/$arg_db_name" \
-						--username="$arg_db_user" \
-						--password="$arg_db_pass" \
-						--authenticationDatabase="$arg_authentication_database" \
-						--eval "db.stats().collections" 2>&1)" ||:
-				fi
+			if [ -n "$output" ]; then
+				collections="$(echo "$output" | tail -n 1)"
+			fi
 
-				if [ -n "\$output" ]; then
-					collections="\$(echo "\$output" | tail -n 1)"
-				fi
+			if ! [[ $collections =~ $re_number ]] ; then
+				collections=""
+			fi
 
-				if ! [[ \$collections =~ $re_number ]] ; then
-					collections=""
-				fi
+			if [ -z "$collections" ]; then
+				sleep "${arg_connection_sleep:-5}"
+			else
+				echo "$collections"
+				exit
+			fi
+		done
 
-				if [ -z "\$collections" ]; then
-					sleep "${arg_connection_sleep:-5}"
-				else
-					echo "\$collections"
-					exit
-				fi
-			done
-
-			msg="Couldn't verify number of collections in the database $arg_db_name"
-			error "$title: \$msg - output:\n\$output"
-		SHELL
+		msg="Couldn't verify number of collections in the database $arg_db_name"
+		error "$title: $msg - output:\n$output"
 		;;
 	"db:main:mongo:restore:verify")
 		collections="$("$pod_script_env_file" "db:main:mongo:collections:count" ${args[@]+"${args[@]}"})"
@@ -175,39 +173,37 @@ case "$command" in
 		msg="backup database ($arg_db_name)"
 		msg="$msg to directory $arg_db_task_base_dir/$arg_db_name (inside service)"
 		info "$command: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-			rm -rf "$arg_db_task_base_dir/$arg_db_name"
-			mkdir -p "$arg_db_task_base_dir"
-			mongodump \
-				--host="$arg_db_host" \
-				--port="$arg_db_port" \
-				--username="$arg_db_user" \
-				--password="$arg_db_pass" \
-				--db="$arg_db_name" \
-				--authenticationDatabase="$arg_authentication_database" \
-				--out="$arg_db_task_base_dir"
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
+			"$inner_run_file" "inner:service:mongo:backup" ${args[@]+"${args[@]}"}
 
 		echo ""
+		;;
+	"inner:service:mongo:backup")
+		rm -rf "${arg_db_task_base_dir:?}/$arg_db_name"
+		mkdir -p "$arg_db_task_base_dir"
+		mongodump \
+			--host="$arg_db_host" \
+			--port="$arg_db_port" \
+			--username="$arg_db_user" \
+			--password="$arg_db_pass" \
+			--db="$arg_db_name" \
+			--authenticationDatabase="$arg_authentication_database" \
+			--out="$arg_db_task_base_dir"
 		;;
 	"db:main:mongo:restore:dir")
 		"$pod_script_env_file" up "$arg_db_service"
 
 		info "$command: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-			mongorestore \
-				--host="$arg_db_host" \
-				--port="$arg_db_port" \
-				--username="$arg_db_user" \
-				--password="$arg_db_pass" \
-				--nsInclude="$arg_db_name.*" \
-				--authenticationDatabase="$arg_authentication_database" \
-				--objcheck \
-				--stopOnError \
-				"$arg_db_task_base_dir"
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" mongorestore \
+			--host="$arg_db_host" \
+			--port="$arg_db_port" \
+			--username="$arg_db_user" \
+			--password="$arg_db_pass" \
+			--nsInclude="$arg_db_name.*" \
+			--authenticationDatabase="$arg_authentication_database" \
+			--objcheck \
+			--stopOnError \
+			"$arg_db_task_base_dir"
 		;;
 	*)
 		error "$command: invalid command"

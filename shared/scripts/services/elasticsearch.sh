@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -41,6 +43,7 @@ while getopts ':-:' OPT; do
 		db_tls_ca_cert ) arg_db_tls_ca_cert="${OPTARG:-}" ;;
 		db_host ) arg_db_host="${OPTARG:-}" ;;
 		db_port ) arg_db_port="${OPTARG:-}" ;;
+		db_pass ) arg_db_pass="${OPTARG:-}" ;;
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_index_prefix ) arg_db_index_prefix="${OPTARG:-}" ;;
 		repository_name ) arg_repository_name="${OPTARG:-}" ;;
@@ -158,62 +161,74 @@ case "$command" in
 		;;
 	"db:main:elasticsearch:pass")
 		if [ "${arg_db_tls:-}" = 'true' ]; then
-			"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-				set -eou pipefail
-				pass_file="\$(printenv | grep ELASTIC_PASSWORD_FILE | cut -f 2- -d '=' ||:)"
+			"$pod_script_env_file" exec-nontty "$arg_db_service" \
+				"$inner_run_file" "inner:service:elasticsearch:pass" ${args[@]+"${args[@]}"}
+		fi
+		;;
+	"inner:service:elasticsearch:pass")
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			pass_file="$(printenv | grep ELASTIC_PASSWORD_FILE | cut -f 2- -d '=' ||:)"
 
-				if [ -n "\$pass_file" ]; then
-					cat "\$pass_file"
-				else
-					printenv | grep ELASTIC_PASSWORD | cut -f 2- -d '=' ||:
-				fi
-			SHELL
+			if [ -n "$pass_file" ]; then
+				cat "$pass_file"
+			else
+				printenv | grep ELASTIC_PASSWORD | cut -f 2- -d '=' ||:
+			fi
 		fi
 		;;
 	"db:main:elasticsearch:ready")
-		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service" > /dev/null
+		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
+		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:elasticsearch:ready" \
+			--db_pass="$db_pass" \
+			${args[@]+"${args[@]}"}
+		;;
+	"inner:service:elasticsearch:ready")
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
 
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port"
 		url="$url_base/_cluster/health?wait_for_status=yellow"
 
-		elasticsearch_password="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+		timeout="${arg_db_connect_wait_secs:-150}"
+		end=$((SECONDS+timeout))
+		success=false
 
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		while [ $SECONDS -lt $end ]; do
+			current=$((end-SECONDS))
+			msg="$timeout seconds - $current second(s) remaining"
+			>&2 echo "wait for elasticsearch to be ready ($msg)"
 
-			timeout="${arg_db_connect_wait_secs:-150}"
-			end=\$((SECONDS+\$timeout))
-			success=false
-
-			while [ \$SECONDS -lt \$end ]; do
-				current=\$((end-SECONDS))
-				msg="\$timeout seconds - \$current second(s) remaining"
-				>&2 echo "wait for elasticsearch to be ready (\$msg)"
-
-
-				if curl --fail --silent --show-error -u "elastic:$elasticsearch_password" \
-						--cacert "${arg_db_tls_ca_cert:-}" \
-						"$url" >&2; then
-					success=true
-					echo '' >&2
-					echo "> elasticsearch is ready" >&2
-					break
-				fi
-
-				sleep 5
-			done
-
-			if [ "\$success" != 'true' ]; then
-				echo "timeout while waiting for elasticsearch" >&2
-				exit 2
+			if curl --fail --silent --show-error -u "elastic:$arg_db_pass" \
+					--cacert "${arg_db_tls_ca_cert:-}" \
+					"$url" >&2; then
+				success=true
+				echo '' >&2
+				echo "> elasticsearch is ready" >&2
+				break
 			fi
-		SHELL
+
+			sleep 5
+		done
+
+		if [ "$success" != 'true' ]; then
+			echo "timeout while waiting for elasticsearch" >&2
+			exit 2
+		fi
 		;;
 	"db:main:elasticsearch:restore:verify")
-		"$pod_script_env_file" "db:main:elasticsearch:ready" ${args[@]+"${args[@]}"}
+		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:elasticsearch:restore:verify" \
+			--db_pass="$db_pass" \
+			${args[@]+"${args[@]}"}
+		;;
+	"inner:service:elasticsearch:restore:verify")
+		"$pod_script_env_file" "inner:service:elasticsearch:ready" ${args[@]+"${args[@]}"}
 
 		db_scheme='http'
 		[ "${arg_db_tls:-}" = 'true' ] && db_scheme='https'
@@ -221,33 +236,28 @@ case "$command" in
 		url_base="${db_scheme}://$arg_db_host:$arg_db_port/_cat/indices"
 		url="$url_base/${arg_db_index_prefix}*?s=index&pretty"
 
-		elasticsearch_password="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
-
 		msg="verify if the database has indexes with prefix ($arg_db_index_prefix)"
 		info "$command: $arg_db_service - $msg"
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
 
-			echo "accessing the url $url..." >&2
+		echo "accessing the url $url..." >&2
 
-			if [ "${arg_db_tls:-}" = 'true' ]; then
-				output="\$(curl --fail --silent --show-error \
-						-u "elastic:$elasticsearch_password" \
-						--cacert "${arg_db_tls_ca_cert:-}" \
-						"$url" \
-					)"
-			else
-				output="\$(curl --fail --silent --show-error "$url")"
-			fi
+		if [ "${arg_db_tls:-}" = 'true' ]; then
+			output="$(curl --fail --silent --show-error \
+					-u "elastic:$arg_db_pass" \
+					--cacert "${arg_db_tls_ca_cert:-}" \
+					"$url" \
+				)"
+		else
+			output="$(curl --fail --silent --show-error "$url")"
+		fi
 
-			lines="\$(echo "\$output" | wc -l)"
+		lines="$(echo "$output" | wc -l)"
 
-			if [ -n "\$output" ] && [[ "\$lines" -ge 1 ]]; then
-				echo "true"
-			else
-				echo "false"
-			fi
-		SHELL
+		if [ -n "$output" ] && [[ "$lines" -ge 1 ]]; then
+			echo "true"
+		else
+			echo "false"
+		fi
 		;;
 	"db:main:elasticsearch:restore")
 		"$pod_script_env_file" "db:main:elasticsearch:repository" ${args[@]+"${args[@]}"}
@@ -255,10 +265,10 @@ case "$command" in
 		es_args=()
 
 		if [ "${arg_db_tls:-}" = 'true' ]; then
-			elasticsearch_password="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+			db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 			es_args+=( --user elastic )
-			es_args+=( --password "$elasticsearch_password" )
+			es_args+=( --password "$db_pass" )
 
 			if [ -n "${arg_db_tls_ca_cert:-}" ]; then
 				es_args+=( --ca-certificate="${arg_db_tls_ca_cert:-}" )

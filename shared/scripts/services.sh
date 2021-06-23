@@ -8,6 +8,7 @@ pod_data_dir="$var_pod_data_dir"
 inner_run_file="$var_inner_scripts_dir/run"
 
 awscli_run_file="$pod_layer_dir/shared/scripts/services/awscli.sh"
+certbot_run_file="$pod_layer_dir/main/scripts/certbot.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 elasticsearch_run_file="$pod_layer_dir/shared/scripts/services/elasticsearch.sh"
@@ -51,6 +52,12 @@ while getopts ':-:' OPT; do
 	fi
 	case "$OPT" in
 		task_info ) arg_task_info="${OPTARG:-}" ;;
+		pod_type ) arg_pod_type="${OPTARG:-}";;
+		use_wale ) arg_use_wale="${OPTARG:-}";;
+		use_nginx ) arg_use_nginx="${OPTARG:-}";;
+		use_haproxy ) arg_use_haproxy="${OPTARG:-}";;
+		use_mysql ) arg_use_mysql="${OPTARG:-}";;
+		use_mongo ) arg_use_mongo="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 		only_if_needed )
@@ -132,8 +139,6 @@ case "$command" in
 		fi
 		;;
 	"prepare")
-		data_dir="/var/main/data"
-
 		"$pod_script_env_file" up toolbox
 
 		use_wale=''
@@ -142,243 +147,243 @@ case "$command" in
 			use_wale='true'
 		fi
 
-		if [ "$use_wale" = 'true' ]; then
-			"$pod_script_env_file" exec-nontty toolbox \
-				"$inner_run_file" "inner:services:prepare:wale:env" ${args[@]+"${args[@]}"}
+		"$pod_script_env_file" exec-nontty toolbox "$inner_run_file" "inner:services:prepare" \
+			--pod_type="$var_main__pod_type" \
+			--use_wale="$use_wale" \
+			--use_nginx="${var_main__use_nginx:-}" \
+			--use_haproxy="${var_main__use_haproxy:-}" \
+			--use_mysql="${var_main__use_mysql:-}" \
+			--use_mongo="${var_main__use_mongo:-}"
+		;;
+	"inner:services:prepare")
+		data_dir="/var/main/data"
 
-			"$pod_script_env_file" "util:values_to_files" \
+		if [ "$arg_use_wale" = 'true' ]; then
+			dir="$data_dir/tmp/wale/env"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+
+			chmod 777 "$dir"
+
+			"$inner_run_file" "util:values_to_files" \
 				--task_info="$title" \
-				--src_file="$pod_layer_dir/env/postgres/wale.conf" \
-				--dest_dir="$pod_data_dir/tmp/wale/env" \
+				--src_file="/var/main/env/postgres/wale.conf" \
+				--dest_dir="/var/main/data/tmp/wale/env" \
 				--file_extension="" \
 				--remove_empty_values='true'
+
+			dir="$data_dir/wale"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+
+			cp -r "$data_dir/tmp/wale/env/." "$dir/"
+			chown -R 70:70 "$dir"
 		fi
 
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
-			set -eou pipefail
-
-			if [ "$use_wale" = 'true' ]; then
-				dir="$data_dir/wale"
-
-				if [ ! -d "\$dir" ]; then
-					mkdir -p "\$dir"
-				fi
-
-				cp -r "$data_dir/tmp/wale/env/." "\$dir/"
-				chown -R 70:70 "\$dir"
-			fi
-
-			dir="$data_dir/sync"
-
-			if [ ! -d "\$dir" ]; then
-				mkdir -p "\$dir"
-			fi
-
-			dir="$data_dir/log/bg"
-
-			if [ ! -d "\$dir" ]; then
-				mkdir -p "\$dir"
-				chmod 777 "\$dir"
-			fi
-
-			if [ "${var_main__use_nginx:-}" = 'true' ]; then
-				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "web" ]; then
-					dir_nginx="$data_dir/sync/nginx"
-
-					dir="\${dir_nginx}/auto"
-					file="\${dir}/ips-blacklist-auto.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# 127.0.0.1 1;
-							# 1.2.3.4/16 1;
-						EOF
-					fi
-
-					dir="\${dir_nginx}/manual"
-					file="\${dir}/ips-blacklist.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# 127.0.0.1 1;
-							# 0.0.0.0/0 1;
-						EOF
-					fi
-
-					dir="\${dir_nginx}/manual"
-					file="\${dir}/ua-blacklist.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# ~(Mozilla|Chrome) 1;
-							# "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36" 1;
-							# "python-requests/2.18.4" 1;
-						EOF
-					fi
-
-					dir="\${dir_nginx}/manual"
-					file="\${dir}/allowed-hosts.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# *.googlebot.com
-							# *.google.com
-						EOF
-					fi
-
-					dir="\${dir_nginx}/manual"
-					file="\${dir}/log-exclude-paths.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# theia.localhost
-							# /app/uploads/
-						EOF
-					fi
-
-					dir="\${dir_nginx}/manual"
-					file="\${dir}/log-exclude-paths-full.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# theia.localhost
-							# /app/uploads/
-						EOF
-					fi
-				fi
-			fi
-
-			if [ "${var_main__use_haproxy:-}" = 'true' ]; then
-				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "web" ]; then
-					dir_haproxy="$data_dir/sync/haproxy"
-
-					dir="\${dir_haproxy}/auto"
-					file="\${dir}/ips-blacklist-auto.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# 127.0.0.1
-							# 1.2.3.4/16
-						EOF
-					fi
-
-					dir="\${dir_haproxy}/manual"
-					file="\${dir}/ips-blacklist.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# 127.0.0.1
-							# 0.0.0.0/0
-						EOF
-					fi
-
-					dir="\${dir_haproxy}/manual"
-					file="\${dir}/ua-blacklist.lst"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36
-							# python-requests/2.18.4
-						EOF
-					fi
-
-					dir="\${dir_haproxy}/manual"
-					file="\${dir}/allowed-hosts.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# *.googlebot.com
-							# *.google.com
-						EOF
-					fi
-
-					dir="\${dir_haproxy}/manual"
-					file="\${dir}/log-exclude-paths.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# theia.localhost
-							# /app/uploads/
-						EOF
-					fi
-
-					dir="\${dir_haproxy}/manual"
-					file="\${dir}/log-exclude-paths-full.conf"
-
-					if [ ! -f "\$file" ]; then
-						mkdir -p "\$dir"
-						cat <<-EOF > "\$file"
-							# theia.localhost
-							# /app/uploads/
-						EOF
-					fi
-				fi
-			fi
-
-			if [ "${var_main__use_mysql:-}" = 'true' ]; then
-				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "db" ]; then
-					dir="$data_dir/mysql"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-						chmod 755 "\$dir"
-					fi
-
-					dir="$data_dir/tmp/mysql"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-						chmod 777 "\$dir"
-					fi
-
-					dir="$data_dir/tmp/log/mysql"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-						chmod 777 "\$dir"
-					fi
-				fi
-			fi
-
-			if [ "${var_main__use_mongo:-}" = 'true' ]; then
-				if [ "$var_main__pod_type" = "app" ] || [ "$var_main__pod_type" = "db" ]; then
-					dir="$data_dir/mongo/db"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-						chmod 755 "\$dir"
-					fi
-
-					dir="$data_dir/mongo/dump"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-						chmod 755 "\$dir"
-					fi
-				fi
-			fi
-		SHELL
-		;;
-	"inner:services:prepare:wale:env")
-		data_dir="/var/main/data"
-		dir="$data_dir/tmp/wale/env"
+		dir="$data_dir/sync"
 
 		if [ ! -d "$dir" ]; then
 			mkdir -p "$dir"
 		fi
 
-		chmod 777 "$dir"
+		dir="$data_dir/log/bg"
+
+		if [ ! -d "$dir" ]; then
+			mkdir -p "$dir"
+			chmod 777 "$dir"
+		fi
+
+		if [ "${arg_use_nginx:-}" = 'true' ]; then
+			if [ "$arg_pod_type" = "app" ] || [ "$arg_pod_type" = "web" ]; then
+				dir_nginx="$data_dir/sync/nginx"
+
+				dir="${dir_nginx}/auto"
+				file="${dir}/ips-blacklist-auto.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# 127.0.0.1 1;
+						# 1.2.3.4/16 1;
+					EOF
+				fi
+
+				dir="${dir_nginx}/manual"
+				file="${dir}/ips-blacklist.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# 127.0.0.1 1;
+						# 0.0.0.0/0 1;
+					EOF
+				fi
+
+				dir="${dir_nginx}/manual"
+				file="${dir}/ua-blacklist.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# ~(Mozilla|Chrome) 1;
+						# "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36" 1;
+						# "python-requests/2.18.4" 1;
+					EOF
+				fi
+
+				dir="${dir_nginx}/manual"
+				file="${dir}/allowed-hosts.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# *.googlebot.com
+						# *.google.com
+					EOF
+				fi
+
+				dir="${dir_nginx}/manual"
+				file="${dir}/log-exclude-paths.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# theia.localhost
+						# /app/uploads/
+					EOF
+				fi
+
+				dir="${dir_nginx}/manual"
+				file="${dir}/log-exclude-paths-full.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# theia.localhost
+						# /app/uploads/
+					EOF
+				fi
+			fi
+		fi
+
+		if [ "${arg_use_haproxy:-}" = 'true' ]; then
+			if [ "$arg_pod_type" = "app" ] || [ "$arg_pod_type" = "web" ]; then
+				dir_haproxy="$data_dir/sync/haproxy"
+
+				dir="${dir_haproxy}/auto"
+				file="${dir}/ips-blacklist-auto.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# 127.0.0.1
+						# 1.2.3.4/16
+					EOF
+				fi
+
+				dir="${dir_haproxy}/manual"
+				file="${dir}/ips-blacklist.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# 127.0.0.1
+						# 0.0.0.0/0
+					EOF
+				fi
+
+				dir="${dir_haproxy}/manual"
+				file="${dir}/ua-blacklist.lst"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36
+						# python-requests/2.18.4
+					EOF
+				fi
+
+				dir="${dir_haproxy}/manual"
+				file="${dir}/allowed-hosts.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# *.googlebot.com
+						# *.google.com
+					EOF
+				fi
+
+				dir="${dir_haproxy}/manual"
+				file="${dir}/log-exclude-paths.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# theia.localhost
+						# /app/uploads/
+					EOF
+				fi
+
+				dir="${dir_haproxy}/manual"
+				file="${dir}/log-exclude-paths-full.conf"
+
+				if [ ! -f "$file" ]; then
+					mkdir -p "$dir"
+					cat <<-EOF > "$file"
+						# theia.localhost
+						# /app/uploads/
+					EOF
+				fi
+			fi
+		fi
+
+		if [ "${arg_use_mysql:-}" = 'true' ]; then
+			if [ "$arg_pod_type" = "app" ] || [ "$arg_pod_type" = "db" ]; then
+				dir="$data_dir/mysql"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+					chmod 755 "$dir"
+				fi
+
+				dir="$data_dir/tmp/mysql"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+					chmod 777 "$dir"
+				fi
+
+				dir="$data_dir/tmp/log/mysql"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+					chmod 777 "$dir"
+				fi
+			fi
+		fi
+
+		if [ "${arg_use_mongo:-}" = 'true' ]; then
+			if [ "$arg_pod_type" = "app" ] || [ "$arg_pod_type" = "db" ]; then
+				dir="$data_dir/mongo/db"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+					chmod 755 "$dir"
+				fi
+
+				dir="$data_dir/mongo/dump"
+
+				if [ ! -d "$dir" ]; then
+					mkdir -p "$dir"
+					chmod 755 "$dir"
+				fi
+			fi
+		fi
 		;;
 	"setup")
 		if [ "${var_main__use_theia:-}" = 'true' ]; then
@@ -601,6 +606,12 @@ case "$command" in
 	"service:awscli:"*|"inner:service:awscli:"*)
 		"$awscli_run_file" "$command" \
 			--s3_service="s3_cli" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:certbot:"*|"inner:service:certbot:"*|"certbot:task:"*|"certbot:subtask:"*|"certbot:subtask")
+		"$certbot_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			--certbot_service="certbot" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:cloudflare:"*|"inner:service:cloudflare:"*)

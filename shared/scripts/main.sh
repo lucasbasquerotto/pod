@@ -284,6 +284,9 @@ case "$command" in
 	"shared:outer_proxy"|"local:shared:outer_proxy")
 		"$pod_script_services_file" outer_proxy ${args[@]+"${args[@]}"}
 		;;
+	"certbot:task:"*|"certbot:subtask:"*|"certbot:subtask")
+		"$pod_script_services_file" "$command" ${args[@]+"${args[@]}"}
+		;;
 	"services:"*|"inner:services:"*|"service:"*|"shared:service:"*|"inner:service:"*)
 		"$pod_script_services_file" "$command" ${args[@]+"${args[@]}"}
 		;;

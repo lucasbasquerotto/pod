@@ -14,7 +14,6 @@ pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestratio
 pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
-pod_script_certbot_file="$pod_layer_dir/main/scripts/certbot.sh"
 pod_script_compress_file="$pod_layer_dir/main/scripts/compress.sh"
 pod_script_util_file="$pod_layer_dir/main/scripts/util.sh"
 
@@ -78,7 +77,6 @@ while getopts ':-:' OPT; do
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		src_dir ) arg_src_dir="${OPTARG:-}";;
 		src_file ) arg_src_file="${OPTARG:-}";;
-		certbot_cmd ) arg_certbot_cmd="${OPTARG:-}";;
 		bg_file ) arg_bg_file="${OPTARG:-}";;
 		action_dir ) arg_action_dir="${OPTARG:-}";;
 		action_skip_check ) arg_action_skip_check="${OPTARG:-}";;
@@ -422,59 +420,6 @@ case "$command" in
 
 		"$pod_script_env_file" "certbot:subtask" "${opts[@]}"
 		;;
-	"certbot:subtask:"*)
-		task_name="${command#certbot:subtask:}"
-
-		opts=( "--task_info=$title >> $task_name" )
-
-		opts+=( "--task_name=$task_name" )
-		opts+=( "--subtask_cmd=$command" )
-
-		opts+=( "--certbot_cmd=$arg_certbot_cmd" )
-
-		"$pod_script_env_file" "certbot:subtask" "${opts[@]}"
-		;;
-	"certbot:subtask")
-		prefix="var_task__${arg_task_name}__certbot_subtask_"
-
-		param_toolbox_service="${prefix}_toolbox_service"
-		param_certbot_service="${prefix}_certbot_service"
-		param_webservice_service="${prefix}_webservice_service"
-		param_webservice_type="${prefix}_webservice_type"
-		param_data_base_path="${prefix}_data_base_path"
-		param_main_domain="${prefix}_main_domain"
-		param_domains="${prefix}_domains"
-		param_rsa_key_size="${prefix}_rsa_key_size"
-		param_email="${prefix}_email"
-		param_dev="${prefix}_dev"
-		param_dev_renew_days="${prefix}_dev_renew_days"
-		param_staging="${prefix}_staging"
-		param_force="${prefix}_force"
-
-		webservice_type_value="${!param_webservice_type}"
-
-		opts=( "--task_info=$title" )
-
-		opts+=( "--toolbox_service=${!param_toolbox_service}" )
-		opts+=( "--certbot_service=${!param_certbot_service}" )
-		opts+=( "--data_base_path=${!param_data_base_path}" )
-		opts+=( "--main_domain=${!param_main_domain}" )
-		opts+=( "--domains=${!param_domains}" )
-		opts+=( "--rsa_key_size=${!param_rsa_key_size}" )
-		opts+=( "--email=${!param_email}" )
-
-		opts+=( "--webservice_service=${!param_webservice_service:-$webservice_type_value}" )
-		opts+=( "--dev=${!param_dev:-}" )
-		opts+=( "--dev_renew_days=${!param_dev_renew_days:-}" )
-		opts+=( "--staging=${!param_staging:-}" )
-		opts+=( "--force=${!param_force:-}" )
-
-		"$pod_script_certbot_file" "certbot:$arg_certbot_cmd" "${opts[@]}"
-		;;
-	"run:certbot:"*)
-		run_cmd="${command#run:}"
-		"$pod_script_certbot_file" "$run_cmd" ${args[@]+"${args[@]}"}
-		;;
 	"verify")
 		"$pod_script_env_file" "main:task:$var_run__tasks__verify" \
 			--task_info="$title"
@@ -530,7 +475,6 @@ case "$command" in
 		task_name="${command#action:task:}"
 		prefix="var_task__${task_name}__action_task_"
 
-		param_toolbox_service="${prefix}_toolbox_service"
 		param_action_dir="${prefix}_action_dir"
 
 		opts=( "--task_info=$title >> $task_name" )

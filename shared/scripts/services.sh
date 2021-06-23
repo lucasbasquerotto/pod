@@ -5,13 +5,19 @@ set -eou pipefail
 pod_layer_dir="$var_pod_layer_dir"
 pod_script_env_file="$var_pod_script"
 pod_data_dir="$var_pod_data_dir"
+inner_run_file="$var_inner_scripts_dir/run"
 
+awscli_run_file="$pod_layer_dir/shared/scripts/services/awscli.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
+mc_run_file="$pod_layer_dir/shared/scripts/services/mc.sh"
+mongo_run_file="$pod_layer_dir/shared/scripts/services/mongo.sh"
 mysql_run_file="$pod_layer_dir/shared/scripts/services/mysql.sh"
 nextcloud_run_file="$pod_layer_dir/shared/scripts/services/nextcloud.sh"
 nginx_run_file="$pod_layer_dir/shared/scripts/services/nginx.sh"
+postgres_run_file="$pod_layer_dir/shared/scripts/services/postgres.sh"
+rclone_run_file="$pod_layer_dir/shared/scripts/services/rclone.sh"
 redis_run_file="$pod_layer_dir/shared/scripts/services/redis.sh"
 
 function info {
@@ -136,19 +142,8 @@ case "$command" in
 		fi
 
 		if [ "$use_wale" = 'true' ]; then
-			"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$title"
-				set -eou pipefail
-
-				if [ "$use_wale" = 'true' ]; then
-					dir="$data_dir/tmp/wale/env"
-
-					if [ ! -d "\$dir" ]; then
-						mkdir -p "\$dir"
-					fi
-
-					chmod 777 "\$dir"
-				fi
-			SHELL
+			"$pod_script_env_file" exec-nontty toolbox \
+				"$inner_run_file" "inner:services:prepare:wale:env" ${args[@]+"${args[@]}"}
 
 			"$pod_script_env_file" "util:values_to_files" \
 				--task_info="$title" \
@@ -374,6 +369,16 @@ case "$command" in
 			fi
 		SHELL
 		;;
+	"inner:services:prepare:wale:env")
+		data_dir="/var/main/data"
+		dir="$data_dir/tmp/wale/env"
+
+		if [ ! -d "$dir" ]; then
+			mkdir -p "$dir"
+		fi
+
+		chmod 777 "$dir"
+		;;
 	"setup")
 		if [ "${var_main__use_theia:-}" = 'true' ]; then
 			"$pod_script_env_file" up theia
@@ -417,42 +422,12 @@ case "$command" in
 				"$pod_script_env_file" up mongo
 
 				info "$command - init the mongo database if needed"
-				"$pod_script_env_file" run mongo_init /bin/bash <<-SHELL || error "$title"
-					set -eou pipefail
-
-					for i in \$(seq 1 30); do
-						mongo mongo/"$var_run__migrate__db_name" \
-							--authenticationDatabase admin \
-							--username "$var_run__migrate__db_root_user" \
-							--password "${var_run__migrate__db_root_pass:-}" \
-							--eval "
-								rs.initiate({
-									_id: 'rs0',
-									members: [ { _id: 0, host: 'localhost:27017' } ]
-								})
-							" && s=\$? && break || s=\$?;
-						echo "Tried \$i times. Waiting 5 secs...";
-						sleep 5;
-					done;
-
-					if [ "\$s" != "0" ]; then
-						exit "\$s"
-					fi
-
-					for i in \$(seq 1 30); do
-						mongo mongo/admin \
-							--authenticationDatabase admin \
-							--username "$var_run__migrate__db_root_user" \
-							--password "${var_run__migrate__db_root_pass:-}" \
-							/tmp/main/init.js && s=\$? && break || s=\$?;
-						echo "Tried \$i times. Waiting 5 secs...";
-						sleep 5;
-					done;
-
-					if [ "\$s" != "0" ]; then
-						exit "\$s"
-					fi
-				SHELL
+				"$pod_script_env_file" run mongo_init "$inner_run_file" \
+					--db_host="$var_run__migrate__db_host" \
+					--db_port="$var_run__migrate__db_port" \
+					--db_name="$var_run__migrate__db_name" \
+					--db_user="$var_run__migrate__db_root_user" \
+					--db_pass="${var_run__migrate__db_root_pass:-}"
 			fi
 		fi
 		;;
@@ -631,6 +606,11 @@ case "$command" in
 	"service:cron:custom")
 		"$cron_run_file" "${args[@]}"
 		;;
+	"service:awscli:"*|"inner:service:awscli:"*)
+		"$awscli_run_file" "$command" \
+			--s3_service="s3_cli" \
+			${args[@]+"${args[@]}"}
+		;;
 	"service:cloudflare:"*|"inner:service:cloudflare:"*)
 		"$cloudflare_run_file" "$command" \
 			--toolbox_service="toolbox" \
@@ -640,6 +620,17 @@ case "$command" in
 		"$haproxy_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--haproxy_service="haproxy" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:mc:"*|"inner:service:mc:"*)
+		"$mc_run_file" "$command" \
+			--s3_service="s3_cli" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:mongo:"*|"inner:service:mongo:"*)
+		"$mongo_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			--db_service="mongo" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:mysql:"*|"inner:service:mysql:"*)
@@ -657,6 +648,17 @@ case "$command" in
 		"$nginx_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--nginx_service="nginx" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:postgres:"*|"inner:service:postgres:"*)
+		"$postgres_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			--db_service="postgres" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:rclone:"*|"inner:service:rclone:"*)
+		"$rclone_run_file" "$command" \
+			--s3_service="s3_cli" \
 			${args[@]+"${args[@]}"}
 		;;
 	"service:redis:"*|"inner:service:redis:"*)

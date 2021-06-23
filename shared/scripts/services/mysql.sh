@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -48,6 +50,7 @@ while getopts ':-:' OPT; do
 		db_task_base_dir ) arg_db_task_base_dir="${OPTARG:-}" ;;
 		db_file_name ) arg_db_file_name="${OPTARG:-}" ;;
 
+		backup_file ) arg_backup_file="${OPTARG:-}" ;;
 		max_amount ) arg_max_amount="${OPTARG:-}" ;;
 		log_file ) arg_log_file="${OPTARG:-}" ;;
 
@@ -98,59 +101,63 @@ case "$command" in
 			cmd_args=( 'run' )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
+			"$inner_run_file" "inner:service:mysql:tables:count" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:mysql:tables:count")
+		sql_tables="select count(*) from information_schema.tables where table_schema = '${arg_db_name:-}'"
+		db_connect_wait_secs="${arg_db_connect_wait_secs:-30}"
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+		end=$((SECONDS+db_connect_wait_secs))
+		tables=""
 
-			end=\$((SECONDS+$db_connect_wait_secs))
-			tables=""
+		while [ -z "$tables" ] && [ $SECONDS -lt $end ]; do
+			current=$((end-SECONDS))
+			msg="$db_connect_wait_secs seconds - $current second(s) remaining"
 
-			while [ -z "\$tables" ] && [ \$SECONDS -lt \$end ]; do
-				current=\$((end-SECONDS))
-				msg="$db_connect_wait_secs seconds - \$current second(s) remaining"
+			pass_arg=()
+			[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password="${arg_db_pass:-}" )
 
-				pass_arg=()
-				[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password="${arg_db_pass:-}" )
+			if [ "${arg_db_remote:-}" = "true" ]; then
+				>&2 echo "wait for the remote database ${arg_db_name:-} (at ${arg_db_host:-}) to be ready ($msg)"
+				sql_output="$(mysql \
+					--host="${arg_db_host:-}" \
+					--port="${arg_db_port:-}" \
+					--user="${arg_db_user:-}" \
+					${pass_arg[@]+"${pass_arg[@]}"} \
+					-N -e "$sql_tables" ||:)"
+			else
+				>&2 echo "wait for the local database ${arg_db_name:-} to be ready ($msg)"
+				sql_output="$(mysql -u "${arg_db_user:-}" ${pass_arg[@]+"${pass_arg[@]}"} -N -e "$sql_tables" ||:)"
+			fi
 
-				if [ "${arg_db_remote:-}" = "true" ]; then
-					>&2 echo "wait for the remote database ${arg_db_name:-} (at ${arg_db_host:-}) to be ready (\$msg)"
-					sql_output="\$(mysql \
-						--host="${arg_db_host:-}" \
-						--port="${arg_db_port:-}" \
-						--user="${arg_db_user:-}" \
-						\${pass_arg[@]+"\${pass_arg[@]}"} \
-						-N -e "$sql_tables" ||:)"
-				else
-					>&2 echo "wait for the local database ${arg_db_name:-} to be ready (\$msg)"
-					sql_output="\$(mysql -u "${arg_db_user:-}" \${pass_arg[@]+"\${pass_arg[@]}"} -N -e "$sql_tables" ||:)"
-				fi
+			if [ -n "$sql_output" ]; then
+				tables="$(echo "$sql_output" | tail -n 1)"
+			fi
 
-				if [ -n "\$sql_output" ]; then
-					tables="\$(echo "\$sql_output" | tail -n 1)"
-				fi
+			re_number='^[0-9]+$'
 
-				re_number='^[0-9]+$'
+			if ! [[ $tables =~ $re_number ]] ; then
+				tables=""
+			fi
 
-				if ! [[ \$tables =~ \$re_number ]] ; then
-					tables=""
-				fi
+			if [ -z "$tables" ]; then
+				sleep "${arg_connection_sleep:-5}"
+			else
+				echo "$tables"
+				exit
+			fi
+		done
 
-				if [ -z "\$tables" ]; then
-					sleep "${arg_connection_sleep:-5}"
-				else
-					echo "\$tables"
-					exit
-				fi
-			done
-
-			error "$title: couldn't verify number of tables in the database ${arg_db_name:-} - output:\n\$sql_output"
-		SHELL
+		error "$title: couldn't verify number of tables in the database ${arg_db_name:-} - output:\n$sql_output"
 		;;
 	"db:main:mysql:restore:file")
+		"$pod_script_env_file" up "$arg_db_service"
+
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
+			"$inner_run_file" "inner:service:mysql:restore:file" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:mysql:restore:file")
 		if [ -z "${arg_db_task_base_dir:-}" ]; then
 			error "$title: arg_db_task_base_dir not specified"
 		fi
@@ -161,35 +168,24 @@ case "$command" in
 
 		db_file="$arg_db_task_base_dir/$arg_db_file_name"
 
-		"$pod_script_env_file" up "$arg_db_service"
+		extension=${db_file##*.}
 
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		if [ "$extension" != "sql" ]; then
+			error "$title: db file extension should be sql - found: $extension ($db_file)"
+		fi
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+		if [ ! -f "$db_file" ]; then
+			error "$title: db file not found: $db_file"
+		fi
 
-			extension=${db_file##*.}
+		cmd="cat"
 
-			if [ "\$extension" != "sql" ]; then
-				error "$title: db file extension should be sql - found: \$extension ($db_file)"
-			fi
+		if command -v pv >/dev/null 2>&1; then
+			cmd="pv"
+		fi
 
-			if [ ! -f "$db_file" ]; then
-				error "$title: db file not found: $db_file"
-			fi
-
-			cmd="cat"
-
-			if command -v pv >/dev/null 2>&1; then
-				cmd="pv"
-			fi
-
-			mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
-			"\$cmd" "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
-		SHELL
+		mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
+			"$cmd" "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
 		;;
 	"db:main:mysql:backup:file")
 		"$pod_script_env_file" up "$arg_db_service"
@@ -197,77 +193,80 @@ case "$command" in
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
-			set -eou pipefail
-			mkdir -p "$(dirname -- "$backup_file")"
-			mysqldump -u "${arg_db_user:-}" -p"${arg_db_pass:-}" "${arg_db_name:-}" > "$backup_file"
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
+			"$inner_run_file" "inner:service:mysql:backup:file" \
+			--backup_file="$backup_file" \
+			${args[@]+"${args[@]}"} >&2
 
 		echo "$backup_file"
 		;;
+	"inner:service:mysql:backup:file")
+		mkdir -p "$(dirname -- "$arg_backup_file")"
+		mysqldump -u "${arg_db_user:-}" -p"${arg_db_pass:-}" "${arg_db_name:-}" > "$arg_backup_file"
+		;;
 	"service:mysql:log:slow:summary")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:mysql:log:slow:summary" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:mysql:log:slow:summary")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "MySQL - Slow Logs"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
 
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "MySQL - Slow Logs"
+		if [ -f "$arg_log_file" ]; then
 			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
 
-			if [ -f "$arg_log_file" ]; then
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				mysql_qtd_slow_logs="\$( \
-					{ grep '^# User@Host' "$arg_log_file" \
-					| awk ' \
-						{ s[substr(\$3, 0, index(\$3, "["))]+=1 } END \
-						{ for (key in s) { printf "%10d %s\n", s[key], key } } \
-						' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$mysql_qtd_slow_logs"
-
-				echo -e "##############################################################################################################"
-				echo -e "MySQL - Slow Logs - Times with slowest logs per user"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				mysql_slowest_logs_per_user="\$( \
-					{ grep -E '^(# Time: |# User@Host: |# Query_time: )' "$arg_log_file" \
-					| awk ' \
-						{ \
-							if (\$2 == "Time:") {time = \$3 " " \$4;} \
-							else if (\$2 == "User@Host:") { \
-								user = substr(\$3, 0, index(\$3, "[")); \
-							} \
-							else if (\$2 == "Query_time:") { \
-								if (s[user] < \$3) { s[user] = \$3; t[user] = time; } \
-							} \
-						} END \
-						{ for (key in s) { printf "%10.1f %12s %s\n", s[key], key, t[key] } } \
+			mysql_qtd_slow_logs="$( \
+				{ grep '^# User@Host' "$arg_log_file" \
+				| awk '
+					{ s[substr($3, 0, index($3, "["))]+=1 } END
+					{ for (key in s) { printf "%10d %s\n", s[key], key } }
 					' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$mysql_slowest_logs_per_user"
+				| sort -nr ||:; } | head -n "$arg_max_amount")"
+			echo -e "$mysql_qtd_slow_logs"
 
-				echo -e "##############################################################################################################"
-				echo -e "MySQL - Slow Logs - Times with slowest logs"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+			echo -e "##############################################################################################################"
+			echo -e "MySQL - Slow Logs - Times with slowest logs per user"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-				mysql_slowest_logs="\$( \
-					{ grep -E '^(# Time: |# User@Host: |# Query_time: )' "$arg_log_file" \
-					| awk '{ \
-						if(\$2 == "Time:") {time = \$3 " " \$4;} \
-						else if (\$2 == "User@Host:") { \
-							user = substr(\$3, 0, index(\$3, "[")); \
-						} \
-						else if (\$2 == "Query_time:") { \
-							printf "%10.1f %12s %s\n", \$3, user, time \
-						} \
-					}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$mysql_slowest_logs"
-			fi
-		SHELL
+			mysql_slowest_logs_per_user="$( \
+				{ grep -E '^(# Time: |# User@Host: |# Query_time: )' "$arg_log_file" \
+				| awk '
+					{
+						if ($2 == "Time:") {time = $3 " " $4;}
+						else if ($2 == "User@Host:") {
+							user = substr($3, 0, index($3, "["));
+						}
+						else if ($2 == "Query_time:") {
+							if (s[user] < $3) { s[user] = $3; t[user] = time; }
+						}
+					} END
+					{ for (key in s) { printf "%10.1f %12s %s\n", s[key], key, t[key] } }
+				' \
+				| sort -nr ||:; } | head -n "$arg_max_amount")"
+			echo -e "$mysql_slowest_logs_per_user"
+
+			echo -e "##############################################################################################################"
+			echo -e "MySQL - Slow Logs - Times with slowest logs"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			mysql_slowest_logs="$( \
+				{ grep -E '^(# Time: |# User@Host: |# Query_time: )' "$arg_log_file" \
+				| awk '{
+					if($2 == "Time:") {time = $3 " " $4;}
+					else if ($2 == "User@Host:") {
+						user = substr($3, 0, index($3, "["));
+					}
+					else if ($2 == "Query_time:") {
+						printf "%10.1f %12s %s\n", $3, user, time
+					}
+				}' \
+				| sort -nr ||:; } | head -n "$arg_max_amount")"
+			echo -e "$mysql_slowest_logs"
+		fi
 		;;
 	*)
 		error "$command: invalid command"

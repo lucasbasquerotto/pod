@@ -284,10 +284,10 @@ case "$command" in
 	"shared:outer_proxy"|"local:shared:outer_proxy")
 		"$pod_script_services_file" outer_proxy ${args[@]+"${args[@]}"}
 		;;
-	"service:"*|"shared:service:"*|"inner:service:"*)
+	"services:"*|"inner:services:"*|"service:"*|"shared:service:"*|"inner:service:"*)
 		"$pod_script_services_file" "$command" ${args[@]+"${args[@]}"}
 		;;
-	"shared:log:"*)
+	"shared:log:"*|"inner:log:"*)
 		"$log_run_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"shared:test:"*|"inner:shared:test"|"inner:shared:test:"*)

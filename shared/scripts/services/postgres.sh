@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -69,42 +71,37 @@ case "$command" in
 			"$pod_script_env_file" up "$arg_db_service"
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
+			"$inner_run_file" "inner:service:postgres:connect_main" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:postgres:connect_main")
+		end=$((SECONDS+arg_db_connect_wait_secs))
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+		while [ $SECONDS -lt $end ]; do
+			current=$((end-SECONDS))
+			msg="$arg_db_connect_wait_secs seconds - $current second(s) remaining"
+			>&2 echo "wait for the database $arg_db_name to be ready ($msg)"
 
-			end=\$((SECONDS+$arg_db_connect_wait_secs))
-
-			while [ \$SECONDS -lt \$end ]; do
-				current=\$((end-SECONDS))
-				msg="$arg_db_connect_wait_secs seconds - \$current second(s) remaining"
-				>&2 echo "wait for the database $arg_db_name to be ready (\$msg)"
-
-				if [ "${arg_db_remote:-}" = "true" ]; then
-					if pg_isready \
-						--dbname="$arg_db_name" \
-						--host="$arg_db_host" \
-						--port="$arg_db_port" \
-						--username="$arg_db_user"
-					then
-						exit
-					fi
-				else
-					if pg_isready --dbname="$arg_db_name"; then
-						exit
-					fi
+			if [ "${arg_db_remote:-}" = "true" ]; then
+				if pg_isready \
+					--dbname="$arg_db_name" \
+					--host="$arg_db_host" \
+					--port="$arg_db_port" \
+					--username="$arg_db_user"
+				then
+					exit
 				fi
+			else
+				if pg_isready --dbname="$arg_db_name"; then
+					exit
+				fi
+			fi
 
-				sleep "${arg_connection_sleep:-5}"
-			done
+			sleep "${arg_connection_sleep:-5}"
+		done
 
-			msg="dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port"
-			error "can't connect to the database (\$msg)"
-		SHELL
+		msg="dbname=$arg_db_name, host=$arg_db_host, port=$arg_db_port"
+		error "can't connect to the database ($msg)"
 		;;
 	"db:main:postgres:connect")
 		end_after="$((SECONDS+10))"
@@ -121,50 +118,45 @@ case "$command" in
 			"$pod_script_env_file" up "$arg_db_service"
 		fi
 
-		sql_tables="select count(*) from information_schema.tables where table_schema = 'public'"
-		re_number='^[0-9]+$'
 		cmd_args=( 'exec-nontty' )
 
 		if [ "${arg_db_cmd:-}" = "run" ]; then
 			cmd_args=( 'run' )
 		fi
 
-		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
+			"$inner_run_file" "inner:service:postgres:tables:count" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:postgres:tables:count")
+		sql_tables="select count(*) from information_schema.tables where table_schema = 'public'"
+		re_number='^[0-9]+$'
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+		if [ "${arg_db_remote:-}" = "true" ]; then
+			sql_output="$(psql \
+				--host="$arg_db_host" \
+				--port="$arg_db_port" \ \
+				--username="$arg_db_user" \
+				--dbname="$arg_db_name" \
+				--tuples-only --command "$sql_tables" 2>&1)" ||:
+		else
+			sql_output="$(psql -d "$arg_db_name" -t -c "$sql_tables" 2>&1)" ||:
+		fi
 
-			if [ "${arg_db_remote:-}" = "true" ]; then
-				sql_output="\$(psql \
-					--host="$arg_db_host" \
-					--port="$arg_db_port" \ \
-					--username="$arg_db_user" \
-					--dbname="$arg_db_name" \
-					--tuples-only --command "$sql_tables" 2>&1)" ||:
-			else
-				sql_output="\$(psql -d "$arg_db_name" -t -c "$sql_tables" 2>&1)" ||:
-			fi
+		tables=""
 
+		if [ -n "$sql_output" ]; then
+			tables="$(echo "$sql_output" | tail -n 1 | awk '{$1=$1;print}')"
+		fi
+
+		if ! [[ $tables =~ $re_number ]] ; then
 			tables=""
+		fi
 
-			if [ -n "\$sql_output" ]; then
-				tables="\$(echo "\$sql_output" | tail -n 1 | awk '{\$1=\$1;print}')"
-			fi
+		if [ -z "$tables" ]; then
+			error "$title: Couldn't verify number of tables in the database $arg_db_name - output:\n$sql_output"
+		fi
 
-			if ! [[ \$tables =~ $re_number ]] ; then
-				tables=""
-			fi
-
-			if [ -z "\$tables" ]; then
-				error "$title: Couldn't verify number of tables in the database $arg_db_name - output:\n\$sql_output"
-			fi
-
-			echo "\$tables"
-
-		SHELL
+		echo "$tables"
 		;;
 	"db:main:postgres:restore:verify")
 		"$pod_script_env_file" "db:main:postgres:connect" ${args[@]+"${args[@]}"} >&2
@@ -192,18 +184,14 @@ case "$command" in
 
 		"$pod_script_env_file" up "$arg_db_service"
 
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
 			pg_restore --verbose -Fc -j 8 --dbname="$arg_db_name" "$db_file"
-		SHELL
 		;;
 	"db:main:postgres:restore:wale")
 		"$pod_script_env_file" up "$arg_db_service"
 
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
 			/usr/bin/envdir /etc/wal-e.d/env /usr/bin/wal-e backup-fetch /var/lib/postgresql/data "${arg_db_backup_pit:-LATEST}"
-		SHELL
 		;;
 	"db:main:postgres:backup:file")
 		"$pod_script_env_file" up "$arg_db_service"
@@ -211,11 +199,8 @@ case "$command" in
 		backup_file="$arg_db_task_base_dir/$arg_db_file_name"
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
-			set -eou pipefail
-			mkdir -p "$(dirname -- "$backup_file")"
-			pg_dump -Fc -Z 0 --file="$backup_file" "$arg_db_name"
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_db_service" mkdir -p "$(dirname -- "$backup_file")"
+		"$pod_script_env_file" exec-nontty "$arg_db_service" pg_dump -Fc -Z 0 --file="$backup_file" "$arg_db_name"
 
 		echo "$backup_file"
 		;;
@@ -223,10 +208,8 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_db_service"
 
 		info "$command: $arg_db_service - backup using wal-e"
-		"$pod_script_env_file" exec-nontty "$arg_db_service" /bin/bash <<-SHELL >&2 || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_db_service" \
 			/usr/bin/envdir /etc/wal-e.d/env /usr/bin/wal-e backup-push /var/lib/postgresql/data
-		SHELL
 
 		echo "$backup_file"
 		;;

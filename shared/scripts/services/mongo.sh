@@ -40,9 +40,9 @@ while getopts ':-:' OPT; do
 		db_remote ) arg_db_remote="${OPTARG:-}" ;;
 		db_connect_wait_secs) arg_db_connect_wait_secs="${OPTARG:-}" ;;
 		connection_sleep ) arg_connection_sleep="${OPTARG:-}" ;;
-		db_name ) arg_db_name="${OPTARG:-}" ;;
 		db_host ) arg_db_host="${OPTARG:-}" ;;
 		db_port ) arg_db_port="${OPTARG:-}" ;;
+		db_name ) arg_db_name="${OPTARG:-}" ;;
 		db_user ) arg_db_user="${OPTARG:-}" ;;
 		db_pass ) arg_db_pass="${OPTARG:-}" ;;
 		authentication_database ) arg_authentication_database="${OPTARG:-}" ;;
@@ -58,6 +58,40 @@ title=''
 title="${title}${command}"
 
 case "$command" in
+	"inner:service:mongo:prepare")
+		for i in $(seq 1 30); do
+			mongo mongo/"$arg_db_name" \
+				--authenticationDatabase admin \
+				--username "$arg_db_user" \
+				--password "${arg_db_pass:-}" \
+				--eval "
+					rs.initiate({
+						_id: 'rs0',
+						members: [ { _id: 0, host: 'localhost:27017' } ]
+					})
+				" && s=$? && break || s=$?;
+			echo "Tried $i times. Waiting 5 secs...";
+			sleep 5;
+		done;
+
+		if [ "$s" != "0" ]; then
+			exit "$s"
+		fi
+
+		for i in $(seq 1 30); do
+			mongo mongo/admin \
+				--authenticationDatabase admin \
+				--username "$arg_db_user" \
+				--password "${arg_db_pass:-}" \
+				/tmp/main/init.js && s=$? && break || s=$?;
+			echo "Tried $i times. Waiting 5 secs...";
+			sleep 5;
+		done;
+
+		if [ "$s" != "0" ]; then
+			exit "$s"
+		fi
+		;;
 	"db:main:mongo:connect")
 		"$pod_script_env_file" "db:main:mongo:collections:count" ${args[@]+"${args[@]}"} > /dev/null
 		;;

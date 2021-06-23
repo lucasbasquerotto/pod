@@ -2,10 +2,10 @@
 # shellcheck disable=SC2154
 set -eou pipefail
 
-# shellcheck disable=SC2154
 pod_layer_dir="$var_pod_layer_dir"
-# shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+inner_run_file="$var_inner_scripts_dir/run"
+lib_dir="$pod_layer_dir/shared/scripts/lib"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -26,7 +26,7 @@ fi
 
 shift;
 
-lib_dir="$pod_layer_dir/shared/scripts/lib"
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -42,10 +42,12 @@ while getopts ':-:' OPT; do
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		cmd ) arg_cmd="${OPTARG:-}";;
+		log ) arg_log="${OPTARG:-}";;
 		log_dir ) arg_log_dir="${OPTARG:-}";;
 		log_file ) arg_log_file="${OPTARG:-}";;
 		log_rotated ) arg_log_rotated="${OPTARG:-}";;
 		log_tmp_file ) arg_log_tmp_file="${OPTARG:-}";;
+		log_hour_path_prefix ) arg_log_hour_path_prefix="${OPTARG:-}";;
 		filename_prefix ) arg_filename_prefix="${OPTARG:-}";;
 		verify_size_docker_dir ) arg_verify_size_docker_dir="${OPTARG:-}";;
 		verify_size_containers ) arg_verify_size_containers="${OPTARG:-}";;
@@ -91,29 +93,29 @@ case "$command" in
 			--max_amount="${arg_max_amount:-}"
         ;;
 	"shared:log:memory_overview:summary:log")
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty toolbox \
+			"$inner_run_file" "inner:log:memory_overview:summary:log" ${args[@]+"${args[@]}"}
+		;;
+	"inner:log:memory_overview:summary:log")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "Memory Overview Logs"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
 
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "Memory Overview Logs"
+		if [ -f "$arg_log_file" ]; then
 			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
 
-			if [ -f "$arg_log_file" ]; then
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				memory_max_logs="\$( \
-					{ grep -E '^(Time: |Mem: )' "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3;}
-						else if(\$1 == "Mem:" && NF == 7) { printf "%10d %s\n", \$3, time }
-						}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$memory_max_logs"
-			fi
-		SHELL
+			memory_max_logs="$( \
+				{ grep -E '^(Time: |Mem: )' "$arg_log_file" \
+				| awk '{
+					if($1 == "Time:") {time = $2 " " $3;}
+					else if($1 == "Mem:" && NF == 7) { printf "%10d %s\n", $3, time }
+					}' \
+				| sort -nr ||:; } | head -n "$arg_max_amount")"
+			echo -e "$memory_max_logs"
+		fi
 		;;
 	"shared:log:main:memory_overview")
 		free -m
@@ -135,30 +137,30 @@ case "$command" in
 			--max_amount="${arg_max_amount:-}"
         ;;
 	"shared:log:entropy:summary:log")
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty toolbox \
+			"$inner_run_file" "inner:log:entropy:summary:log" ${args[@]+"${args[@]}"}
+		;;
+	"inner:log:entropy:summary:log")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "Entropy Logs"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
 
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "Entropy Logs"
+		if [ -f "$arg_log_file" ]; then
 			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
 
-			if [ -f "$arg_log_file" ]; then
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				regex="^[ ]*[^#^ ].*$"
-				entropy_min_logs="\$( \
-					{ grep -E "\$regex" "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3;}
-						else { printf "%10d %s\n", \$1, time }
-						}' \
-					| sort -n ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$entropy_min_logs"
-			fi
-		SHELL
+			regex="^[ ]*[^#^ ].*$"
+			entropy_min_logs="$( \
+				{ grep -E "$regex" "$arg_log_file" \
+				| awk '{
+					if($1 == "Time:") {time = $2 " " $3;}
+					else { printf "%10d %s\n", $1, time }
+					}' \
+				| sort -n ||:; } | head -n "$arg_max_amount")"
+			echo -e "$entropy_min_logs"
+		fi
 		;;
 	"shared:log:main:entropy")
 		cat /proc/sys/kernel/random/entropy_avail
@@ -213,41 +215,11 @@ case "$command" in
 		"$pod_script_env_file" "shared:log:$service:verify"
 
 		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
-		dest_base_path="/var/log/main/$service/main"
 
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			[ -n "${arg_days_ago:-}" ] && date_arg="${arg_days_ago:-} day ago" || date_arg="today"
-			date="\$(date -u -d "\$date_arg" '+%Y-%m-%d')"
-			log_day_src_path_prefix="$log_hour_path_prefix.\$date"
-			dest_day_file="${dest_base_path}/$service.\$date.log"
-
-			>&2 mkdir -p "$dest_base_path"
-
-			if [ -f "\$dest_day_file" ]; then
-				if [ ! "${arg_force:-}" = "true" ]; then
-					echo "\$dest_day_file"
-					exit 0
-				fi
-
-				>&2 rm -f "\$dest_day_file"
-			fi
-
-			for i in \$(seq -f "%02g" 1 24); do
-				log_day_src_path_aux="\$log_day_src_path_prefix.\$i.log"
-
-				if [ -f "\$log_day_src_path_aux" ]; then
-					cat "\$log_day_src_path_aux" >> "\$dest_day_file"
-				fi
-			done
-
-			if [ ! -f "\$dest_day_file" ]; then
-				>&2 touch "\$dest_day_file"
-			fi
-
-			echo "\$dest_day_file"
-		SHELL
+		"$pod_script_env_file" exec-nontty toolbox \
+			"$inner_run_file" "inner:log:$service:day" \
+			--log_hour_path_prefix="$log_hour_path_prefix" \
+			${args[@]+"${args[@]}"}
 		;;
 	"shared:log:nginx:verify"|"shared:log:haproxy:verify")
 		service="${command#shared:log:}"
@@ -272,6 +244,42 @@ case "$command" in
 
 		log_hour_path_prefix="/var/log/main/fluentd/main/docker.$container_name/docker.$container_name.stdout"
 		echo "$log_hour_path_prefix"
+		;;
+	"inner:log:nginx:day"|"inner:log:haproxy:day")
+		service="${command#inner:log:}"
+		service="${service%:day}"
+
+		dest_base_path="/var/log/main/$service/main"
+
+		[ -n "${arg_days_ago:-}" ] && date_arg="${arg_days_ago:-} day ago" || date_arg="today"
+		date="$(date -u -d "$date_arg" '+%Y-%m-%d')"
+		log_day_src_path_prefix="$arg_log_hour_path_prefix.$date"
+		dest_day_file="${dest_base_path}/$service.$date.log"
+
+		>&2 mkdir -p "$dest_base_path"
+
+		if [ -f "$dest_day_file" ]; then
+			if [ ! "${arg_force:-}" = "true" ]; then
+				echo "$dest_day_file"
+				exit 0
+			fi
+
+			>&2 rm -f "$dest_day_file"
+		fi
+
+		for i in $(seq -f "%02g" 1 24); do
+			log_day_src_path_aux="$log_day_src_path_prefix.$i.log"
+
+			if [ -f "$log_day_src_path_aux" ]; then
+				cat "$log_day_src_path_aux" >> "$dest_day_file"
+			fi
+		done
+
+		if [ ! -f "$dest_day_file" ]; then
+			>&2 touch "$dest_day_file"
+		fi
+
+		echo "$dest_day_file"
 		;;
 	"shared:log:nginx:duration"|"shared:log:haproxy:duration")
 		service="${command#shared:log:}"
@@ -325,18 +333,20 @@ case "$command" in
 	"shared:log:register")
 		log="$("$pod_script_env_file" "$arg_cmd" || error "$command: $arg_cmd")"
 
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			log_file_prefix="$arg_log_dir/$arg_filename_prefix.\$(date '+%Y-%m-%d')"
-			log_out_file="\${log_file_prefix}.out.log"
-			log_err_file="\${log_file_prefix}.err.log"
-			mkdir -p "$arg_log_dir"
-			echo -e "Time: \$(date '+%Y-%m-%d %T')\n$log\n" \
-				> >(tee --append "\$log_out_file") \
-				2> >(tee --append "\$log_err_file" >&2)
-			find "$arg_log_dir" -empty -type f -delete
-		SHELL
+		"$pod_script_env_file" exec-nontty toolbox \
+			"$inner_run_file" "inner:log:register" \
+			--log="$log" \
+			${args[@]+"${args[@]}"}
+		;;
+	"inner:log:register")
+		log_file_prefix="$arg_log_dir/$arg_filename_prefix.$(date '+%Y-%m-%d')"
+		log_out_file="${log_file_prefix}.out.log"
+		log_err_file="${log_file_prefix}.err.log"
+		mkdir -p "$arg_log_dir"
+		echo -e "Time: $(date '+%Y-%m-%d %T')\n$arg_log\n" \
+			> >(tee --append "$log_out_file") \
+			2> >(tee --append "$log_err_file" >&2)
+		find "$arg_log_dir" -empty -type f -delete
 		;;
 	"shared:log:main:redis_slow")
 		max_amount_var_name="var_shared__log__register_redis_slow__max_amount"
@@ -376,7 +386,7 @@ case "$command" in
 		done | sort -rn -k5 | head | while read -r _ _ pid _ fdcount _; do
 			cmd="$(ps -o cmd -p "$pid" hc)"
 			printf "%6d - %s - pid = %s\n" "$fdcount" "$cmd" "$pid"
-		done | head -n "$arg_max_amount" || :
+		done | head -n "$arg_max_amount" ||:
 		;;
 	"shared:log:disk:summary")
 		echo -e "======================================================="
@@ -384,24 +394,12 @@ case "$command" in
 		echo -e "-------------------------------------------------------"
 		df -h | grep -E '(^Filesystem|/$)'
 
-		"$pod_script_env_file" exec-nontty toolbox /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			echo -e "-------------------------------------------------------"
-			du -sh /var/main/data/ 2> /dev/null || :
-			echo -e "-------------------------------------------------------"
-			du -sh /var/main/data/* 2> /dev/null || :
-			echo -e "-------------------------------------------------------"
-			du -sh /var/main/data/log/* 2> /dev/null || :
-			echo -e "-------------------------------------------------------"
-			du -sh /var/main/data/sync/* 2> /dev/null || :
-			echo -e "-------------------------------------------------------"
-			du -sh /var/main/data/tmp/* 2> /dev/null || :
-		SHELL
+		"$pod_script_env_file" exec-nontty toolbox \
+			"$inner_run_file" "inner:log:disk:summary:data" ${args[@]+"${args[@]}"}
 
 		if [ "${arg_verify_size_docker_dir:-}" = "true" ]; then
 			echo -e "-------------------------------------------------------"
-			du -sh /var/lib/docker/ 2> /dev/null || :
+			du -sh /var/lib/docker/ 2> /dev/null ||:
 			echo -e "-------------------------------------------------------"
 			docker system df \
 				| grep -E '^(TYPE|Images|Containers|Local Volumes)' \
@@ -413,6 +411,18 @@ case "$command" in
 			echo -e "-------------------------------------------------------"
 			"$pod_script_env_file" "system:df"
 		fi
+		;;
+	"inner:log:disk:summary:data")
+		echo -e "-------------------------------------------------------"
+		du -sh /var/main/data/ 2> /dev/null ||:
+		echo -e "-------------------------------------------------------"
+		du -sh /var/main/data/* 2> /dev/null ||:
+		echo -e "-------------------------------------------------------"
+		du -sh /var/main/data/log/* 2> /dev/null ||:
+		echo -e "-------------------------------------------------------"
+		du -sh /var/main/data/sync/* 2> /dev/null ||:
+		echo -e "-------------------------------------------------------"
+		du -sh /var/main/data/tmp/* 2> /dev/null ||:
 		;;
 	*)
 		error "$command: invalid command"

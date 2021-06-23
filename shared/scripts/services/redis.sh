@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -22,6 +24,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -75,39 +79,39 @@ case "$command" in
 		fi
 		;;
 	"service:redis:log:slow:summary")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:redis:log:slow:summary" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:redis:log:slow:summary")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "Redis - Slow Logs"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
 
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "Redis - Slow Logs"
+		if [ -f "$arg_log_file" ]; then
 			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
 
-			if [ -f "$arg_log_file" ]; then
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+			redis_qtd_verifications="$(grep -c '^Amount: ' "$arg_log_file")"
+			redis_qtd_slow_logs="$(grep '^Amount: ' "$arg_log_file" | awk '{s+=$2} END { printf s }')"
+			redis_qtd_slow_logs_max="$(grep -c '^Maximum reached: true$' "$arg_log_file" || :)"
+			echo -e "Total Verifications: $redis_qtd_verifications"
+			echo -e "Total Amount: $redis_qtd_slow_logs"
+			echo -e "Total Amount Max Reached: $redis_qtd_slow_logs_max"
 
-				redis_qtd_verifications="\$(grep -c '^Amount: ' "$arg_log_file")"
-				redis_qtd_slow_logs="\$(grep '^Amount: ' "$arg_log_file" | awk '{s+=\$2} END { printf s }')"
-				redis_qtd_slow_logs_max="\$(grep -c '^Maximum reached: true\$' "$arg_log_file" || :)"
-				echo -e "Total Verifications: \$redis_qtd_verifications"
-				echo -e "Total Amount: \$redis_qtd_slow_logs"
-				echo -e "Total Amount Max Reached: \$redis_qtd_slow_logs_max"
+			echo -e "##############################################################################################################"
+			echo -e "Redis - Slow Logs - Times with most slow logs"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-				echo -e "##############################################################################################################"
-    			echo -e "Redis - Slow Logs - Times with most slow logs"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				redis_times_most_slow_logs="\$( \
-					{ grep -E '^(Time: |Amount: |Maximum reached: )' "$arg_log_file" \
-					| awk 'NR%3{printf "%s >>> ",\$0;next;next;}1' \
-					| grep -v 'Amount: 0' \
-					| awk '{printf "%7d %s at %s\n", \$7, \$2, \$4}' \
-					| sort -g -r ||:; } | head -n "$arg_max_amount")"
-				echo -e "\$redis_times_most_slow_logs"
-			fi
-		SHELL
+			redis_times_most_slow_logs="$( \
+				{ grep -E '^(Time: |Amount: |Maximum reached: )' "$arg_log_file" \
+				| awk 'NR%3{printf "%s >>> ",$0;next;next;}1' \
+				| grep -v 'Amount: 0' \
+				| awk '{printf "%7d %s at %s\n", $7, $2, $4}' \
+				| sort -g -r ||:; } | head -n "$arg_max_amount")"
+			echo -e "$redis_times_most_slow_logs"
+		fi
 		;;
 	*)
 		error "$command: invalid command"

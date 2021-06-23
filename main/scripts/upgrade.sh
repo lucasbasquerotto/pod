@@ -442,7 +442,7 @@ case "$command" in
 		fi
 
 		if [ -n "${arg_verify_file_to_skip:-}" ]; then
-			mkdir -p "\$(dirname ${arg_verify_file_to_skip:-})"
+			mkdir -p "$(dirname "${arg_verify_file_to_skip:-}")"
 			touch "${arg_verify_file_to_skip:-}"
 		fi
 		;;

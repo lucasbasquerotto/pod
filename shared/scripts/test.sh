@@ -15,7 +15,7 @@ function error {
 }
 
 [ "${var_run__meta__no_stacktrace:-}" != 'true' ] \
-	&& trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO"; exit $LINENO;' ERR
+	&& trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO" >&2; exit $LINENO;' ERR
 
 command="${1:-}"
 
@@ -32,8 +32,7 @@ case "$command" in
 			--task_name="mytest" \
 			--subtask_cmd="$command" \
 			--toolbox_service="toolbox" \
-			--value="my-file.[[date]]..[[time]].txt")" \
-			|| error "$command: replace_placeholders (dest_file)"
+			--value="my-file.[[date]].[[random]].[[time]].txt")"
 
 		echo "dest_file=$dest_file"
 		;;

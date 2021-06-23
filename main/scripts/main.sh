@@ -256,7 +256,7 @@ case "$command" in
 
 		"$pod_script_upgrade_file" "setup:default" "${opts[@]}"
 		;;
-	"setup:verify:default")
+	"setup:verify:"*)
 		prefix="var_task__${arg_task_name}__setup_verify_"
 
 		param_setup_dest_dir_to_verify="${prefix}_setup_dest_dir_to_verify"
@@ -268,7 +268,10 @@ case "$command" in
 
 		opts+=( "--setup_dest_dir_to_verify=${!param_setup_dest_dir_to_verify}" )
 
-		"$pod_script_upgrade_file" "setup:verify" "${opts[@]}"
+		"$pod_script_upgrade_file" "$command" "${opts[@]}"
+		;;
+	"inner:upgrade:"*)
+		"$pod_script_upgrade_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"setup:remote:default")
 		prefix="var_task__${arg_task_name}__setup_remote_"

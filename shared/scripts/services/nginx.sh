@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function error {
 	"$pod_script_env_file" "util:error" --error="${BASH_SOURCE[0]}:${BASH_LINENO[0]}: ${*}"
@@ -18,6 +20,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -72,391 +76,374 @@ case "$command" in
 		"$pod_script_env_file" exec-nontty toolbox curl --fail --silent --show-error -L "http://nginx:9081/nginx/basic_status"
 		;;
 	"service:nginx:block_ips")
-		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
-
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
-
-			function invalid_cidr_network() {
-				[[ "\$1" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.)){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]] && echo "0" || echo "1"
-			}
-
-			function ipstoblock {
-				nginx_file_path="\${1:-}"
-				amount="\${2:-10}"
-				ips_most_requests=''
-
-				if [ -f "\$nginx_file_path" ]; then
-					ips_most_requests=\$( \
-						{ \
-							awk '{print \$1}' "\$nginx_file_path" \
-							| sort \
-							| uniq -c \
-							| sort -nr \
-							| awk -v amount="\$amount" '{if(\$1 > amount) {printf "%s 1; # %s\n", \$2, \$1}}' \
-							||:; \
-						} \
-						| head -n "$arg_max_amount" \
-					)
-				fi
-
-				if [ -n "\$ips_most_requests" ]; then
-					output=''
-
-					while read -r i; do
-						ip="\$(echo "\$i" | awk '{print \$1}')"
-						invalid_ip="\$(invalid_cidr_network "\$ip")" ||:
-
-						if [ "\${invalid_ip:-1}" = "1" ]; then
-							>&2 echo "invalid ip: \$ip";
-						else
-							# include ip if it isn't already defined
-							# it will be considered as defined even if it is commented
-							if ! grep -qE "^(\$ip[ ]|[#]+[ ]*\$ip[ ])" "$arg_output_file"; then
-								output_aux="\n\$i";
-
-								# do nothing if ip already exists in manual file
-								if [ -n "${arg_manual_file:-}" ] && [ -f "${arg_manual_file:-}" ]; then
-									if grep -qE "^(\$ip|#[ ]*\$ip|##[ ]*\$ip)" "${arg_manual_file:-}"; then
-										output_aux=''
-									fi
-								fi
-
-								if [ -n "\$output_aux" ]; then
-									host="\$(host "\$ip" | awk '{ print \$NF }' | sed 's/.\$//' ||:)"
-
-									if [ -n "\$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
-										regex="^[ ]*[^#^ ].*$"
-										allowed_hosts="\$(grep -E "\$regex" "${arg_allowed_hosts_file:-}" ||:)"
-
-										if [ -n "\$allowed_hosts" ]; then
-											while read -r allowed_host; do
-												if [[ \$host == \$allowed_host ]]; then
-													ip_host="$(host "\$host" | awk '{ print $NF }' ||:)"
-
-													if [ -n "\$ip_host" ] && [ "\$ip" = "\$ip_host" ]; then
-														output_aux="\n## \$i (\$host)";
-													fi
-
-													break;
-												fi
-											done <<< "\$(echo -e "\$allowed_hosts")"
-										fi
-									fi
-								fi
-
-								output="\$output\$output_aux";
-							fi
-						fi
-					done <<< "\$(echo -e "\$ips_most_requests")"
-
-					if [ -n "\$output" ]; then
-						output="#\$(TZ=GMT date '+%F %T')\$output"
-						echo -e "\n\$output" | tee --append "$arg_output_file" > /dev/null
-					fi
-				fi
-			}
-
-			if [ ! -f "$arg_output_file" ]; then
-				mkdir -p "${arg_output_file%/*}" && touch "$arg_output_file"
-			fi
-
-			iba1=\$(md5sum "$arg_output_file")
-
-			if [ -n "${arg_log_file_last_day:-}" ] && [ -f "${arg_log_file_last_day:-}" ]; then
-				if [ "${arg_amount_day:-}" -le "0" ]; then
-					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
-				fi
-
-				>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in the last day) - ${arg_log_file_last_day:-}"
-				ipstoblock "${arg_log_file_last_day:-}" "${arg_amount_day:-}"
-			fi
-
-			if [ -n "${arg_log_file_day:-}" ] && [ -f "${arg_log_file_day:-}" ]; then
-				if [ "${arg_amount_day:-}" -le "0" ]; then
-					error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
-				fi
-
-				>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in a day) - ${arg_log_file_day:-}"
-				ipstoblock "${arg_log_file_day:-}" "${arg_amount_day:-}"
-			fi
-
-			if [ -n "${arg_log_file_last_hour:-}" ] && [ -f "${arg_log_file_last_hour:-}" ]; then
-				if [ "${arg_amount_hour:-}" -le "0" ]; then
-					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
-				fi
-
-				>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in the last hour) - ${arg_log_file_last_hour:-}"
-				ipstoblock "${arg_log_file_last_hour:-}" "${arg_amount_hour:-}"
-			fi
-
-			if [ -n "${arg_log_file_hour:-}" ] && [ -f "${arg_log_file_hour:-}" ]; then
-				if [ "${arg_amount_hour:-}" -le "0" ]; then
-					error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
-				fi
-
-				>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in an hour) - ${arg_log_file_hour:-}"
-				ipstoblock "${arg_log_file_hour:-}" "${arg_amount_hour:-}"
-			fi
-
-			iba2=\$(md5sum "$arg_output_file")
-
-			if [ "\$iba1" != "\$iba2" ]; then
-				echo "true"
-			else
-				echo "false"
-			fi
-		SHELL
-		)"
+		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:nginx:block_ips" ${args[@]+"${args[@]}"})"
 
 		if [ "$reload" = "true" ]; then
 			>&2 "$pod_script_env_file" "service:nginx:reload" --nginx_service="$arg_nginx_service"
 		fi
 		;;
-	"service:nginx:log:summary:total")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+	"inner:service:nginx:block_ips")
+		function invalid_cidr_network() {
+			[[ "$1" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.)){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]] && echo "0" || echo "1"
+		}
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+		function ipstoblock {
+			nginx_file_path="${1:-}"
+			amount="${2:-10}"
+			ips_most_requests=''
 
-			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "Nginx Logs"
-			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
-			echo -e "--------------------------------------------------------------------------------------------------------------"
-
-			request_count="\$(wc -l < "$arg_log_file")"
-			echo -e "Requests: \$request_count"
-
-			if [ -n "${arg_log_idx_user:-}" ]; then
-				total_users="\$(awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
-				echo -e "Users: \$total_users"
-			fi
-
-			if [ -n "${arg_log_idx_http_user:-}" ]; then
-				total_http_users="\$(awk -v idx="${arg_log_idx_http_user:-}" '{print \$idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
-				echo -e "HTTP Users: \$total_http_users"
-			fi
-
-			if [ -n "${arg_log_idx_duration:-}" ]; then
-				total_duration="\$(awk -v idx="${arg_log_idx_duration:-}" '{s+=\$idx} END {print s}' "$arg_log_file")"
-				echo -e "Duration: \$total_duration"
-			fi
-
-			if [ -n "${arg_log_idx_ip:-}" ]; then
-				echo -e "##############################################################################################################"
-				echo -e "Ips with Most Requests"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				ips_most_requests="\$( \
-					{ awk -v idx="${arg_log_idx_ip:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: ips_most_requests"
-				echo -e "\$ips_most_requests"
-			fi
-
-			if [ -n "${arg_log_idx_ip:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
-				echo -e "======================================================="
-				echo -e "IPs with Most Request Duration (s)"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				ips_most_request_duration="\$( \
-					{ awk \
-						-v idx_ip="${arg_log_idx_ip:-}" \
-						-v idx_duration="${arg_log_idx_duration:-}" \
-						'{s[\$idx_ip]+=\$idx_duration} END \
-						{ for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
-						"$arg_log_file" \
-						| sort -nr ||:; \
-					} | head -n "$arg_max_amount")" \
-					|| error "$command: ips_most_request_duration"
-				echo -e "\$ips_most_request_duration"
-			fi
-
-			if [ -n "${arg_log_idx_user:-}" ]; then
-				echo -e "======================================================="
-				echo -e "Users with Most Requests"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				users_most_requests="\$( \
+			if [ -f "$nginx_file_path" ]; then
+				ips_most_requests=$( \
 					{ \
-						awk -v idx="${arg_log_idx_user:-}" '{print \$idx}' "$arg_log_file" \
-						| sort | uniq -c | sort -nr ||:; \
-					} | head -n "$arg_max_amount")" \
-					|| error "$command: users_most_requests"
-				echo -e "\$users_most_requests"
+						awk '{print $1}' "$nginx_file_path" \
+						| sort \
+						| uniq -c \
+						| sort -nr \
+						| awk -v amount="$amount" '{if($1 > amount) {printf "%s 1; # %s\n", $2, $1}}' \
+						||:; \
+					} \
+					| head -n "$arg_max_amount" \
+				)
 			fi
 
-			if [ -n "${arg_log_idx_user:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
-				echo -e "======================================================="
-				echo -e "Users with Biggest Sum of Requests Duration (s)"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+			if [ -n "$ips_most_requests" ]; then
+				output=''
 
-				users_most_request_duration="\$( \
-					{ awk -v idx_user="${arg_log_idx_user:-}" -v idx_duration="${arg_log_idx_duration:-}" \
-						'{s[\$idx_user]+=\$idx_duration} END { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
-						"$arg_log_file" \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: users_most_request_duration"
-				echo -e "\$users_most_request_duration"
-			fi
+				while read -r i; do
+					ip="$(echo "$i" | awk '{print $1}')"
+					invalid_ip="$(invalid_cidr_network "$ip")" ||:
 
-			if [ -n "${arg_log_idx_status:-}" ]; then
-				echo -e "======================================================="
-				echo -e "Status with Most Requests"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+					if [ "${invalid_ip:-1}" = "1" ]; then
+						>&2 echo "invalid ip: $ip";
+					else
+						# include ip if it isn't already defined
+						# it will be considered as defined even if it is commented
+						if ! grep -qE "^(${ip}[ ]|[#]+[ ]*${ip}[ ])" "$arg_output_file"; then
+							output_aux="\n$i";
 
-				status_most_requests="\$( \
-					{ awk -v idx="${arg_log_idx_status:-}" '{print \$idx}' "$arg_log_file" \
-					| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
-          || error "$command: status_most_requests"
-				echo -e "\$status_most_requests"
-			fi
-
-			if [ -n "${arg_log_idx_duration:-}" ]; then
-				echo -e "======================================================="
-				echo -e "Requests with Longest Duration (s)"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
-
-				grep_args=()
-
-				if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
-					regex="^[ ]*[^#^ ].*$"
-					grep_lines="\$(grep -E "\$regex" "${arg_file_exclude_paths:-}" ||:)"
-
-					if [ -n "\$grep_lines" ]; then
-						while read -r grep_line; do
-							if [ "\${#grep_args[@]}" -eq 0 ]; then
-								grep_args=( "-v" )
+							# do nothing if ip already exists in manual file
+							if [ -n "${arg_manual_file:-}" ] && [ -f "${arg_manual_file:-}" ]; then
+								if grep -qE "^($ip|#[ ]*$ip|##[ ]*$ip)" "${arg_manual_file:-}"; then
+									output_aux=''
+								fi
 							fi
 
-							grep_args+=( "-e" "\$grep_line" )
-						done <<< "\$(echo -e "\$grep_lines")"
+							if [ -n "$output_aux" ]; then
+								host="$(host "$ip" | awk '{ print $NF }' | sed 's/.$//' ||:)"
+
+								if [ -n "$host" ] && [ -n "${arg_allowed_hosts_file:-}" ]; then
+									regex="^[ ]*[^#^ ].*$"
+									allowed_hosts="$(grep -E "$regex" "${arg_allowed_hosts_file:-}" ||:)"
+
+									if [ -n "$allowed_hosts" ]; then
+										while read -r allowed_host; do
+											if [[ "$host" == "$allowed_host" ]]; then
+												ip_host="$(host "$host" | awk '{ print $NF }' ||:)"
+
+												if [ -n "$ip_host" ] && [ "$ip" = "$ip_host" ]; then
+													output_aux="\n## $i ($host)";
+												fi
+
+												break;
+											fi
+										done <<< "$(echo -e "$allowed_hosts")"
+									fi
+								fi
+							fi
+
+							output="$output$output_aux";
+						fi
 					fi
-				fi
+				done <<< "$(echo -e "$ips_most_requests")"
 
-				if [ "\${#grep_args[@]}" -eq 0 ]; then
-					grep_args=( "." )
+				if [ -n "$output" ]; then
+					output="#$(TZ=GMT date '+%F %T')$output"
+					echo -e "\n$output" | tee --append "$arg_output_file" > /dev/null
 				fi
-
-				longest_request_durations="\$( \
-					{ grep \${grep_args[@]+"\${grep_args[@]}"} "$arg_log_file" \
-					| awk \
-						-v idx_ip="${arg_log_idx_ip:-}" \
-						-v idx_user="${arg_log_idx_user:-}" \
-						-v idx_duration="${arg_log_idx_duration:-}" \
-						-v idx_time="${arg_log_idx_time:-}" \
-						-v idx_status="${arg_log_idx_status:-}" \
-						'{ printf "%10.1f %s %s %s %s\n", \
-							\$idx_duration, \
-							substr(\$idx_time, index(\$idx_time, ":") + 1), \
-							\$idx_status, \
-							\$idx_user, \
-							\$idx_ip }' \
-						| sort -nr ||:; } \
-					| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
-				echo -e "\$longest_request_durations"
 			fi
-		SHELL
+		}
+
+		if [ ! -f "$arg_output_file" ]; then
+			mkdir -p "${arg_output_file%/*}" && touch "$arg_output_file"
+		fi
+
+		iba1=$(md5sum "$arg_output_file")
+
+		if [ -n "${arg_log_file_last_day:-}" ] && [ -f "${arg_log_file_last_day:-}" ]; then
+			if [ "${arg_amount_day:-}" -le "0" ]; then
+				error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
+			fi
+
+			>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in the last day) - ${arg_log_file_last_day:-}"
+			ipstoblock "${arg_log_file_last_day:-}" "${arg_amount_day:-}"
+		fi
+
+		if [ -n "${arg_log_file_day:-}" ] && [ -f "${arg_log_file_day:-}" ]; then
+			if [ "${arg_amount_day:-}" -le "0" ]; then
+				error "$command: amount_day (${arg_amount_day:-}) should be greater than 0"
+			fi
+
+			>&2 echo "define ips to block (more than ${arg_amount_day:-} requests in a day) - ${arg_log_file_day:-}"
+			ipstoblock "${arg_log_file_day:-}" "${arg_amount_day:-}"
+		fi
+
+		if [ -n "${arg_log_file_last_hour:-}" ] && [ -f "${arg_log_file_last_hour:-}" ]; then
+			if [ "${arg_amount_hour:-}" -le "0" ]; then
+				error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
+			fi
+
+			>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in the last hour) - ${arg_log_file_last_hour:-}"
+			ipstoblock "${arg_log_file_last_hour:-}" "${arg_amount_hour:-}"
+		fi
+
+		if [ -n "${arg_log_file_hour:-}" ] && [ -f "${arg_log_file_hour:-}" ]; then
+			if [ "${arg_amount_hour:-}" -le "0" ]; then
+				error "$command: amount_hour (${arg_amount_hour:-}) should be greater than 0"
+			fi
+
+			>&2 echo "define ips to block (more than ${arg_amount_hour:-} requests in an hour) - ${arg_log_file_hour:-}"
+			ipstoblock "${arg_log_file_hour:-}" "${arg_amount_hour:-}"
+		fi
+
+		iba2=$(md5sum "$arg_output_file")
+
+		if [ "$iba1" != "$iba2" ]; then
+			echo "true"
+		else
+			echo "false"
+		fi
+		;;
+	"service:nginx:log:summary:total")
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:nginx:log:summary:total" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:nginx:log:summary:total")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "Nginx Logs"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+
+		request_count="$(wc -l < "$arg_log_file")"
+		echo -e "Requests: $request_count"
+
+		if [ -n "${arg_log_idx_user:-}" ]; then
+			total_users="$(awk -v idx="${arg_log_idx_user:-}" '{print $idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
+			echo -e "Users: $total_users"
+		fi
+
+		if [ -n "${arg_log_idx_http_user:-}" ]; then
+			total_http_users="$(awk -v idx="${arg_log_idx_http_user:-}" '{print $idx}' "$arg_log_file" | sort | uniq -c | wc -l)"
+			echo -e "HTTP Users: $total_http_users"
+		fi
+
+		if [ -n "${arg_log_idx_duration:-}" ]; then
+			total_duration="$(awk -v idx="${arg_log_idx_duration:-}" '{s+=$idx} END {print s}' "$arg_log_file")"
+			echo -e "Duration: $total_duration"
+		fi
+
+		if [ -n "${arg_log_idx_ip:-}" ]; then
+			echo -e "##############################################################################################################"
+			echo -e "Ips with Most Requests"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			ips_most_requests="$( \
+				{ awk -v idx="${arg_log_idx_ip:-}" '{print $idx}' "$arg_log_file" \
+				| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
+				|| error "$command: ips_most_requests"
+			echo -e "$ips_most_requests"
+		fi
+
+		if [ -n "${arg_log_idx_ip:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
+			echo -e "======================================================="
+			echo -e "IPs with Most Request Duration (s)"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			ips_most_request_duration="$( \
+				{ awk \
+					-v idx_ip="${arg_log_idx_ip:-}" \
+					-v idx_duration="${arg_log_idx_duration:-}" \
+					'
+						{s[$idx_ip]+=$idx_duration} END
+						{ for (key in s) { printf "%10.1f %s\n", s[key], key } }
+					' \
+					"$arg_log_file" \
+					| sort -nr ||:; \
+				} | head -n "$arg_max_amount")" \
+				|| error "$command: ips_most_request_duration"
+			echo -e "$ips_most_request_duration"
+		fi
+
+		if [ -n "${arg_log_idx_user:-}" ]; then
+			echo -e "======================================================="
+			echo -e "Users with Most Requests"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			users_most_requests="$( \
+				{ \
+					awk -v idx="${arg_log_idx_user:-}" '{print $idx}' "$arg_log_file" \
+					| sort | uniq -c | sort -nr ||:; \
+				} | head -n "$arg_max_amount")" \
+				|| error "$command: users_most_requests"
+			echo -e "$users_most_requests"
+		fi
+
+		if [ -n "${arg_log_idx_user:-}" ] && [ -n "${arg_log_idx_duration:-}" ]; then
+			echo -e "======================================================="
+			echo -e "Users with Biggest Sum of Requests Duration (s)"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			users_most_request_duration="$( \
+				{ awk -v idx_user="${arg_log_idx_user:-}" -v idx_duration="${arg_log_idx_duration:-}" \
+					'{s[$idx_user]+=$idx_duration} END { for (key in s) { printf "%10.1f %s\n", s[key], key } }' \
+					"$arg_log_file" \
+				| sort -nr ||:; } | head -n "$arg_max_amount")" \
+		|| error "$command: users_most_request_duration"
+			echo -e "$users_most_request_duration"
+		fi
+
+		if [ -n "${arg_log_idx_status:-}" ]; then
+			echo -e "======================================================="
+			echo -e "Status with Most Requests"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			status_most_requests="$( \
+				{ awk -v idx="${arg_log_idx_status:-}" '{print $idx}' "$arg_log_file" \
+				| sort | uniq -c | sort -nr ||:; } | head -n "$arg_max_amount")" \
+				|| error "$command: status_most_requests"
+			echo -e "$status_most_requests"
+		fi
+
+		if [ -n "${arg_log_idx_duration:-}" ]; then
+			echo -e "======================================================="
+			echo -e "Requests with Longest Duration (s)"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
+
+			grep_args=()
+
+			if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
+				regex="^[ ]*[^#^ ].*$"
+				grep_lines="$(grep -E "$regex" "${arg_file_exclude_paths:-}" ||:)"
+
+				if [ -n "$grep_lines" ]; then
+					while read -r grep_line; do
+						if [ "${#grep_args[@]}" -eq 0 ]; then
+							grep_args=( "-v" )
+						fi
+
+						grep_args+=( "-e" "$grep_line" )
+					done <<< "$(echo -e "$grep_lines")"
+				fi
+			fi
+
+			if [ "${#grep_args[@]}" -eq 0 ]; then
+				grep_args=( "." )
+			fi
+
+			longest_request_durations="$( \
+				{ grep ${grep_args[@]+"${grep_args[@]}"} "$arg_log_file" \
+				| awk \
+					-v idx_ip="${arg_log_idx_ip:-}" \
+					-v idx_user="${arg_log_idx_user:-}" \
+					-v idx_duration="${arg_log_idx_duration:-}" \
+					-v idx_time="${arg_log_idx_time:-}" \
+					-v idx_status="${arg_log_idx_status:-}" \
+					'{
+						printf "%10.1f %s %s %s %s\n",
+						$idx_duration,
+						substr($idx_time, index($idx_time, ":") + 1),
+						$idx_status,
+						$idx_user,
+						$idx_ip
+					}' \
+					| sort -nr ||:; } \
+				| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
+			echo -e "$longest_request_durations"
+		fi
 		;;
 	"service:nginx:log:duration")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:nginx:log:duration" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:nginx:log:duration")
+		if [ -n "${arg_log_idx_duration:-}" ]; then
+			grep_args=()
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
+			if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
+				regex="^[ ]*[^#^ ].*$"
+				grep_lines="$(grep -E "$regex" "${arg_file_exclude_paths:-}" ||:)"
 
-			if [ -n "${arg_log_idx_duration:-}" ]; then
-				grep_args=()
+				if [ -n "$grep_lines" ]; then
+					while read -r grep_line; do
+						if [ "${#grep_args[@]}" -eq 0 ]; then
+							grep_args=( "-v" )
+						fi
 
-				if [ -n "${arg_file_exclude_paths:-}" ] && [ -f "${arg_file_exclude_paths:-}" ]; then
-					regex="^[ ]*[^#^ ].*$"
-					grep_lines="\$(grep -E "\$regex" "${arg_file_exclude_paths:-}" ||:)"
-
-					if [ -n "\$grep_lines" ]; then
-						while read -r grep_line; do
-							if [ "\${#grep_args[@]}" -eq 0 ]; then
-								grep_args=( "-v" )
-							fi
-
-							grep_args+=( "-e" "\$grep_line" )
-						done <<< "\$(echo -e "\$grep_lines")"
-					fi
+						grep_args+=( "-e" "$grep_line" )
+					done <<< "$(echo -e "$grep_lines")"
 				fi
-
-				if [ "\${#grep_args[@]}" -eq 0 ]; then
-					grep_args=( "." )
-				fi
-
-				longest_request_durations="\$( \
-					{ grep \${grep_args[@]+"\${grep_args[@]}"} "$arg_log_file" \
-					| awk \
-						-v idx_duration="${arg_log_idx_duration:-}" \
-						'{ printf "%10.1f %s\n", \$idx_duration, \$0 }' \
-						| sort -nr ||:; } \
-					| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
-				echo -e "\$longest_request_durations"
 			fi
-		SHELL
+
+			if [ "${#grep_args[@]}" -eq 0 ]; then
+				grep_args=( "." )
+			fi
+
+			longest_request_durations="$( \
+				{ grep ${grep_args[@]+"${grep_args[@]}"} "$arg_log_file" \
+				| awk \
+					-v idx_duration="${arg_log_idx_duration:-}" \
+					'{ printf "%10.1f %s\n", $idx_duration, $0 }' \
+					| sort -nr ||:; } \
+				| head -n "$arg_max_amount")" || error "$command: longest_request_durations"
+			echo -e "$longest_request_durations"
+		fi
 		;;
 	"service:nginx:log:connections")
-		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$command"
-			set -eou pipefail
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			"$inner_run_file" "inner:service:nginx:log:connections" ${args[@]+"${args[@]}"}
+		;;
+	"inner:service:nginx:log:connections")
+		echo -e "##############################################################################################################"
+		echo -e "##############################################################################################################"
+		echo -e "HTTP Connections"
+		echo -e "--------------------------------------------------------------------------------------------------------------"
+		echo -e "Path: $arg_log_file"
+		echo -e "Limit: $arg_max_amount"
 
-			function error {
-				>&2 echo -e "\$(date '+%F %T') - \${BASH_SOURCE[0]}: line \${BASH_LINENO[0]}: \${*}"
-				exit 2
-			}
-
+		if [ -f "$arg_log_file" ]; then
 			echo -e "##############################################################################################################"
-			echo -e "##############################################################################################################"
-			echo -e "HTTP Connections"
+			echo -e "HTTP Active Connections"
 			echo -e "--------------------------------------------------------------------------------------------------------------"
-			echo -e "Path: $arg_log_file"
-			echo -e "Limit: $arg_max_amount"
 
-			if [ -f "$arg_log_file" ]; then
-				echo -e "##############################################################################################################"
-				echo -e "HTTP Active Connections"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+			http_connections_max_logs="$( \
+				{ grep -E '^(Time: |Active connections: )' "$arg_log_file" \
+				| awk '{
+					if($1 == "Time:") {time = $2 " " $3 " " $4;}
+					else if($1 " " $2 == "Active connections:") { printf "%10d %s\n", $3, time }
+					}' \
+				| sort -nr ||:; } | head -n "$arg_max_amount")" \
+				|| error "$command: http_connections_max_logs"
 
-				http_connections_max_logs="\$( \
-					{ grep -E '^(Time: |Active connections: )' "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3 " " \$4;}
-						else if(\$1 " " \$2 == "Active connections:") { printf "%10d %s\n", \$3, time }
-						}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          			|| error "$command: http_connections_max_logs"
+			echo -e "$http_connections_max_logs"
 
-				echo -e "\$http_connections_max_logs"
+			echo -e "##############################################################################################################"
+			echo -e "HTTP Writing Connections"
+			echo -e "--------------------------------------------------------------------------------------------------------------"
 
-				echo -e "##############################################################################################################"
-				echo -e "HTTP Writing Connections"
-				echo -e "--------------------------------------------------------------------------------------------------------------"
+			http_writing_max_logs="$( \
+				{ grep -E '^(Time: |Reading: )' "$arg_log_file" \
+				| awk '{
+					if($1 == "Time:") {time = $2 " " $3 " " $4;}
+					else if($3 == "Writing:") { printf "%10d %s\n", $4, time }
+					}' \
+				| sort -nr ||:; } | head -n "$arg_max_amount")" \
+				|| error "$command: http_writing_max_logs"
 
-				http_writing_max_logs="\$( \
-					{ grep -E '^(Time: |Reading: )' "$arg_log_file" \
-					| awk '{
-						if(\$1 == "Time:") {time = \$2 " " \$3 " " \$4;}
-						else if(\$3 == "Writing:") { printf "%10d %s\n", \$4, time }
-						}' \
-					| sort -nr ||:; } | head -n "$arg_max_amount")" \
-          			|| error "$command: http_writing_max_logs"
-
-				echo -e "\$http_writing_max_logs"
-			fi
-		SHELL
+			echo -e "$http_writing_max_logs"
+		fi
 		;;
 	*)
 		error "$command: invalid command"

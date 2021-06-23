@@ -33,6 +33,8 @@ fi
 
 shift;
 
+args=("$@")
+
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
 	if [ "$OPT" = "-" ]; then     # long option: reformulate OPT and OPTARG
@@ -629,35 +631,35 @@ case "$command" in
 	"service:cron:custom")
 		"$cron_run_file" "${args[@]}"
 		;;
-	"service:cloudflare:"*)
+	"service:cloudflare:"*|"inner:service:cloudflare:"*)
 		"$cloudflare_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:haproxy:"*)
+	"service:haproxy:"*|"inner:service:haproxy:"*)
 		"$haproxy_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--haproxy_service="haproxy" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:mysql:"*)
+	"service:mysql:"*|"inner:service:mysql:"*)
 		"$mysql_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:nextcloud:"*)
+	"service:nextcloud:"*|"inner:service:nextcloud:"*)
 		"$nextcloud_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--nextcloud_service="nextcloud" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:nginx:"*)
+	"service:nginx:"*|"inner:service:nginx:"*)
 		"$nginx_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--nginx_service="nginx" \
 			${args[@]+"${args[@]}"}
 		;;
-	"service:redis:"*)
+	"service:redis:"*|"inner:service:redis:"*)
 		"$redis_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			--redis_service="redis" \

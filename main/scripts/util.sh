@@ -228,8 +228,6 @@ case "$command" in
 			shopt -s extglob && inner_str="${inner_str//[[][[]*( )datetime*( )[]][]]/$datetime}"
 		fi
 
-		unknown_cmd error
-
 		echo "$inner_str"
 		;;
 	*)

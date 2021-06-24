@@ -429,6 +429,7 @@ case "$command" in
 
 				info "$command - init the mongo database if needed"
 				"$pod_script_env_file" run mongo_init "$inner_run_file" \
+					"inner:service:mongo:prepare" \
 					--db_host="$var_run__migrate__db_host" \
 					--db_port="$var_run__migrate__db_port" \
 					--db_name="$var_run__migrate__db_name" \

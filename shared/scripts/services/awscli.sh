@@ -170,7 +170,7 @@ case "$command" in
 		if [ -n "${arg_s3_older_than_days:-}" ]; then
 			seconds=$(( ${arg_s3_older_than_days:-}*24*60*60 ))
 			[ "${arg_s3_test:-}" = 'true' ] && seconds=$(( ${arg_s3_older_than_days:-}*60 ))
-			s3_max_date="$(date --date=@"$(( $(date '+%s') - $seconds ))" -Iseconds)"
+			s3_max_date="$(date --date=@"$(( $(date '+%s') - seconds ))" -Iseconds)"
 		fi
 
 		aws --profile="$arg_s3_alias" --endpoint="$arg_s3_endpoint" \

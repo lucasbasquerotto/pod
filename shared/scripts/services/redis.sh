@@ -80,7 +80,7 @@ case "$command" in
 		;;
 	"service:redis:log:slow:summary")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:redis:log:slow:summary" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:redis:log:slow:summary" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:redis:log:slow:summary")
 		echo -e "##############################################################################################################"

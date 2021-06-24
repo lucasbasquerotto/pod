@@ -63,7 +63,7 @@ title="${title}${command}"
 case "$command" in
 	"container:image:tag:exists")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:container:image:tag:exists" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:container:image:tag:exists" ${args[@]+"${args[@]}"}
 		;;
 	"inner:container:image:tag:exists")
 		result="$(curl --fail --silent --show-error -H "Content-Type: application/json" -X POST \

@@ -168,7 +168,7 @@ case "$command" in
 		;;
 	"util:file:type")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:util:file:type" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:util:file:type" ${args[@]+"${args[@]}"}
 		;;
 	"inner:util:file:type")
 		if [ -f "${arg_path:-}" ]; then
@@ -182,7 +182,7 @@ case "$command" in
 		;;
 	"util:replace_placeholders")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:util:replace_placeholders" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:util:replace_placeholders" ${args[@]+"${args[@]}"}
 		;;
 	"inner:util:replace_placeholders")
 		inner_str="${arg_value:-}"

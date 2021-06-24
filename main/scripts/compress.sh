@@ -57,7 +57,7 @@ title="${title}${command}"
 case "$command" in
 	"compress:zip")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:compress:zip" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:compress:zip" ${args[@]+"${args[@]}"}
 		;;
 	"inner:compress:zip")
 		if [ -z "${arg_dest_file:-}" ]; then
@@ -120,7 +120,7 @@ case "$command" in
 		;;
 	"uncompress:zip")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:uncompress:zip" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:uncompress:zip" ${args[@]+"${args[@]}"}
 		;;
 	"inner:uncompress:zip")
 		if [ -z "${arg_src_file:-}" ]; then

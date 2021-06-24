@@ -158,7 +158,7 @@ case "$command" in
 				fi
 
 				"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-					"$inner_run_file" "inner:upgrade:general_actions" \
+					bash "$inner_run_file" "inner:upgrade:general_actions" \
 					--inner_move_dest="${arg_move_dest:-}" \
 					${args[@]+"${args[@]}"}
 
@@ -172,7 +172,7 @@ case "$command" in
 			fi
 
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				"$inner_run_file" "inner:upgrade:final_actions" \
+				bash "$inner_run_file" "inner:upgrade:final_actions" \
 				${args[@]+"${args[@]}"}
 		fi
 		;;
@@ -181,7 +181,7 @@ case "$command" in
 		info "$command - $msg"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:setup:verify:default" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:setup:verify:default" ${args[@]+"${args[@]}"}
 		;;
 	"inner:setup:verify:default")
 		dir_ls=""
@@ -323,7 +323,7 @@ case "$command" in
 			fi
 
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				"$inner_run_file" "inner:upgrade:general_actions" \
+				bash "$inner_run_file" "inner:upgrade:general_actions" \
 				${args[@]+"${args[@]}"}
 
 			if [ -n "${arg_subtask_cmd_remote:-}" ]; then
@@ -341,7 +341,7 @@ case "$command" in
 			fi
 
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				"$inner_run_file" "inner:upgrade:final_actions" \
+				bash "$inner_run_file" "inner:upgrade:final_actions" \
 				${args[@]+"${args[@]}"}
 		fi
 		;;
@@ -365,7 +365,7 @@ case "$command" in
 
 		if [ -n "${arg_verify_file_to_skip:-}" ]; then
 			skip_file="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				"$inner_run_file" "inner:upgrade:verify:file_to_skip" ${args[@]+"${args[@]}"})"
+				bash "$inner_run_file" "inner:upgrade:verify:file_to_skip" ${args[@]+"${args[@]}"})"
 		fi
 
 		if [ -n "$skip" ] && [ -n "$skip_file" ]; then

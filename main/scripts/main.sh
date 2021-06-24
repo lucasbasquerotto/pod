@@ -133,8 +133,9 @@ case "$command" in
 		{
 			# shellcheck disable=SC1090,SC1091
 			. "${pod_layer_dir}/vars.sh"
-			echo "var_load_main__inner=true";
 			echo "var_load_main__data_dir=${var_load_main__data_dir:-}";
+			echo "var_load_main__inner=true";
+			echo "var_load_main__inner_scripts_dir=${var_load_main__inner_scripts_dir:-}";
 			echo "var_load_main__instance_index=${var_load_main__instance_index:-}";
 			echo "var_load_main__local=${var_load_main__local:-}";
 			echo "var_load_main__pod_type=${var_load_main__pod_type:-}";
@@ -515,7 +516,7 @@ case "$command" in
 		;;
 	"action:verify:"*)
 		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" \
-			"$inner_run_file" "inner:action:verify:$arg_task_name" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:action:verify:$arg_task_name" ${args[@]+"${args[@]}"}
 		;;
 	"inner:action:verify:"*)
 		dir="$arg_action_dir"
@@ -548,7 +549,7 @@ case "$command" in
 		;;
 	"action:remove:"*)
 		"$pod_script_env_file" exec-nontty "$var_run__general__toolbox_service" \
-			"$inner_run_file" "inner:action:remove:$arg_task_name" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:action:remove:$arg_task_name" ${args[@]+"${args[@]}"}
 		;;
 	"inner:action:remove:"*)
 		dir="$arg_action_dir"

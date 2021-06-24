@@ -117,7 +117,7 @@ case "$command" in
 		;;
 	"s3:main:awscli:bucket_exists")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			"$inner_run_file" "inner:service:awscli:bucket_exists" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:awscli:bucket_exists" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:awscli:bucket_exists")
 		mkdir -p "$arg_s3_tmp_dir" >&2
@@ -158,7 +158,7 @@ case "$command" in
 		;;
 	"s3:main:awscli:delete_old")
 		"$pod_script_env_file" "$arg_cli_cmd" "$arg_s3_service" \
-			"$inner_run_file" "inner:service:awscli:delete_old" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:awscli:delete_old" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:awscli:delete_old")
 		if [ -z "${arg_s3_older_than_days:-}" ]; then

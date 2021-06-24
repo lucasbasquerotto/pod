@@ -74,7 +74,7 @@ case "$command" in
 		;;
 	"service:haproxy:basic_status")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:haproxy:basic_status" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:haproxy:basic_status" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:haproxy:basic_status")
 		echo -e "##############################################################################################################"
@@ -108,7 +108,7 @@ case "$command" in
 		;;
 	"service:haproxy:block_ips")
 		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:haproxy:block_ips" ${args[@]+"${args[@]}"} \
+			bash "$inner_run_file" "inner:service:haproxy:block_ips" ${args[@]+"${args[@]}"} \
 		)"
 
 		if [ "$reload" = "true" ]; then
@@ -253,7 +253,7 @@ case "$command" in
 		;;
 	"service:haproxy:log:summary:total")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:haproxy:log:summary:total" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:haproxy:log:summary:total" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:haproxy:log:summary:total")
 		echo -e "##############################################################################################################"
@@ -437,7 +437,7 @@ case "$command" in
 		;;
 	"service:haproxy:log:duration")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:haproxy:log:duration" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:haproxy:log:duration" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:haproxy:log:duration")
 		default_prefix=">>> "

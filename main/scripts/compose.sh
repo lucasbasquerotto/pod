@@ -203,7 +203,7 @@ case "$command" in
 		shift;
 
 		cd "$pod_layer_dir/"
-		sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" exec "$service" /bin/"$command" "${@}"
+		sudo docker-compose --project-name "${project:-$main_project}" -f "${file:-$main_file}" exec "$service" "$command" "${@}"
 		;;
 	"system:df")
 		sudo docker system df

@@ -231,7 +231,7 @@ case "$command" in
 		info "$command - clear old files"
 		>&2 "$pod_script_env_file" up toolbox
 
-		"$pod_script_env_file" exec-nontty toolbox "$inner_run_file" "inner:delete:old"
+		"$pod_script_env_file" exec-nontty toolbox bash "$inner_run_file" "inner:delete:old"
 		;;
 	"inner:delete:old")
 		info "$command - clear old files"

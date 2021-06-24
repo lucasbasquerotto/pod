@@ -78,7 +78,7 @@ case "$command" in
 
 		need_install="$(
 			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
-				"$inner_run_file" "inner:service:nextcloud:setup:need_install" ${args[@]+"${args[@]}"} \
+				bash "$inner_run_file" "inner:service:nextcloud:setup:need_install" ${args[@]+"${args[@]}"} \
 		)" || error "inner:service:nextcloud:setup:need_install"
 
 		if [[ ${need_install:-0} -ne 0 ]]; then
@@ -93,7 +93,7 @@ case "$command" in
 
 		info "$command: define domain and protocol ($arg_nextcloud_domain)"
 		"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
-			"$inner_run_file" "inner:service:nextcloud:setup:main" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:nextcloud:setup:main" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:nextcloud:setup:need_install")
 		connect_wait_secs="${arg_connect_wait_secs:-300}"
@@ -180,7 +180,7 @@ case "$command" in
 		if [[ $count -eq 0 ]]; then
 			info "$command: defining s3 storage ($arg_mount_point)..."
 			"$pod_script_env_file" exec-nontty -u www-data "$arg_nextcloud_service" \
-				"$inner_run_file" "inner:service:nextcloud:s3" ${args[@]+"${args[@]}"}
+				bash "$inner_run_file" "inner:service:nextcloud:s3" ${args[@]+"${args[@]}"}
 		else
 			info "$command: s3 storage already defined ($arg_mount_point)"
 		fi

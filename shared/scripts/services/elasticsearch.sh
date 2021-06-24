@@ -162,7 +162,7 @@ case "$command" in
 	"db:main:elasticsearch:pass")
 		if [ "${arg_db_tls:-}" = 'true' ]; then
 			"$pod_script_env_file" exec-nontty "$arg_db_service" \
-				"$inner_run_file" "inner:service:elasticsearch:pass" ${args[@]+"${args[@]}"}
+				bash "$inner_run_file" "inner:service:elasticsearch:pass" ${args[@]+"${args[@]}"}
 		fi
 		;;
 	"inner:service:elasticsearch:pass")
@@ -182,7 +182,7 @@ case "$command" in
 		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:elasticsearch:ready" \
+			bash "$inner_run_file" "inner:service:elasticsearch:ready" \
 			--db_pass="$db_pass" \
 			${args[@]+"${args[@]}"}
 		;;
@@ -223,7 +223,7 @@ case "$command" in
 		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:elasticsearch:restore:verify" \
+			bash "$inner_run_file" "inner:service:elasticsearch:restore:verify" \
 			--db_pass="$db_pass" \
 			${args[@]+"${args[@]}"}
 		;;

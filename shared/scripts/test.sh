@@ -60,7 +60,7 @@ case "$command" in
 		"$pod_script_env_file" up toolbox
 
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:shared:test:zip"
+			bash "$inner_run_file" "inner:shared:test:zip"
 		;;
 	"inner:shared:test:zip")
 		rm -rf /tmp/main/test/src/
@@ -68,10 +68,10 @@ case "$command" in
 		mkdir -p /tmp/main/test/src/dir/
 		mkdir -p /tmp/main/test/dest
 
-		echo "\$(date '+%F %X') - test 1 ($$)" > /tmp/main/test/src/file1.txt
-		echo "\$(date '+%F %X') - test 2 ($$)" > /tmp/main/test/src/dir/file2.txt
-		echo "\$(date '+%F %X') - test 3 ($$)" > /tmp/main/test/src/dir/file3.txt
-		echo "\$(date '+%F %X') - test 4 ($$)" > /tmp/main/test/src/dir/file4.txt
+		echo "$(date '+%F %X') - test 1 ($$)" > /tmp/main/test/src/file1.txt
+		echo "$(date '+%F %X') - test 2 ($$)" > /tmp/main/test/src/dir/file2.txt
+		echo "$(date '+%F %X') - test 3 ($$)" > /tmp/main/test/src/dir/file3.txt
+		echo "$(date '+%F %X') - test 4 ($$)" > /tmp/main/test/src/dir/file4.txt
 
 		mkdir -p /tmp/main/test/dest/
 
@@ -109,7 +109,7 @@ case "$command" in
 		"$pod_script_env_file" up toolbox
 
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:shared:test:unzip"
+			bash "$inner_run_file" "inner:shared:test:unzip"
 		;;
 	"inner:shared:test:unzip")
 		rm -rf /tmp/main/test/newdest/

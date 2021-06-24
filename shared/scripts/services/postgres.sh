@@ -72,7 +72,7 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
-			"$inner_run_file" "inner:service:postgres:connect_main" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:postgres:connect_main" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:postgres:connect_main")
 		end=$((SECONDS+arg_db_connect_wait_secs))
@@ -125,7 +125,7 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
-			"$inner_run_file" "inner:service:postgres:tables:count" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:postgres:tables:count" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:postgres:tables:count")
 		sql_tables="select count(*) from information_schema.tables where table_schema = 'public'"

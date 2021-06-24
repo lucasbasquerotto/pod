@@ -94,7 +94,7 @@ case "$command" in
         ;;
 	"shared:log:memory_overview:summary:log")
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:log:memory_overview:summary:log" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:log:memory_overview:summary:log" ${args[@]+"${args[@]}"}
 		;;
 	"inner:log:memory_overview:summary:log")
 		echo -e "##############################################################################################################"
@@ -138,7 +138,7 @@ case "$command" in
         ;;
 	"shared:log:entropy:summary:log")
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:log:entropy:summary:log" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:log:entropy:summary:log" ${args[@]+"${args[@]}"}
 		;;
 	"inner:log:entropy:summary:log")
 		echo -e "##############################################################################################################"
@@ -217,7 +217,7 @@ case "$command" in
 		log_hour_path_prefix="$("$pod_script_env_file" "shared:log:$service:hour_path_prefix")"
 
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:log:$service:day" \
+			bash "$inner_run_file" "inner:log:$service:day" \
 			--log_hour_path_prefix="$log_hour_path_prefix" \
 			${args[@]+"${args[@]}"}
 		;;
@@ -334,7 +334,7 @@ case "$command" in
 		log="$("$pod_script_env_file" "$arg_cmd" || error "$command: $arg_cmd")"
 
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:log:register" \
+			bash "$inner_run_file" "inner:log:register" \
 			--log="$log" \
 			${args[@]+"${args[@]}"}
 		;;
@@ -395,7 +395,7 @@ case "$command" in
 		df -h | grep -E '(^Filesystem|/$)'
 
 		"$pod_script_env_file" exec-nontty toolbox \
-			"$inner_run_file" "inner:log:disk:summary:data" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:log:disk:summary:data" ${args[@]+"${args[@]}"}
 
 		if [ "${arg_verify_size_docker_dir:-}" = "true" ]; then
 			echo -e "-------------------------------------------------------"

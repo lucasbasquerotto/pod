@@ -147,7 +147,7 @@ case "$command" in
 			use_wale='true'
 		fi
 
-		"$pod_script_env_file" exec-nontty toolbox "$inner_run_file" "inner:services:prepare" \
+		"$pod_script_env_file" exec-nontty toolbox bash "$inner_run_file" "inner:services:prepare" \
 			--pod_type="$var_main__pod_type" \
 			--use_wale="$use_wale" \
 			--use_nginx="${var_main__use_nginx:-}" \

@@ -107,7 +107,7 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
-			"$inner_run_file" "inner:service:mongo:collections:count" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:mongo:collections:count" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:mongo:collections:count")
 		re_number='^[0-9]+$'
@@ -174,7 +174,7 @@ case "$command" in
 		msg="$msg to directory $arg_db_task_base_dir/$arg_db_name (inside service)"
 		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" \
-			"$inner_run_file" "inner:service:mongo:backup" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:mongo:backup" ${args[@]+"${args[@]}"}
 
 		echo ""
 		;;

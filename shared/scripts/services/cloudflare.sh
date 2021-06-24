@@ -66,7 +66,7 @@ case "$command" in
 
 		if [ ! -f "$output_file_outer" ] || [ "${arg_only_if_needed:-}" != 'true' ]; then
 			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-				"$inner_run_file" "inner:service:cloudflare:ips" ${args[@]+"${args[@]}"}
+				bash "$inner_run_file" "inner:service:cloudflare:ips" ${args[@]+"${args[@]}"}
 
 			if [ -f "$reload_file_outer" ] && [ -n "${arg_webservice:-}" ]; then
 				echo "reloading $arg_webservice..." >&2

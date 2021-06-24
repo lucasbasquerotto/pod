@@ -77,7 +77,7 @@ case "$command" in
 		;;
 	"service:nginx:block_ips")
 		reload="$("$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:nginx:block_ips" ${args[@]+"${args[@]}"})"
+			bash "$inner_run_file" "inner:service:nginx:block_ips" ${args[@]+"${args[@]}"})"
 
 		if [ "$reload" = "true" ]; then
 			>&2 "$pod_script_env_file" "service:nginx:reload" --nginx_service="$arg_nginx_service"
@@ -216,7 +216,7 @@ case "$command" in
 		;;
 	"service:nginx:log:summary:total")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:nginx:log:summary:total" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:nginx:log:summary:total" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:nginx:log:summary:total")
 		echo -e "##############################################################################################################"
@@ -366,7 +366,7 @@ case "$command" in
 		;;
 	"service:nginx:log:duration")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:nginx:log:duration" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:nginx:log:duration" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:nginx:log:duration")
 		if [ -n "${arg_log_idx_duration:-}" ]; then
@@ -403,7 +403,7 @@ case "$command" in
 		;;
 	"service:nginx:log:connections")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:nginx:log:connections" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:nginx:log:connections" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:nginx:log:connections")
 		echo -e "##############################################################################################################"

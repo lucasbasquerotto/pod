@@ -102,7 +102,7 @@ case "$command" in
 		fi
 
 		"$pod_script_env_file" "${cmd_args[@]}" "$arg_db_service" \
-			"$inner_run_file" "inner:service:mysql:tables:count" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:mysql:tables:count" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:mysql:tables:count")
 		sql_tables="select count(*) from information_schema.tables where table_schema = '${arg_db_name:-}'"
@@ -155,7 +155,7 @@ case "$command" in
 		"$pod_script_env_file" up "$arg_db_service"
 
 		"$pod_script_env_file" exec-nontty "$arg_db_service" \
-			"$inner_run_file" "inner:service:mysql:restore:file" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:mysql:restore:file" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:mysql:restore:file")
 		if [ -z "${arg_db_task_base_dir:-}" ]; then
@@ -194,7 +194,7 @@ case "$command" in
 
 		info "$command: $arg_db_service - backup to file $backup_file (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" \
-			"$inner_run_file" "inner:service:mysql:backup:file" \
+			bash "$inner_run_file" "inner:service:mysql:backup:file" \
 			--backup_file="$backup_file" \
 			${args[@]+"${args[@]}"} >&2
 
@@ -206,7 +206,7 @@ case "$command" in
 		;;
 	"service:mysql:log:slow:summary")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
-			"$inner_run_file" "inner:service:mysql:log:slow:summary" ${args[@]+"${args[@]}"}
+			bash "$inner_run_file" "inner:service:mysql:log:slow:summary" ${args[@]+"${args[@]}"}
 		;;
 	"inner:service:mysql:log:slow:summary")
 		echo -e "##############################################################################################################"

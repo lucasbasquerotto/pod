@@ -171,7 +171,6 @@ case "$command" in
 						mkdir -p "${arg_dest_dir:-}"
 					fi
 
-					echo "permission: $ids (${trimmed_key})"
 					if [ -n "$ids" ]; then
 						sudo sh -c 'umask u=rwx,g=,o='
 						echo -e "$(echo "$value" | xargs)" | sudo tee -a "${dest_file:-}" > /dev/null

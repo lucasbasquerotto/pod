@@ -51,6 +51,7 @@ while getopts ':-:' OPT; do
 		s3_ignore_path ) arg_s3_ignore_path="${OPTARG:-}";;
 		s3_test ) arg_s3_test="${OPTARG:-}";;
 		s3_opts ) arg_s3_opts=( "${@:OPTIND}" ); break;;
+		s3_endpoint|s3_tmp_dir ) ;;
 		??* ) error "Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
 	esac

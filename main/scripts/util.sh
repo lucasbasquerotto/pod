@@ -153,6 +153,13 @@ case "$command" in
 					error "$title: invalid file name (key): $trimmed_key"
 				fi
 
+				ids=''
+
+				if [[ "${trimmed_key}" == *[\[]* ]]; then
+					ids="$(echo "${trimmed_key}" | cut -d "[" -f2 | cut -d "]" -f1)"
+					trimmed_key="$(echo "${trimmed_key}" | cut -d "[" -f1)"
+				fi
+
 				dest_file="${arg_dest_dir}/${trimmed_key}${arg_file_extension:-}"
 
 				if [ -z "$(echo "$value" | xargs)" ] && [ "${arg_remove_empty_values:-}" = 'true' ]; then
@@ -160,8 +167,19 @@ case "$command" in
 						rm "${dest_file:-}"
 					fi
 				else
-					umask u=rwx,g=,o=
-					echo -e "$(echo "$value" | xargs)" > "${dest_file:-}"
+					if [ ! -d "${arg_dest_dir:-}" ]; then
+						mkdir -p "${arg_dest_dir:-}"
+					fi
+
+					echo "permission: $ids (${trimmed_key})"
+					if [ -n "$ids" ]; then
+						sudo sh -c 'umask u=rwx,g=,o='
+						echo -e "$(echo "$value" | xargs)" | sudo tee -a "${dest_file:-}" > /dev/null
+						sudo chown "$ids" "${dest_file:-}"
+					else
+						umask u=rwx,g=,o=
+						echo -e "$(echo "$value" | xargs)" > "${dest_file:-}"
+					fi
 				fi
 			fi
 		done < "$arg_src_file"

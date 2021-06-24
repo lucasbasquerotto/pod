@@ -3,6 +3,8 @@ set -eou pipefail
 
 # shellcheck disable=SC2154
 pod_script_env_file="$var_pod_script"
+# shellcheck disable=SC2154
+inner_run_file="$var_inner_scripts_dir/run"
 
 function info {
 	"$pod_script_env_file" "util:info" --info="${*}"
@@ -22,6 +24,8 @@ if [ -z "$command" ]; then
 fi
 
 shift;
+
+args=("$@")
 
 # shellcheck disable=SC2214
 while getopts ':-:' OPT; do
@@ -46,6 +50,10 @@ while getopts ':-:' OPT; do
 		dev_renew_days ) arg_dev_renew_days="${OPTARG:-}";;
 		staging ) arg_staging="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
+		data_path ) arg_data_path="${OPTARG:-}";;
+		data_dir_done ) arg_data_dir_done="${OPTARG:-}";;
+		data_file_done ) arg_data_file_done="${OPTARG:-}";;
+		done ) arg_done="${OPTARG:-}";;
 		local|subtask_cmd ) ;;
 		??* ) error "$command: Illegal option --$OPT" ;;  # bad long option
 		\? )  exit 2 ;;  # bad short option (error reported via getopts)
@@ -128,46 +136,32 @@ case "$command" in
 
 		data_path="$arg_data_base_path/etc"
 		inner_path_base="/etc/letsencrypt"
-		dummy_certificate_days="1"
+
+		new_args=( ${args[@]+"${args[@]}"} )
+		new_args+=( "--data_path=$data_path" )
+		new_args+=( "--data_dir_done=$data_dir_done" )
+		new_args+=( "--data_file_done=$data_file_done" )
 
 		"$pod_script_env_file" up "$arg_toolbox_service"
 
-		if [ "${arg_dev:-}" = "true" ]; then
-			dummy_certificate_days="10000"
+		result="$(
+			"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+				bash "$inner_run_file" "inner:service:certbot:setup:prepare" "${new_args[@]}")"
 
-			info "$command: Preparing the development certificate environment ..."
-			>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
-				set -eou pipefail
-
-				if [ -f "$data_file_done" ]; then
-					if [[ \$(find "$data_file_done" -mtime "+${arg_dev_renew_days:-7}" -print) ]]; then
-						rm -f "$data_file_done"
-					fi
-				fi
-			SHELL
-		fi
-
-		if [ "${arg_force:-}" != "true" ]; then
-			has_file="$(\
-				"$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL
-					test -f "$data_file_done" >&2 && echo "true" || echo "false"
-				SHELL
-			)"
-
-			if [ "$has_file" != "false" ]; then
-				if [ "$has_file" != "true" ]; then
-					msg_aux="existence of file $data_file_done is not known"
-					error "$title: couldn't determine if certificate was already generated or not ($msg_aux)"
-				fi
-
-				info "$command: Certificate already generated (delete the file $data_file_done to generate again)"
-				exit
+		if [ -n "$result" ]; then
+			if [ "$result" != 'exit' ]; then
+				error "$title: [Error] Unknown result from the certbot preparation step (result=$result)"
 			fi
+
+			exit
 		fi
 
 		if [ -z "${arg_email:-}" ]; then
 			error "$title: [Error] Specify an email to generate a TLS certificate"
 		fi
+
+		dummy_certificate_days="1"
+		[ "${arg_dev:-}" = "true" ] && dummy_certificate_days="10000"
 
 		info "$command: Preparing the directory $arg_main_domain ..."
 
@@ -184,17 +178,8 @@ case "$command" in
 				-subj '/CN=localhost'" "$arg_certbot_service"
 
 		info "$command: Creating dummy concatenated certificate for $arg_main_domain ..."
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
-			set -eou pipefail
-
-			fullchain="$data_path/live/$arg_main_domain/fullchain.pem"
-			privkey="$data_path/live/$arg_main_domain/privkey.pem"
-			concat="$data_path/live/$arg_main_domain/concat.pem"
-
-			if [ -f "\$fullchain" ] && [ -f "\$privkey" ]; then
-				cat "\$fullchain" "\$privkey" > "\$concat"
-			fi
-		SHELL
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			bash "$inner_run_file" "inner:service:certbot:setup:after" "${new_args[@]}"
 
 		info "$command: Starting $arg_webservice_service ..."
 		>&2 "$pod_script_env_file" "service:certbot:ws:start" \
@@ -234,25 +219,55 @@ case "$command" in
 					--non-interactive" "$arg_certbot_service"
 		fi
 
-		>&2 "$pod_script_env_file" exec-nontty "$arg_toolbox_service" /bin/bash <<-SHELL || error "$title"
-			set -eou pipefail
+		new_args+=( "--done=true" )
 
-			fullchain="$data_path/live/$arg_main_domain/fullchain.pem"
-			privkey="$data_path/live/$arg_main_domain/privkey.pem"
-			concat="$data_path/live/$arg_main_domain/concat.pem"
-
-			if [ -f "\$fullchain" ] && [ -f "\$privkey" ]; then
-				cat "\$fullchain" "\$privkey" > "\$concat"
-			fi
-
-			mkdir -p "$data_dir_done"
-			echo "$(date '+%F %T')" >> "$data_file_done"
-		SHELL
+		info "$command: Creating concatenated certificate for $arg_main_domain and marking as done ..."
+		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
+			bash "$inner_run_file" "inner:service:certbot:setup:after" "${new_args[@]}"
 
 		if [ "${arg_dev:-}" != "true" ]; then
 			info "$command: Reloading $arg_webservice_service ..."
 			>&2 "$pod_script_env_file" "service:certbot:ws:reload" \
 				--webservice_service="$arg_webservice_service"
+		fi
+		;;
+	"inner:service:certbot:setup:prepare")
+		if [ "${arg_dev:-}" = "true" ]; then
+			info "$command: Preparing the development certificate environment ..."
+
+			if [ -f "$arg_data_file_done" ]; then
+				if [[ $(find "$arg_data_file_done" -mtime "+${arg_dev_renew_days:-7}" -print) ]]; then
+					rm -f "$arg_data_file_done" >&2
+				fi
+			fi
+		fi
+
+		if [ "${arg_force:-}" != "true" ]; then
+			has_file="$(test -f "$arg_data_file_done" >&2 && echo "true" || echo "false")"
+
+			if [ "$has_file" != "false" ]; then
+				if [ "$has_file" != "true" ]; then
+					msg_aux="existence of file $arg_data_file_done is not known"
+					error "$title: couldn't determine if certificate was already generated or not ($msg_aux)"
+				fi
+
+				info "$command: Certificate already generated (delete the file $arg_data_file_done to generate again)"
+				echo "exit"
+			fi
+		fi
+		;;
+	"inner:service:certbot:setup:after")
+		fullchain="$arg_data_path/live/$arg_main_domain/fullchain.pem"
+		privkey="$arg_data_path/live/$arg_main_domain/privkey.pem"
+		concat="$arg_data_path/live/$arg_main_domain/concat.pem"
+
+		if [ -f "$fullchain" ] && [ -f "$privkey" ]; then
+			cat "$fullchain" "$privkey" > "$concat"
+		fi
+
+		if [ "${arg_done:-}" = 'true' ]; then
+			mkdir -p "$arg_data_dir_done"
+			date '+%F %T' >> "$arg_data_file_done"
 		fi
 		;;
 	"service:certbot:renew")

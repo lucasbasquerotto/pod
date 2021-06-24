@@ -184,8 +184,12 @@ case "$command" in
 			cmd="pv"
 		fi
 
-		mysql -u "$arg_db_user" -p"$arg_db_pass" -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
-			"$cmd" "$db_file" | mysql -u "$arg_db_user" -p"$arg_db_pass" "$arg_db_name"
+		pass_arg=()
+		[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password="${arg_db_pass:-}" )
+
+		mysql -u "$arg_db_user" ${pass_arg[@]+"${pass_arg[@]}"} -e "CREATE DATABASE IF NOT EXISTS $arg_db_name;"
+
+		"$cmd" "$db_file" | mysql -u "$arg_db_user" ${pass_arg[@]+"${pass_arg[@]}"} "$arg_db_name"
 		;;
 	"db:main:mysql:backup:file")
 		"$pod_script_env_file" up "$arg_db_service"
@@ -201,8 +205,11 @@ case "$command" in
 		echo "$backup_file"
 		;;
 	"inner:service:mysql:backup:file")
+		pass_arg=()
+		[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password="${arg_db_pass:-}" )
+
 		mkdir -p "$(dirname -- "$arg_backup_file")"
-		mysqldump -u "${arg_db_user:-}" -p"${arg_db_pass:-}" "${arg_db_name:-}" > "$arg_backup_file"
+		mysqldump -u "${arg_db_user:-}" ${pass_arg[@]+"${pass_arg[@]}"} "${arg_db_name:-}" > "$arg_backup_file"
 		;;
 	"service:mysql:log:slow:summary")
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \

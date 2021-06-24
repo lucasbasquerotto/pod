@@ -61,11 +61,14 @@ title="${title}${command}"
 
 case "$command" in
 	"inner:service:mongo:prepare")
+		pass_arg=()
+		[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password "${arg_db_pass:-}" )
+
 		for i in $(seq 1 30); do
 			mongo mongo/"$arg_db_name" \
 				--authenticationDatabase admin \
 				--username "$arg_db_user" \
-				--password "${arg_db_pass:-}" \
+				${pass_arg[@]+"${pass_arg[@]}"} \
 				--eval "
 					rs.initiate({
 						_id: 'rs0',
@@ -84,7 +87,7 @@ case "$command" in
 			mongo mongo/admin \
 				--authenticationDatabase admin \
 				--username "$arg_db_user" \
-				--password "${arg_db_pass:-}" \
+				${pass_arg[@]+"${pass_arg[@]}"} \
 				/tmp/main/init.js && s=$? && break || s=$?;
 			echo "Tried $i times. Waiting 5 secs...";
 			sleep 5;
@@ -119,20 +122,23 @@ case "$command" in
 			current=$((end-SECONDS))
 			msg="$arg_db_connect_wait_secs seconds - $current second(s) remaining"
 
+			pass_arg=()
+			[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password "${arg_db_pass:-}" )
+
 			if [ "${arg_db_remote:-}" = "true" ]; then
 				>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready ($msg)"
 				output="$(mongo "mongo/$arg_db_name" \
 					--host="$arg_db_host" \
 					--port="$arg_db_port" \
 					--username="$arg_db_user" \
-					--password="$arg_db_pass" \
+					${pass_arg[@]+"${pass_arg[@]}"} \
 					--authenticationDatabase="$arg_authentication_database" \
 					--eval "db.stats().collections" 2>&1)" ||:
 			else
 				>&2 echo "wait for the local database $arg_db_name to be ready ($msg)"
 				output="$(mongo "mongo/$arg_db_name" \
 					--username="$arg_db_user" \
-					--password="$arg_db_pass" \
+					${pass_arg[@]+"${pass_arg[@]}"} \
 					--authenticationDatabase="$arg_authentication_database" \
 					--eval "db.stats().collections" 2>&1)" ||:
 			fi
@@ -179,13 +185,16 @@ case "$command" in
 		echo ""
 		;;
 	"inner:service:mongo:backup")
+		pass_arg=()
+		[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password "${arg_db_pass:-}" )
+
 		rm -rf "${arg_db_task_base_dir:?}/$arg_db_name"
 		mkdir -p "$arg_db_task_base_dir"
 		mongodump \
 			--host="$arg_db_host" \
 			--port="$arg_db_port" \
 			--username="$arg_db_user" \
-			--password="$arg_db_pass" \
+			${pass_arg[@]+"${pass_arg[@]}"} \
 			--db="$arg_db_name" \
 			--authenticationDatabase="$arg_authentication_database" \
 			--out="$arg_db_task_base_dir"
@@ -193,12 +202,15 @@ case "$command" in
 	"db:main:mongo:restore:dir")
 		"$pod_script_env_file" up "$arg_db_service"
 
+		pass_arg=()
+		[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password "${arg_db_pass:-}" )
+
 		info "$command: $arg_db_service - restore from $arg_db_task_base_dir (inside service)"
 		"$pod_script_env_file" exec-nontty "$arg_db_service" mongorestore \
 			--host="$arg_db_host" \
 			--port="$arg_db_port" \
 			--username="$arg_db_user" \
-			--password="$arg_db_pass" \
+			${pass_arg[@]+"${pass_arg[@]}"} \
 			--nsInclude="$arg_db_name.*" \
 			--authenticationDatabase="$arg_authentication_database" \
 			--objcheck \

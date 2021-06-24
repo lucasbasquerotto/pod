@@ -8,7 +8,7 @@ pod_data_dir="$var_pod_data_dir"
 inner_run_file="$var_inner_scripts_dir/run"
 
 awscli_run_file="$pod_layer_dir/shared/scripts/services/awscli.sh"
-certbot_run_file="$pod_layer_dir/main/scripts/certbot.sh"
+certbot_run_file="$pod_layer_dir/shared/scripts/services/certbot.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 elasticsearch_run_file="$pod_layer_dir/shared/scripts/services/elasticsearch.sh"
@@ -83,7 +83,7 @@ case "$command" in
 		fi
 
 		if [ "${var_main__use_main_network:-}" = 'true' ]; then
-			"$pod_script_env_file" "shared:setup:main:network" ${next_args[@]+"${next_args[@]}"}
+			"$pod_script_env_file" "shared:setup:main:network" ${args[@]+"${args[@]}"}
 		fi
 
 		if [ -n "${var_run__general__s3_cli:-}" ]; then
@@ -406,7 +406,7 @@ case "$command" in
 
 		if [ "${var_main__use_certbot:-}" = 'true' ]; then
 			info "$command - run certbot if needed..."
-			"$pod_script_env_file" "main:task:certbot" ${next_args[@]+"${next_args[@]}"}
+			"$pod_script_env_file" "main:task:certbot"
 		fi
 
 		if [ "${var_main__use_nginx:-}" = 'true' ]; then
@@ -442,13 +442,13 @@ case "$command" in
 			"$pod_script_env_file" up varnish
 
 			info "$command - clear varnish cache..."
-			"$pod_script_env_file" "service:varnish:clear" ${next_args[@]+"${next_args[@]}"}
+			"$pod_script_env_file" "service:varnish:clear" ${args[@]+"${args[@]}"}
 		fi
 
 		if [ "${var_main__use_nextcloud:-}" = 'true' ]; then
 			info "$command - prepare nextcloud..."
 			"$pod_script_env_file" "shared:service:main:nextcloud:setup" \
-				${next_args[@]+"${next_args[@]}"}
+				${args[@]+"${args[@]}"}
 		fi
 
 		if [ "${var_shared__define_cron:-}" = 'true' ] && [ "${var_main__local:-}" = 'false' ]; then

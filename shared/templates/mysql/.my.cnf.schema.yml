@@ -1,0 +1,11 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "dict"
+    props:
+      user:
+        type: "str"
+        non_empty: true
+      password:
+        type: "str"
+        non_empty: true

@@ -1,0 +1,3 @@
+[client]
+user={{ params.user }}
+password={{ params.password}}

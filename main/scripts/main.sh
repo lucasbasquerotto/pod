@@ -30,7 +30,7 @@ function error {
 }
 
 [ "${var_run__meta__no_stacktrace:-}" != 'true' ] \
-	&& trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO" >&2; exit $LINENO;' ERR
+	&& trap 'echo "[error] ${BASH_SOURCE[0]}:$LINENO" >&2; exit 3;' ERR
 
 function info_inner {
 	info "${@}" 2>&1
@@ -493,8 +493,8 @@ case "$command" in
 		opts+=( "--toolbox_service=$var_run__general__toolbox_service" )
 		opts+=( "--action_dir=$arg_action_dir" )
 
-		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}")" \
-			|| error "$command"
+		execute="$("$pod_script_env_file" "action:verify:$arg_task_name" "${opts[@]}" \
+			|| error "$command")"
 
 		if [ "$execute" = "true" ]; then
 			cmd="unique:cmd"

@@ -122,8 +122,9 @@ case "$command" in
 			current=$((end-SECONDS))
 			msg="$arg_db_connect_wait_secs seconds - $current second(s) remaining"
 
-			pass_arg=()
-			[ -n "${arg_db_pass:-}" ] && pass_arg+=( --password "${arg_db_pass:-}" )
+			if [ -z "${arg_db_pass:-}" ]; then
+				error "$command: no password provided"
+			fi
 
 			if [ "${arg_db_remote:-}" = "true" ]; then
 				>&2 echo "wait for the remote database $arg_db_name (at $arg_db_host) to be ready ($msg)"
@@ -131,16 +132,16 @@ case "$command" in
 					--host="$arg_db_host" \
 					--port="$arg_db_port" \
 					--username="$arg_db_user" \
-					${pass_arg[@]+"${pass_arg[@]}"} \
+					--password="${arg_db_pass:-}" \
 					--authenticationDatabase="$arg_authentication_database" \
-					--eval "db.stats().collections" 2>&1)" ||:
+					--eval "db.stats().collections")" ||:
 			else
 				>&2 echo "wait for the local database $arg_db_name to be ready ($msg)"
 				output="$(mongo "mongo/$arg_db_name" \
 					--username="$arg_db_user" \
-					${pass_arg[@]+"${pass_arg[@]}"} \
+					--password="${arg_db_pass:-}" \
 					--authenticationDatabase="$arg_authentication_database" \
-					--eval "db.stats().collections" 2>&1)" ||:
+					--eval "db.stats().collections")" ||:
 			fi
 
 			if [ -n "$output" ]; then

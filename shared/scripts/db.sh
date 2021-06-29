@@ -181,7 +181,6 @@ case "$command" in
 		"$pod_script_mysql_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"db:main:mongo:"*)
-		info "$command: args: ${args[*]}"
 		"$pod_script_mongo_file" "$command" ${args[@]+"${args[@]}"}
 		;;
 	"db:main:postgres:"*)

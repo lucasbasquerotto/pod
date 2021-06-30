@@ -102,10 +102,6 @@ if [ "${var_load_main__db_service:-}" != '' ] && [ "${var_load_main__allow_custo
 			if [ -z "${var_load__db_main__db_host:-}" ]; then
 				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_host is not defined")
 			fi
-
-			if [ -z "${var_load__db_main__db_user:-}" ]; then
-				tmp_errors+=("[shared] [$tmp_info] var_load__db_main__db_user is not defined")
-			fi
 			;;
 		'prometheus')
 			if [ -z "${var_load__db_main__db_host:-}" ]; then

@@ -179,7 +179,7 @@ case "$command" in
 	"db:main:elasticsearch:ready")
 		"$pod_script_env_file" up "$arg_toolbox_service" "$arg_db_service"
 
-		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+		db_pass="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			bash "$inner_run_file" "inner:service:elasticsearch:ready" \
@@ -220,7 +220,7 @@ case "$command" in
 		fi
 		;;
 	"db:main:elasticsearch:restore:verify")
-		db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+		db_pass="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			bash "$inner_run_file" "inner:service:elasticsearch:restore:verify" \
@@ -265,7 +265,7 @@ case "$command" in
 		es_args=()
 
 		if [ "${arg_db_tls:-}" = 'true' ]; then
-			db_pass="$("$inner_run_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
+			db_pass="$("$pod_script_env_file" "db:main:elasticsearch:pass" ${args[@]+"${args[@]}"})"
 
 			es_args+=( --user elastic )
 			es_args+=( --password "$db_pass" )

@@ -453,7 +453,7 @@ case "$command" in
 		fi
 
 		if [ "${var_shared__define_cron:-}" = 'true' ] && [ "${var_main__local:-}" = 'false' ]; then
-			"$pod_script_env_file" cron --task_info="$title"
+			"$pod_script_env_file" "service:cron" --task_info="$title"
 		fi
 		;;
 	"block_ips")

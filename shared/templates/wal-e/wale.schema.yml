@@ -1,0 +1,23 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "dict"
+    props:
+      wale_s3_prefix:
+        type: "str"
+        non_empty: true
+        description: "wal-e prefix (used to specify where backups are (or should be) stored"
+      aws_access_key_id:
+        type: "str"
+        non_empty: true
+        description: "s3 access key"
+      aws_secret_access_key:
+        type: "str"
+        non_empty: true
+        description: "s3 secret key"
+      aws_region:
+        non_empty: true
+        description: "s3 bucket region; defaults to 'us-east-1'"
+      wale_s3_endpoint:
+        type: "str"
+        description: "s3 endpoint (can be left empty for aws s3)"

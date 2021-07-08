@@ -1,0 +1,14 @@
+root: "template_schema"
+schemas:
+  template_schema:
+    type: "dict"
+    props:
+      max_connections:
+        type: "int"
+        description: "the maximum number of database connections at a given time; defaults to 100"
+      shared_buffers:
+        type: "str"
+        description: "sets the amount of memory the database server uses for shared memory buffers; defaults to 128MB"
+      use_wale:
+        type: "bool"
+        description: "when true, uses wal-e for backups"

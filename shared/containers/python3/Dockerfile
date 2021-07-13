@@ -1,7 +1,6 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY /shared/containers/python3/logrotate.py /bin/
 

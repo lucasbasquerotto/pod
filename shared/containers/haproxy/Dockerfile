@@ -1,6 +1,5 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY /env/haproxy/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg

@@ -1,6 +1,5 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY /env/mongo/init.js /tmp/main/init.js

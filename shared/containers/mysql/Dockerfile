@@ -1,7 +1,6 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY --chown=mysql:mysql /shared/containers/mysql/mysqld.cnf /etc/mysql/conf.d/mysqld.cnf
 COPY --chown=mysql:mysql /env/mysql/init.sql /docker-entrypoint-initdb.d/

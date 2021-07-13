@@ -1,6 +1,5 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY --chown=www-data:www-data /shared/containers/nextcloud/mimetypemapping.json /tmp/main/config/

@@ -250,7 +250,7 @@ case "$command" in
 		for dir in "${dirs[@]}"; do
 			if [ -d "$dir" ]; then
 				info "$command - remove old files and directories inside $dir"
-				find "$dir" -mindepth 1 -ctime "+$delete_old_days" -delete -print;
+				find "$dir" -mindepth 1 -type f -ctime "+$delete_old_days" -delete -print;
 
 				info "$command - remove old and empty directories inside $dir"
 				find "$dir" -mindepth 1 -type d -ctime "+$delete_old_days" -empty -delete -print;

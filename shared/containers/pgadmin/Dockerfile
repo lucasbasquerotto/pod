@@ -1,6 +1,5 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY --chown=pgadmin:pgadmin /env/pgadmin/servers.json /pgadmin4/servers.json

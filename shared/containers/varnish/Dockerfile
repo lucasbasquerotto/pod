@@ -1,6 +1,5 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 COPY --chown=varnish:varnish /env/varnish/default.vcl /etc/varnish/

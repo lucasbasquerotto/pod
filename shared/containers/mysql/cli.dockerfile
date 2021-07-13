@@ -1,7 +1,6 @@
 ARG IMAGE
-ARG VERSION
 
-FROM $IMAGE:$VERSION
+FROM $IMAGE
 
 RUN mkdir -p /var/log/mysql \
  && chown -R mysql:mysql /var/log/mysql/ \

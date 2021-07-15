@@ -147,10 +147,11 @@ case "$command" in
 		url="$url_path?wait_for_completion=true&pretty"
 
 		msg="create a snapshot of the database ($arg_repository_name/$arg_snapshot_name)"
+
 		info "$command: $arg_db_service - $msg"
 		"$pod_script_env_file" exec-nontty "$arg_toolbox_service" \
 			wget \
-				--content-on-error -O- --method=PUT
+				--content-on-error -O- --method=PUT \
 				${es_args[@]+"${es_args[@]}"} \
 				"$url" \
 			>&2

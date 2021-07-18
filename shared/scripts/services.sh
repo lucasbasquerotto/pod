@@ -117,7 +117,7 @@ case "$command" in
 		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
 			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
 				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
-				dest_dir="$pod_layer_dir/env/fluentd"
+				dest_dir="$pod_data_dir/fluentd"
 
 				if [ ! -d "$dest_dir" ]; then
 					mkdir -p "$dest_dir"

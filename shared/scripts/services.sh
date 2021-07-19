@@ -86,6 +86,31 @@ case "$command" in
 			"$pod_script_env_file" "shared:setup:main:network" ${args[@]+"${args[@]}"}
 		fi
 
+		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
+			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
+				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
+				dest_dir="$pod_data_dir/fluentd"
+
+				if [ ! -d "$dest_dir" ]; then
+					mkdir -p "$dest_dir"
+				fi
+
+				cp "$src_file" "$dest_dir/fluent.conf"
+			fi
+		fi
+
+		if [ -n "${var_run__general__main_base_dir:-}" ] \
+				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
+				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then
+
+			src_dir="$(readlink -f "$pod_layer_dir/$var_run__general__main_base_dir")"
+			dest_dir="$pod_layer_dir/$var_run__general__main_base_dir_container"
+
+			mkdir -p "$dest_dir"
+			rsync --recursive --delete --exclude "/" "$src_dir/" "$dest_dir/"
+		fi
+		;;
+	"before:build")
 		if [ -n "${var_run__general__s3_cli:-}" ]; then
 			env_dir_s3_cli="$pod_layer_dir/env/$var_run__general__s3_cli"
 
@@ -112,30 +137,6 @@ case "$command" in
 					mkdir -p "$dir"
 				fi
 			fi
-		fi
-
-		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
-			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
-				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
-				dest_dir="$pod_data_dir/fluentd"
-
-				if [ ! -d "$dest_dir" ]; then
-					mkdir -p "$dest_dir"
-				fi
-
-				cp "$src_file" "$dest_dir/fluent.conf"
-			fi
-		fi
-
-		if [ -n "${var_run__general__main_base_dir:-}" ] \
-				&& [ -n "${var_run__general__main_base_dir_container:-}" ] \
-				&& [ "${var_run__general__main_base_dir:-}" != "${var_run__general__main_base_dir_container:-}" ]; then
-
-			src_dir="$(readlink -f "$pod_layer_dir/$var_run__general__main_base_dir")"
-			dest_dir="$pod_layer_dir/$var_run__general__main_base_dir_container"
-
-			mkdir -p "$dest_dir"
-			rsync --recursive --delete --exclude "/" "$src_dir/" "$dest_dir/"
 		fi
 		;;
 	"prepare")

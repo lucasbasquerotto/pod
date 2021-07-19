@@ -62,9 +62,9 @@ title="${title}${command}"
 next_args=( --task_name"${arg_task_name:-}" --subtask_cmd="$command" )
 
 case "$command" in
-	"upgrade")
-		"$pod_script_services_file" "before:upgrade"
-		"$pod_main_run_file" upgrade
+	"upgrade"|"build")
+		"$pod_script_services_file" "before:$command"
+		"$pod_main_run_file" "$command"
 		;;
 	"prepare"|"migrate")
 		"$pod_script_services_file" "$command"

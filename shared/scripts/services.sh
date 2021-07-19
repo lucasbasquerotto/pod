@@ -58,6 +58,7 @@ while getopts ':-:' OPT; do
 		use_haproxy ) arg_use_haproxy="${OPTARG:-}";;
 		use_mysql ) arg_use_mysql="${OPTARG:-}";;
 		use_mongo ) arg_use_mongo="${OPTARG:-}";;
+		use_postgres ) arg_use_postgres="${OPTARG:-}";;
 		force ) arg_force="${OPTARG:-}"; [ -z "${OPTARG:-}" ] && arg_force='true';;
 		max_amount ) arg_max_amount="${OPTARG:-}";;
 		only_if_needed )
@@ -154,36 +155,11 @@ case "$command" in
 			--use_nginx="${var_main__use_nginx:-}" \
 			--use_haproxy="${var_main__use_haproxy:-}" \
 			--use_mysql="${var_main__use_mysql:-}" \
-			--use_mongo="${var_main__use_mongo:-}"
+			--use_mongo="${var_main__use_mongo:-}" \
+			--use_postgres="${var_main__use_postgres:-}"
 		;;
 	"inner:services:prepare")
 		data_dir="/var/main/data"
-
-		if [ "$arg_use_wale" = 'true' ]; then
-			dir="$data_dir/tmp/wale/env"
-
-			if [ ! -d "$dir" ]; then
-				mkdir -p "$dir"
-			fi
-
-			chmod 777 "$dir"
-
-			"$inner_run_file" "util:values_to_files" \
-				--task_info="$title" \
-				--src_file="/var/main/env/postgres/wale.conf" \
-				--dest_dir="/var/main/data/tmp/wale/env" \
-				--file_extension="" \
-				--remove_empty_values='true'
-
-			dir="$data_dir/wale"
-
-			if [ ! -d "$dir" ]; then
-				mkdir -p "$dir"
-			fi
-
-			cp -r "$data_dir/tmp/wale/env/." "$dir/"
-			chown -R 70:70 "$dir"
-		fi
 
 		dir="$data_dir/sync"
 
@@ -384,6 +360,45 @@ case "$command" in
 					chmod 755 "$dir"
 				fi
 			fi
+		fi
+
+		if [ "$arg_use_postgres" = 'true' ]; then
+			dir="$data_dir/tmp/postgres/env"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+
+			chmod 755 "$dir"
+
+			cp "/var/main/env/postgres/postgressql.conf" "$dir"
+			chown -R 70:70 "$dir"
+		fi
+
+		if [ "$arg_use_wale" = 'true' ]; then
+			dir="$data_dir/tmp/wale/env"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+
+			chmod 755 "$dir"
+
+			"$inner_run_file" "util:values_to_files" \
+				--task_info="$title" \
+				--src_file="/var/main/env/postgres/wale.conf" \
+				--dest_dir="/var/main/data/tmp/wale/env" \
+				--file_extension="" \
+				--remove_empty_values='true'
+
+			dir="$data_dir/wale"
+
+			if [ ! -d "$dir" ]; then
+				mkdir -p "$dir"
+			fi
+
+			cp -r "$data_dir/tmp/wale/env/." "$dir/"
+			chown -R 70:70 "$dir"
 		fi
 		;;
 	"setup")

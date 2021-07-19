@@ -371,7 +371,7 @@ case "$command" in
 
 			chmod 755 "$dir"
 
-			cp "/var/main/env/postgres/postgressql.conf" "$dir"
+			cp "/var/main/env/postgres/postgresql.conf" "$dir"
 			chown -R 70:70 "$dir"
 		fi
 

@@ -88,14 +88,17 @@ case "$command" in
 		fi
 
 		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
+			dest_dir="$pod_data_dir/fluentd"
+
+			if [ ! -d "$dest_dir" ]; then
+				mkdir -p "$dest_dir"
+			fi
+
 			if [ "${var_shared__fluentd_output_plugin:-}" = 'file' ]; then
 				src_file="$pod_layer_dir/shared/containers/fluentd/file.conf"
-				dest_dir="$pod_data_dir/fluentd"
-
-				if [ ! -d "$dest_dir" ]; then
-					mkdir -p "$dest_dir"
-				fi
-
+				cp "$src_file" "$dest_dir/fluent.conf"
+			else
+				src_file="$pod_layer_dir/env/fluentd/fluent.conf"
 				cp "$src_file" "$dest_dir/fluent.conf"
 			fi
 		fi
@@ -172,6 +175,10 @@ case "$command" in
 		if [ ! -d "$dir" ]; then
 			mkdir -p "$dir"
 			chmod 777 "$dir"
+		fi
+
+		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
+			chown 100 "$pod_data_dir/fluentd/fluent.conf"
 		fi
 
 		if [ "${arg_use_nginx:-}" = 'true' ]; then

@@ -12,6 +12,7 @@ certbot_run_file="$pod_layer_dir/shared/scripts/services/certbot.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 elasticsearch_run_file="$pod_layer_dir/shared/scripts/services/elasticsearch.sh"
+fluentd_run_file="$pod_layer_dir/shared/scripts/services/fluentd.sh"
 haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
 mc_run_file="$pod_layer_dir/shared/scripts/services/mc.sh"
 mongo_run_file="$pod_layer_dir/shared/scripts/services/mongo.sh"
@@ -409,6 +410,7 @@ case "$command" in
 		fi
 		;;
 	"setup")
+
 		if [ "${var_main__use_theia:-}" = 'true' ]; then
 			"$pod_script_env_file" up theia
 		fi
@@ -440,6 +442,11 @@ case "$command" in
 		if [ "${var_main__use_haproxy:-}" = 'true' ]; then
 			"$pod_script_env_file" up haproxy
 			"$pod_script_env_file" "service:haproxy:reload"
+		fi
+
+		if [ "${var_main__use_fluentd:-}" = 'true' ]; then
+			"$pod_script_env_file" up fluentd
+			"$pod_script_env_file" "service:fluentd:reload"
 		fi
 
 		if [ "${var_main__local:-}" = 'false' ]; then
@@ -719,6 +726,11 @@ case "$command" in
 			sleep 30
 			"${cmd[@]}"
 		fi
+		;;
+	"service:fluentd:"*|"inner:service:fluentd:"*)
+		"$fluentd_run_file" "$command" \
+			--fluentd_service="fluentd" \
+			${args[@]+"${args[@]}"}
 		;;
 	*)
 		error "$title: Invalid command"

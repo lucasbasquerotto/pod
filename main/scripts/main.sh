@@ -618,6 +618,7 @@ case "$command" in
 			--no_info_wrap="${var_run__meta__no_info_wrap:-}" \
 			--no_summary="${var_run__meta__no_summary:-}" \
 			--no_colors="${var_run__meta__no_colors:-}" \
+			--error_on_warn="${var_run__meta__error_on_warn:-}" \
 			${args[@]+"${args[@]}"}
 		;;
 	"util:"*|"run:util:"*|"inner:util:"*)

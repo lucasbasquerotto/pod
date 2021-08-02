@@ -59,6 +59,7 @@ while getopts ':-:' OPT; do
 		no_summary ) arg_no_summary="${OPTARG:-}";;
 		no_colors ) arg_no_colors="${OPTARG:-}";;
 
+		error_on_warn ) arg_error_on_warn="${OPTARG:-}";;
 		value ) arg_value="${OPTARG:-}";;
 		path ) arg_path="${OPTARG:-}";;
 		date_format ) arg_date_format="${OPTARG:-}";;
@@ -84,7 +85,7 @@ case "$command" in
 	"util:error")
 		if [ "${arg_no_error:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_error:-}"
-			[ "${arg_no_colors:-}" != "true" ] && msg="${RED}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${RED}error${NC} - ${msg}"
 			>&2 echo -e "$msg"
 		fi
 		exit 2
@@ -92,35 +93,40 @@ case "$command" in
 	"util:warn")
 		if [ "${arg_no_warn:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_warn:-}"
-			[ "${arg_no_colors:-}" != "true" ] && msg="${YELLOW}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${YELLOW}warn${NC} - ${msg}"
 			>&2 echo -e "$msg"
+		fi
+
+		if [ "${arg_error_on_warn:-}" = "true" ]; then
+			>&2 echo "error on warning..."
+			exit 2
 		fi
 		;;
 	"util:info")
 		if [ "${arg_no_info:-}" != "true" ]; then
 			msg="$(date '+%F %T') - ${arg_info:-}"
-			[ "${arg_no_colors:-}" != "true" ] && msg="${GRAY}${msg}${NC}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${GRAY}info${NC} - ${msg}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:start")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
-			msg="$(date '+%F %T') - ${arg_title:-} - start"
-			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}${msg}${NC}"
+			msg="$(date '+%F %T') - ${arg_title:-}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}start${NC} - ${msg}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:end")
 		if [ "${arg_no_info_wrap:-}" != "true" ]; then
-			msg="$(date '+%F %T') - ${arg_title:-} - end"
-			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}${msg}${NC}"
+			msg="$(date '+%F %T') - ${arg_title:-}"
+			[ "${arg_no_colors:-}" != "true" ] && msg="${CYAN}end${NC} - ${msg}"
 			>&2 echo -e "$msg"
 		fi
 		;;
 	"util:info:summary")
 		if [ "${arg_no_summary:-}" != "true" ]; then
-			msg="[summary] ${arg_title:-}: ${arg_start:-} - ${arg_end:-}"
-			[ "${arg_no_colors:-}" != "true" ] &&  msg="${PURPLE}${msg}${NC}"
+			msg="${arg_start:-} - ${arg_end:-}: ${arg_title:-}"
+			[ "${arg_no_colors:-}" != "true" ] &&  msg="${PURPLE}summary${NC} - ${msg}"
 			>&2 echo -e "$msg"
 		fi
 		;;

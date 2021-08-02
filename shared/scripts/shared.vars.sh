@@ -163,6 +163,7 @@ export var_run__meta__no_error="${var_load_meta__no_error:-}"
 export var_run__meta__no_info_wrap="${var_load_meta__no_info_wrap:-}"
 export var_run__meta__no_summary="${var_load_meta__no_summary:-}"
 export var_run__meta__no_colors="${var_load_meta__no_colors:-}"
+export var_run__meta__error_on_warn="${var_load_meta__error_on_warn:-}"
 
 if [ "${var_load_general__define_s3_backup_lifecycle:-}" = 'true' ]; then
 	tmp_cli="${var_load__s3_backup__cli:-awscli}"

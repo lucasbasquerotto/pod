@@ -195,6 +195,7 @@ export var_load_main__instance_index="${var_load_main__instance_index:-}"
 export var_main__local="${var_load_main__local:-}"
 
 export var_main__use_main_network="${var_load_use__main_network:-}"
+export var_main__use_internal_ssl="${var_load_use__internal_ssl:-}"
 export var_main__use_secrets="${var_load_use__secrets:-}"
 export var_main__use_logrotator="${var_load_use__logrotator:-}"
 export var_main__use_fluentd="${var_load_use__fluentd:-}"

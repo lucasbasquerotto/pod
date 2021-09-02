@@ -444,7 +444,7 @@ case "$command" in
 			"$pod_script_env_file" "service:haproxy:reload"
 		fi
 
-		if [ "${var_main__use_fluentd:-}" = 'true' ]; then
+		if [ "${var_main__use_internal_fluentd:-}" = 'true' ]; then
 			"$pod_script_env_file" up fluentd
 			"$pod_script_env_file" "service:fluentd:reload"
 		fi

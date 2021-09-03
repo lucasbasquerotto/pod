@@ -12,6 +12,7 @@ certbot_run_file="$pod_layer_dir/shared/scripts/services/certbot.sh"
 cloudflare_run_file="$pod_layer_dir/shared/scripts/services/cloudflare.sh"
 cron_run_file="$pod_layer_dir/shared/scripts/services/cron.sh"
 elasticsearch_run_file="$pod_layer_dir/shared/scripts/services/elasticsearch.sh"
+fastly_run_file="$pod_layer_dir/shared/scripts/services/fastly.sh"
 fluentd_run_file="$pod_layer_dir/shared/scripts/services/fluentd.sh"
 haproxy_run_file="$pod_layer_dir/shared/scripts/services/haproxy.sh"
 mc_run_file="$pod_layer_dir/shared/scripts/services/mc.sh"
@@ -526,7 +527,7 @@ case "$command" in
 			--log_file_last_hour="$log_hour_path_prefix.$(date -u -d '1 hour ago' '+%Y-%m-%d.%H').log" \
 			--amount_hour="$var_shared__block_ips__action_exec__amount_hour"
 		;;
-	"outer_proxy")
+	"outer_proxy"|"local:outer_proxy")
 		if [ "${var_main__use_haproxy:-}" = 'true' ]; then
 			service='haproxy'
 			result_file_relpath="sync/$service/auto/ips-proxy.lst"
@@ -541,7 +542,7 @@ case "$command" in
 		service_param="$service"
 		[ "${arg_only_if_needed:-}" = 'true' ] && service_param=''
 
-		if [ "$command" = "local:shared:outer_proxy" ]; then
+		if [ "$command" = "local:outer_proxy" ]; then
 			output=''
 
 			if [ "${var_main__use_haproxy:-}" = 'true' ]; then
@@ -559,7 +560,9 @@ case "$command" in
 				"$pod_script_env_file" "service:$service_param:reload"
 			fi
 		else
-			"$pod_script_env_file" "service:${var_main__outer_proxy_type:-}:ips" \
+			next_cmd="service:${var_main__outer_proxy_type:-}:ips"
+			info "$next_cmd: retrieve outer proxy ips (save at $result_file_relpath)..."
+			"$pod_script_env_file" "$next_cmd" \
 				--task_info="$title" \
 				--output_file_format="$output_file_format" \
 				--webservice="$service_param" \
@@ -647,6 +650,11 @@ case "$command" in
 		;;
 	"service:cloudflare:"*|"inner:service:cloudflare:"*)
 		"$cloudflare_run_file" "$command" \
+			--toolbox_service="toolbox" \
+			${args[@]+"${args[@]}"}
+		;;
+	"service:fastly:"*|"inner:service:fastly:"*)
+		"$fastly_run_file" "$command" \
 			--toolbox_service="toolbox" \
 			${args[@]+"${args[@]}"}
 		;;

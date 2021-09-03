@@ -281,8 +281,11 @@ case "$command" in
 	"shared:s3:"*|"s3:main:"*|"s3:task:"*|"s3:subtask:"*|"s3:subtask")
 		"$pod_script_s3_file" "$command" ${args[@]+"${args[@]}"}
 		;;
-	"shared:outer_proxy"|"local:shared:outer_proxy")
+	"shared:outer_proxy")
 		"$pod_script_services_file" outer_proxy ${args[@]+"${args[@]}"}
+		;;
+	"local:shared:outer_proxy")
+		"$pod_script_services_file" "local:outer_proxy" ${args[@]+"${args[@]}"}
 		;;
 	"certbot:task:"*|"certbot:subtask:"*|"certbot:subtask")
 		"$pod_script_services_file" "$command" ${args[@]+"${args[@]}"}

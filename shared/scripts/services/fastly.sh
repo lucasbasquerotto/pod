@@ -100,9 +100,9 @@ case "$command" in
 			curl --fail --silent --show-error https://api.fastly.com/public-ip-list \
 				| jq --raw-output '.ipv6_addresses | .[]' > "$tmp_dir_inner"/ips-v6.txt
 			cat "$tmp_dir_inner"/ips-v4.txt <(echo) "$tmp_dir_inner"/ips-v6.txt \
-				> "$tmp_dir_inner"/ips.txt
+				| awk 'NF' > "$tmp_dir_inner"/ips.txt
 
-			echo "ip rules..." >&2
+			echo "generating ip rules..." >&2
 
 			if [ "${arg_output_file_format:-}" = 'nginx' ]; then
 				sed 's/$/ 1;/' "$tmp_dir_inner"/ips.txt > "$tmp_dir_inner"/ips-rules.txt

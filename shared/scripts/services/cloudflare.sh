@@ -97,9 +97,10 @@ case "$command" in
 			mkdir -p "$tmp_dir_inner"
 			wget https://www.cloudflare.com/ips-v4 -O "$tmp_dir_inner"/ips-v4.txt >&2
 			wget https://www.cloudflare.com/ips-v6 -O "$tmp_dir_inner"/ips-v6.txt >&2
-			cat "$tmp_dir_inner"/ips-v4.txt "$tmp_dir_inner"/ips-v6.txt > "$tmp_dir_inner"/ips.txt
+			cat "$tmp_dir_inner"/ips-v4.txt <(echo) "$tmp_dir_inner"/ips-v6.txt \
+				| awk 'NF' > "$tmp_dir_inner"/ips.txt
 
-			echo "ip rules..." >&2
+			echo "generating ip rules..." >&2
 
 			if [ "${arg_output_file_format:-}" = 'nginx' ]; then
 				sed 's/$/ 1;/' "$tmp_dir_inner"/ips.txt > "$tmp_dir_inner"/ips-rules.txt

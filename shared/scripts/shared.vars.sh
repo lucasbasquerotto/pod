@@ -210,6 +210,7 @@ if [ "$tmp_is_web" = 'true' ]; then
 	export var_main__use_nginx="${var_load_use__nginx:-}"
 	export var_main__use_haproxy="${var_load_use__haproxy:-}"
 	export var_main__use_theia="${var_load_use__theia:-}"
+	export var_main__use_minio_gateway="${var_load_use__minio_gateway:-}"
 	export var_main__use_varnish="${var_load_use__varnish:-}"
 	export var_main__use_pgadmin="${var_load_use__pgadmin:-}"
 	export var_main__use_outer_proxy="${var_load_use__outer_proxy:-}"

@@ -411,7 +411,6 @@ case "$command" in
 		fi
 		;;
 	"setup")
-
 		if [ "${var_main__use_theia:-}" = 'true' ]; then
 			"$pod_script_env_file" up theia
 		fi
@@ -422,6 +421,10 @@ case "$command" in
 
 		if [ "${var_main__use_local_s3:-}" = 'true' ]; then
 			"$pod_script_env_file" up s3
+		fi
+
+		if [ "${var_main__use_minio_gateway:-}" = 'true' ]; then
+			"$pod_script_env_file" up minio_gateway
 		fi
 
 		if [ "${var_main__use_outer_proxy:-}" = 'true' ]; then

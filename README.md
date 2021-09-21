@@ -70,13 +70,22 @@ The scripts entrypoint is [/run](/run) at the root of this repository, from whic
 - `var_pod_tmp_dir`: the full path to the temporary directory that may be used by the commands (or alternatively, the path relative to the pod directory, `var_pod_tmp_dir_relpath`).
 - `var_pod_data_dir`: the full path to the data directory that may be used by commands (or alternatively, the path relative to the pod directory, `var_pod_data_dir_relpath`).
 
+7. There are meta variables that can be defined in the `vars.sh` file to customize some execution behaviours:
+
+- `var_run__meta__no_stacktrace`: don't print stacktraces on errors (triggered in `trap` commands).
+- `var_run__meta__no_info`: don't show general information (command `util:info`).
+- `var_run__meta__no_warn`: don't show warnings (command `util:warn`).
+- `var_run__meta__no_error`: don't show errors (command `util:error`).
+- `var_run__meta__no_info_wrap`: don't show information about before and after commands (commands `util:info:start` and `util:info:end`).
+- `var_run__meta__no_summary`: don't show command summaries (command `util:info:summary`).
+- `var_run__meta__no_colors`: don't print colors in information, warnings, errors and summaries.
+- `var_run__meta__error_on_warn`: throw error on warnings (command `util:warn`).
+
 Among the scripts are those that have common code for different services (like backing up and restoring databases, graceful reload, tls certification generation, syncing to a S3 bucket, among other use cases) that can be seen at [services.sh](/shared/scripts/services.sh), which, then, call the expected service, if any.
 
 There are also scripts for generic execution, that can be seen at the directory [/main/scripts](/main/scripts). Some of what they offer are the possibility to run an upgrade command, that runs the following commands: `build`, `prepare` and `setup`, and can be used for deployments in general. Other commands include the pod tasks, whose inputs can be defined as variables in `vars.sh`, and then used generically.
 
-## Examples
-
-### Run a sleep command
+## Example
 
 A simple example of a setup (this can be considered one of the simplest setups) that runs a sleep command, but gives an error if the command is already running, is as follows:
 

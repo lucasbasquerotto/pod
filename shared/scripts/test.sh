@@ -47,6 +47,11 @@ case "$command" in
 	"inner:shared:test")
 		echo "test inside a container - args: ${*}" >&2
 		;;
+	"shared:test:sleep")
+		info "sleep started (wait 5 seconds)..." >&2
+		sleep 5
+		info "sleep ended" >&2
+		;;
 	"shared:test:s3:delete_old")
 		if [ "${var_main__local:-}" = 'true' ]; then
 			"$pod_script_env_file" "s3:subtask:s3_backup" \

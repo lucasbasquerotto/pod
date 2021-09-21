@@ -10,7 +10,7 @@ pod_script_env_file="$var_pod_script"
 inner_run_file="$var_inner_scripts_dir/run"
 
 pod_main_run_file="$pod_layer_dir/main/scripts/main.sh"
-pod_script_run_file="$pod_layer_dir/main/scripts/$var_run__general__orchestration.sh"
+pod_script_run_file="$pod_layer_dir/main/scripts/${var_run__general__orchestration:-}.sh"
 pod_script_upgrade_file="$pod_layer_dir/main/scripts/upgrade.sh"
 pod_script_remote_file="$pod_layer_dir/main/scripts/remote.sh"
 pod_script_container_image_file="$pod_layer_dir/main/scripts/container-image.sh"
@@ -590,13 +590,19 @@ case "$command" in
 
 		"$pod_script_env_file" "$cmd" "$pod_script_env_file" "action:exec:$task_name"
 		;;
+	"unique:next")
+		"$pod_script_env_file" "unique:cmd" "$pod_script_env_file" "${args[@]}"
+		;;
+	"unique:next:force")
+		"$pod_script_env_file" "unique:cmd:force" "$pod_script_env_file" "${args[@]}"
+		;;
 	"unique:cmd")
 		info "$command: run-one ${args[*]}"
-		run-one "${args[@]}" || error "$title"
+		run-one "${args[@]}"
 		;;
 	"unique:cmd:force")
 		info "$command: run-this-one ${args[*]}"
-		run-this-one "${args[@]}" || error "$title"
+		run-this-one "${args[@]}"
 		;;
 	"run:container:image:"*|"inner:container:image:"*)
 		run_cmd="${command#run:}"

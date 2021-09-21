@@ -38,10 +38,6 @@ fi
 #shellcheck disable=SC2154
 tmp_pod_layer_dir="${var_pod_layer_dir:-}"
 
-tmp_base_dir="$(cd "$(dirname "$tmp_pod_layer_dir")"; pwd -P)"
-tmp_full_dir="$tmp_base_dir/$(basename "$tmp_pod_layer_dir")"
-export var_pod_vars_dir="$tmp_full_dir"
-
 tmp_base_dir="${var_load_general__script_dir:-}"
 tmp_full_dir="$tmp_base_dir/${var_load_general__script_env_file:-}"
 export var_pod_script="$tmp_full_dir"

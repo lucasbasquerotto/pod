@@ -48,7 +48,9 @@ This repository specifically expects the services to run inside containers becau
 
 The focus here is to provide scripts and templates to be used to run containers, avoiding boilerplate to be repeatedly included in different projects.
 
-This repository is a generic implementation that actually isn't complete, and need another repository to complent it and to actually deploy a pod. An example of such a repository is: http://github.com/lucasbasquerotto/ext-pod
+This repository is a generic implementation that actually isn't complete, and need another repository to complement it and to actually deploy a pod. An example of such a repository is: http://github.com/lucasbasquerotto/ext-pod
+
+The 2 main directories in this directory is [main](/main), that contains **generic** scripts and templates, and [shared](/shared), which contains more **opinionated** scripts, templates and files.
 
 ## Scripts
 

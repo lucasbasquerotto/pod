@@ -37,20 +37,16 @@ schemas:
     type: "dict"
     props:
       public_http_port:
-        type: "str"
-        non_empty: true
+        type: "int"
         description: "public non-secure port"
       public_https_port:
-        type: "str"
-        non_empty: true
+        type: "int"
         description: "public secure port"
       private_http_port:
-        type: "str"
-        non_empty: true
+        type: "int"
         description: "private non-secure port"
       private_https_port:
-        type: "str"
-        non_empty: true
+        type: "int"
         description: "private secure port"
   conf:
     type: "dict"

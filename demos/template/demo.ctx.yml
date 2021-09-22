@@ -1,0 +1,30 @@
+files:
+  - dest: "docker-compose.yml"
+    src: "demos/template/docker-compose.yml"
+
+templates:
+  - dest: "env/nginx/nginx.conf"
+    src: "shared/templates/nginx/nginx.tpl.conf"
+    schema: "shared/templates/nginx/nginx.schema.yml"
+    params:
+      main_domain: "{{ params.main_domain }}"
+      conf:
+        ssl: false
+      ports:
+        public_http_port: 8080
+        private_http_port: 9080
+      domains:
+        demo: "{{ params.main_domain }}"
+        theia: "theia.{{ params.main_domain }}"
+      services:
+        - name: "demo"
+          locations:
+            - location: "= /nginx/basic_status"
+              data: "stub_status;"
+            - location: "/"
+              data: "return 200 '[demo] template result (access /nginx/basic_status)';"
+        - name: "theia"
+          endpoint: "http://theia:3000"
+          upgrade: true
+          private: true
+          use_basic_auth: false

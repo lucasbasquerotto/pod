@@ -1,0 +1,19 @@
+services:
+  nginx:
+    image: "nginx:1.21.3-alpine"
+    restart: "unless-stopped"
+    ports:
+    - "8080:80"
+    - "9080:9080"
+    volumes:
+    - "./env/nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
+    - "./shared/containers/nginx/include:/etc/nginx/include:ro"
+
+  theia:
+    image: "theiaide/theia:1.17.2"
+    restart: "unless-stopped"
+    user: root
+    volumes:
+    - "./test/data/.git:/home/project/.git:ro"
+    - "./test/data:/home/project/data:rw"
+    - "./env:/home/project/env:ro"

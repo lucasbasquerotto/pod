@@ -79,13 +79,21 @@ The scripts entrypoint is [/run](/run) at the root of this repository, from whic
 - `var_run__meta__no_info_wrap`: don't show information about before and after commands (commands `util:info:start` and `util:info:end`).
 - `var_run__meta__no_summary`: don't show command summaries (command `util:info:summary`).
 - `var_run__meta__no_colors`: don't print colors in information, warnings, errors and summaries.
+<<<<<<< HEAD
 - `var_run__meta__error_on_warn`: throw errors on warnings.
+=======
+- `var_run__meta__error_on_warn`: throw error on warnings (command `util:warn`).
+>>>>>>> 708f79dde3a6b6533bb2f6cbb3eead032a08e1f9
 
 Among the scripts are those that have common code for different services (like backing up and restoring databases, graceful reload, tls certification generation, syncing to a S3 bucket, among other use cases) that can be seen at [services.sh](/shared/scripts/services.sh), which, then, call the expected service, if any.
 
 There are also scripts for generic execution, that can be seen at the directory [/main/scripts](/main/scripts). Some of what they offer are the possibility to run an upgrade command, that runs the following commands: `build`, `prepare` and `setup`, and can be used for deployments in general. Other commands include the pod tasks, whose inputs can be defined as variables in `vars.sh`, and then used generically.
 
+<<<<<<< HEAD
 ### Scripts Example
+=======
+## Example
+>>>>>>> 708f79dde3a6b6533bb2f6cbb3eead032a08e1f9
 
 A simple example of a setup (this can be considered one of the simplest setups) that runs a sleep command, but gives an error if the command is already running, is as follows:
 

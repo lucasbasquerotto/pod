@@ -56,6 +56,15 @@ schemas:
         description: >-
           when true, listen on secure ports: 443 (remote) / 8443 (local) and 9443 (private);
           used as default for the services ssl
+      use_blacklist:
+        type: "bool"
+        description: >-
+          when true, needs blacklist files for ips and user agents to deny requests from those
+          sources; the needed files, relative to the data directory, are:
+
+          - sync/nginx/manual/ips-blacklist.conf: ips blacklist filled manually
+          - sync/nginx/auto/ips-blacklist-auto.conf: ips blacklist filled automatically
+          - sync/nginx/manual/ua-blacklist.conf: user agent blacklist filled manually
       disable_basic_auth:
         type: "bool"
         description: "disables basic authentication for the services"

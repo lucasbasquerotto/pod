@@ -1,6 +1,6 @@
 # (Under Construction) Pod Layer
 
-This repository corresponds to the pod layer and is used to deploy interdependent services in a given host.
+This repository corresponds to the pod layer and is used to deploy services inside containers in a given host.
 
 ## Demo
 

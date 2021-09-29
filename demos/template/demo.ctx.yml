@@ -7,15 +7,15 @@ templates:
     src: "shared/templates/nginx/nginx.tpl.conf"
     schema: "shared/templates/nginx/nginx.schema.yml"
     params:
-      main_domain: "{{ params.main_domain }}"
+      main_domain: "{{ params.domain | default('') }}"
       conf:
         ssl: false
       ports:
         public_http_port: 8080
         private_http_port: 9080
       domains:
-        demo: "{{ params.main_domain }}"
-        theia: "theia.{{ params.main_domain }}"
+        demo: "{{ params.domain | default('') }}"
+        theia: "theia.{{ params.domain | default('') }}"
       services:
         - name: "demo"
           locations:

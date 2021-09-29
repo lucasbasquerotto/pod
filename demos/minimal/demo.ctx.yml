@@ -1,0 +1,3 @@
+files:
+  - dest: "vars.sh"
+    src: "demos/minimal/vars.sh"

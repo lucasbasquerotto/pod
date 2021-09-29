@@ -107,7 +107,21 @@ export var_pod_tmp_dir_relpath='test/tmp'
 export var_pod_data_dir_relpath='test/data'
 ```
 
-Then run `./run unique:next shared:test:sleep`. This command will run a sleep command that waits 5 seconds and is equivalent to `./run shared:test:sleep` as long as there's a single process running it. If a new process runs it, an error is thrown (but is not thrown when running `./run shared:test:sleep`; instead, it will run in parallel the same command). If, instead, the new process is the one that must run, killing the first, you can run `./run unique:next:force shared:test:sleep`.
+A [pod context](http://github.com/lucasbasquerotto/cloud#pod-context) file to create this file at the pod repository root is defined at [demos/minimal/demo.ctx.yml](demos/minimal/demo.ctx.yml) and can be deployed with the following [project environment file](http://github.com/lucasbasquerotto/cloud#project-environment-file):
+
+```yaml
+name: "demo-pod-minimal"
+env:
+  repo:
+    src: "https://github.com/lucasbasquerotto/env-base.git"
+    version: "master"
+  repo_dir: "env-base"
+  file: "demos/demo-pod-minimal.yml"
+```
+
+The above configuration deploys the pod locally according to the [project environment base file](https://github.com/lucasbasquerotto/env-base/tree/master/demos/demo-pod-minimal.yml). It just creates the pod repository directory (TODO) and places the `vars.sh` file (as defined previously) in the pod repository directory.
+
+Then run `./run unique:next shared:test:sleep` in the pod repository directory. This command will run a sleep command that waits 5 seconds and is equivalent to `./run shared:test:sleep` as long as there's a single process running it. If a new process runs it, an error is thrown (but is not thrown when running `./run shared:test:sleep`; instead, it will run in parallel the same command). If, instead, the new process is the one that must run, killing the first, you can run `./run unique:next:force shared:test:sleep`.
 
 The execution of `./run unique:next shared:test:sleep` does the following:
 
@@ -205,14 +219,14 @@ Then, run `docker-compose up -d` and you will be able to access the nginx servic
 You can deploy this project locally with the following [project environment file](http://github.com/lucasbasquerotto/cloud#project-environment-file):
 
 ```yaml
-name: "demo-template-local"
+name: "demo-pod-template-local"
 ctxs: ["local"]
 env:
   repo:
     src: "https://github.com/lucasbasquerotto/env-base.git"
     version: "master"
   repo_dir: "env-base"
-  file: "demos/demo-template.yml"
+  file: "demos/demo-pod-template.yml"
 params:
   domain: "localhost"
 ```
@@ -220,14 +234,14 @@ params:
 And remotely at DigitalOcean with Cloudflare for DNS with:
 
 ```yaml
-name: "demo-template-remote"
+name: "demo-pod-template-remote"
 ctxs: ["remote"]
 env:
   repo:
     src: "https://github.com/lucasbasquerotto/env-base.git"
     version: "master"
   repo_dir: "env-base"
-  file: "demos/demo-template.yml"
+  file: "demos/demo-pod-template.yml"
 params:
   private_ips: ["<< your_ip >>"]
   domain: "<< your_domain >>"
@@ -243,7 +257,7 @@ Then run `docker run -it --rm -v /var/demo/env:/env:ro -v /var/demo/data:/lrd lo
 
 In the local deployment, you need to run `docker-compose up -d` in the pod repository directory (TODO) to start the services. Then, you can access the initial page at `localhost:8080`, the nginx status page at `localhost:8080/nginx/basic_status` and the theia service at `theia.localhost:9080`.
 
-In the remote deployment there's no need to run `docker-compose up -d` (it already runs in the target machine during the deployment). You can access the same paths as the local deployment, just changing `localhost` in the urls with `<< your_domain >>`, but the theia service can only be accessed at `theia.<< your_domain >>:9080` if the ip of your machine (or a subnet that includes it) is defined at `private_ips` (the `private: true` in the pod context file makes the port of the `theia` service be `9080`, as defined in the `private_http_port` property, and the `private_ips` property in the environment file defines the ips that can access the port `9080` in the [environment base file](https://github.com/lucasbasquerotto/env-base/tree/master/demos/demo-template.yml)).
+In the remote deployment there's no need to run `docker-compose up -d` (it already runs in the target machine during the deployment). You can access the same paths as the local deployment, just changing `localhost` in the urls with `<< your_domain >>`, but the theia service can only be accessed at `theia.<< your_domain >>:9080` if the ip of your machine (or a subnet that includes it) is defined at `private_ips` (the `private: true` in the pod context file makes the port of the `theia` service be `9080`, as defined in the `private_http_port` property, and the `private_ips` property in the environment file defines the ips that can access the port `9080` in the [project environment base file](https://github.com/lucasbasquerotto/env-base/tree/master/demos/demo-pod-template.yml)).
 
 The above project environment file will deploy the pod as defined at [/demos/template](/demos/template) in this repository.
 

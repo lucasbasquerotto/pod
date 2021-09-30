@@ -421,8 +421,10 @@ if [ "$tmp_is_web" = 'true' ]; then
 			tmp_errors+=("[shared] var_load__certbot__domains is not defined")
 		fi
 
-		if [ -z "${var_load__certbot__email:-}" ]; then
-			tmp_errors+=("[shared] var_load__certbot__email is not defined")
+		if [ "${var_load_main__local:-}" != 'true' ]; then
+			if [ -z "${var_load__certbot__email:-}" ]; then
+				tmp_errors+=("[shared] var_load__certbot__email is not defined")
+			fi
 		fi
 
 		export var_task__certbot__task__type='certbot'

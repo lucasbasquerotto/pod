@@ -130,6 +130,7 @@ case "$command" in
 			--local="true"
 		;;
 	"main:inner:vars")
+		mkdir -p "$pod_layer_dir/env"
 		{
 			# shellcheck disable=SC1090,SC1091
 			. "${pod_layer_dir}/vars.sh"
